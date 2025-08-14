@@ -30,8 +30,8 @@ pipeline {
         TEXT_CLEANUP_OLD_IMAGES_FAIL = "🔴 Cleanup Old Images Failed"
         TEXT_END = "🟢 Service ${SERVICE} ${ENVIRONMENT} Build Finished"
 
-        DISCORD_CHANNEL = '1382725588321828934'
-        DISCORD_CHAT_ID = 'Q1edE75TA7jJlloegQ2MxDpBxAGoVFz0buoSwW-wg6mTLozxP20oagKFlRiN5l1fyCOQ'
+        DISCORD_CHANNEL = '1405399234571800628'
+        DISCORD_CHAT_ID = 'm8WQVikc8PS285oGBes0mllosjvGMG1DtkqQ32fIk6eax3CKstjhYHOMcFumeYDFjcTN'
     }
 
     stages {
