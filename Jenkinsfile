@@ -203,20 +203,17 @@ pipeline {
                 }
             }
         }
-
-        stage('Notify Build Finished') {
-            steps {
-                script {
-                    notifyDiscord(env.DISCORD_CHANNEL, env.DISCORD_CHAT_ID, "${env.TEXT_END}")
-                }
-            }
-        }
     }
 
     post {
         failure {
             script {
                 notifyDiscord(env.DISCORD_CHANNEL, env.DISCORD_CHAT_ID, "🔴 Service ${env.SERVICE} ${env.ENVIRONMENT} Pipeline Failed")
+            }
+        }
+        success {
+            script {
+                notifyDiscord(env.DISCORD_CHANNEL, env.DISCORD_CHAT_ID, "${env.TEXT_END}")
             }
         }
     }
