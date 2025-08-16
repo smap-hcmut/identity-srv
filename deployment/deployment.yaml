@@ -44,6 +44,8 @@ spec:
         - secretRef:
             name: smap-config
         - secretRef:
+            name: smap-logger
+        - secretRef:
             name: smap-database
         - secretRef:
             name: smap-discord

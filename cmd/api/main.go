@@ -7,10 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/lib/pq"
 	"github.com/nguyentantai21042004/smap-api/config"
 	"github.com/nguyentantai21042004/smap-api/internal/appconfig/minio"
-	"github.com/nguyentantai21042004/smap-api/internal/appconfig/postgre"
+	"github.com/nguyentantai21042004/smap-api/internal/appconfig/mongo"
 	"github.com/nguyentantai21042004/smap-api/internal/httpserver"
 	"github.com/nguyentantai21042004/smap-api/pkg/discord"
 	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
@@ -46,12 +45,13 @@ func main() {
 	// DATABASE CONFIGURATION
 	// =============================================================================
 
-	// Initialize PostgreSQL
-	postgresDB, err := postgre.Connect(context.Background(), cfg.Postgres)
+	// Initialize MongoDB
+	client, err := mongo.Connect(cfg.Mongo, encrypter)
 	if err != nil {
-		log.Fatal("Failed to connect to PostgreSQL: ", err)
+		panic(err)
 	}
-	defer postgre.Disconnect(context.Background(), postgresDB)
+	db := client.Database(cfg.Mongo.Database)
+	defer mongo.Disconnect(client)
 
 	// =============================================================================
 	// MESSAGE QUEUE CONFIGURATION
@@ -101,7 +101,7 @@ func main() {
 		Mode:   cfg.HTTPServer.Mode,
 
 		// Database Configuration
-		PostgresDB: postgresDB,
+		MongoDB: db,
 
 		// Storage Configuration
 		MinIOClient: minioClient,

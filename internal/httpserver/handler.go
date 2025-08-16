@@ -82,7 +82,7 @@ func (srv HTTPServer) healthCheck(c *gin.Context) {
 // @Router /ready [get]
 func (srv HTTPServer) readyCheck(c *gin.Context) {
 	// Check database connection
-	if err := srv.postgresDB.PingContext(c.Request.Context()); err != nil {
+	if err := srv.mongoDB.Client().Ping(c.Request.Context()); err != nil {
 		c.JSON(503, gin.H{
 			"status":  "not ready",
 			"message": "Database connection failed",

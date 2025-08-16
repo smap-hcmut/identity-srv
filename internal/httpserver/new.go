@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"database/sql"
 	"errors"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +21,7 @@ type HTTPServer struct {
 	mode string
 
 	// Database Configuration
-	postgresDB *sql.DB
+	mongoDB mongo.Database
 
 	// Storage Configuration
 	minioClient minio.MinIO
@@ -47,8 +46,7 @@ type Config struct {
 	Mode   string
 
 	// Database Configuration
-	PostgresDB *sql.DB
-	MongoDB    mongo.Client
+	MongoDB mongo.Database
 
 	// Storage Configuration
 	MinIOClient minio.MinIO
@@ -81,7 +79,7 @@ func New(l pkgLog.Logger, cfg Config) (*HTTPServer, error) {
 		mode: cfg.Mode,
 
 		// Database Configuration
-		postgresDB: cfg.PostgresDB,
+		mongoDB: cfg.MongoDB,
 
 		// Storage Configuration
 		minioClient: cfg.MinIOClient,
@@ -117,7 +115,7 @@ func (s HTTPServer) validate() error {
 		{s.port, "port is required"},
 
 		// Database Configuration
-		{s.postgresDB, "postgresDB is required"},
+		{s.mongoDB, "mongoDB is required"},
 
 		// Storage Configuration
 		{s.minioClient, "minioClient is required"},

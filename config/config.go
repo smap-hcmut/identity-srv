@@ -10,8 +10,7 @@ type Config struct {
 	Logger     LoggerConfig
 
 	// Database Configuration
-	Postgres PostgresConfig
-
+	Mongo    MongoConfig
 	// Storage Configuration
 	MinIO MinIOConfig
 
@@ -49,14 +48,11 @@ type LoggerConfig struct {
 	Encoding string `env:"LOGGER_ENCODING" envDefault:"console"`
 }
 
-// PostgresConfig is the configuration for the Postgres,
-// which is used to connect to the Postgres.
-type PostgresConfig struct {
-	Host     string `env:"POSTGRES_HOST" envDefault:"localhost"`
-	Port     int    `env:"POSTGRES_PORT" envDefault:"5432"`
-	User     string `env:"POSTGRES_USER" envDefault:"postgres"`
-	Password string `env:"POSTGRES_PASSWORD" envDefault:"postgres"`
-	DBName   string `env:"POSTGRES_DB" envDefault:"postgres"`
+// 
+type MongoConfig struct {
+	Database            string `env:"MONGODB_DATABASE"`
+	MONGODB_ENCODED_URI string `env:"MONGODB_ENCODED_URI"`
+	ENABLE_MONITOR      bool   `env:"MONGODB_ENABLE_MONITORING" envDefault:"false"`
 }
 
 type MinIOConfig struct {
