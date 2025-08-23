@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/nguyentantai21042004/smap-api/config"
-	"github.com/nguyentantai21042004/smap-api/internal/appconfig/minio"
 	"github.com/nguyentantai21042004/smap-api/internal/appconfig/mongo"
 	"github.com/nguyentantai21042004/smap-api/internal/httpserver"
 	"github.com/nguyentantai21042004/smap-api/pkg/discord"
@@ -61,14 +59,6 @@ func main() {
 	// STORAGE CONFIGURATION
 	// =============================================================================
 
-	// Initialize MinIO
-	// log.Println("Connecting to MinIO...")
-	minioClient, err := minio.Connect(context.Background(), cfg.MinIO)
-	if err != nil {
-		log.Fatal("Failed to connect to MinIO: ", err)
-	}
-	defer minio.Close()
-
 	// =============================================================================
 	// AUTHENTICATION & SECURITY CONFIGURATION
 	// =============================================================================
@@ -102,9 +92,6 @@ func main() {
 
 		// Database Configuration
 		MongoDB: db,
-
-		// Storage Configuration
-		MinIOClient: minioClient,
 
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,

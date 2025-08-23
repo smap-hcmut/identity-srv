@@ -10,9 +10,7 @@ type Config struct {
 	Logger     LoggerConfig
 
 	// Database Configuration
-	Mongo    MongoConfig
-	// Storage Configuration
-	MinIO MinIOConfig
+	Mongo MongoConfig
 
 	// Authentication & Security Configuration
 	JWT            JWTConfig
@@ -48,7 +46,6 @@ type LoggerConfig struct {
 	Encoding string `env:"LOGGER_ENCODING" envDefault:"console"`
 }
 
-// 
 type MongoConfig struct {
 	Database            string `env:"MONGODB_DATABASE"`
 	MONGODB_ENCODED_URI string `env:"MONGODB_ENCODED_URI"`

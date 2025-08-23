@@ -8,7 +8,6 @@ import (
 	"github.com/nguyentantai21042004/smap-api/pkg/discord"
 	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
 	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
-	"github.com/nguyentantai21042004/smap-api/pkg/minio"
 	"github.com/nguyentantai21042004/smap-api/pkg/mongo"
 )
 
@@ -22,9 +21,6 @@ type HTTPServer struct {
 
 	// Database Configuration
 	mongoDB mongo.Database
-
-	// Storage Configuration
-	minioClient minio.MinIO
 
 	// Authentication & Security Configuration
 	jwtSecretKey string
@@ -47,9 +43,6 @@ type Config struct {
 
 	// Database Configuration
 	MongoDB mongo.Database
-
-	// Storage Configuration
-	MinIOClient minio.MinIO
 
 	// Authentication & Security Configuration
 	JwtSecretKey string
@@ -80,9 +73,6 @@ func New(l pkgLog.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Database Configuration
 		mongoDB: cfg.MongoDB,
-
-		// Storage Configuration
-		minioClient: cfg.MinIOClient,
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,
@@ -116,9 +106,6 @@ func (s HTTPServer) validate() error {
 
 		// Database Configuration
 		{s.mongoDB, "mongoDB is required"},
-
-		// Storage Configuration
-		{s.minioClient, "minioClient is required"},
 
 		// Authentication & Security Configuration
 		{s.jwtSecretKey, "jwtSecretKey is required"},
