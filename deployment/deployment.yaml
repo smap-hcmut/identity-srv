@@ -39,7 +39,6 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
-        # Load environment variables from existing secrets
         envFrom:
         - secretRef:
             name: smap-config
@@ -49,8 +48,6 @@ spec:
             name: smap-database
         - secretRef:
             name: smap-discord
-        - secretRef:
-            name: smap-minio
         - secretRef:
             name: smap-security
         env:
