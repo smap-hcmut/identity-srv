@@ -52,15 +52,6 @@ type MongoConfig struct {
 	ENABLE_MONITOR      bool   `env:"MONGODB_ENABLE_MONITORING" envDefault:"false"`
 }
 
-type MinIOConfig struct {
-	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"localhost:9000"`
-	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:"minioadmin"`
-	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:"minioadmin"`
-	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
-	Region    string `env:"MINIO_REGION" envDefault:"us-east-1"`
-	Bucket    string `env:"MINIO_BUCKET"`
-}
-
 type DiscordConfig struct {
 	ReportBugID    string `env:"DISCORD_REPORT_BUG_ID"`
 	ReportBugToken string `env:"DISCORD_REPORT_BUG_TOKEN"`
