@@ -26,7 +26,7 @@ spec:
       - name: harbor-secret
       containers:
       - name: smap-api
-        image: harbor.ngtantai.pro/smap/smap-api:250814-230138
+        image: registry.tantai.dev/smap/smap-api:250814-230138
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
