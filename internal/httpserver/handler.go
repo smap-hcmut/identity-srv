@@ -14,6 +14,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nguyentantai21042004/smap-api/pkg/response"
+
+	// Auth
+	authHTTP "github.com/nguyentantai21042004/smap-api/internal/auth/delivery/http"
+	authProducer "github.com/nguyentantai21042004/smap-api/internal/auth/delivery/rabbitmq/producer"
+	authUC "github.com/nguyentantai21042004/smap-api/internal/auth/usecase"
+
+	// Core SMTP
+	smtpUC "github.com/nguyentantai21042004/smap-api/internal/core/smtp/usecase"
+
+	// Role
+	// roleDelivery "github.com/nguyentantai21042004/smap-api/internal/role/delivery/http"
+	roleRepo "github.com/nguyentantai21042004/smap-api/internal/role/repository/mongo"
+	roleUC "github.com/nguyentantai21042004/smap-api/internal/role/usecase"
+
+	// User
+	userRepo "github.com/nguyentantai21042004/smap-api/internal/user/repository/mongo"
+	userUC "github.com/nguyentantai21042004/smap-api/internal/user/usecase"
+	userHTTP "github.com/nguyentantai21042004/smap-api/internal/user/delivery/http"
+	
+	// Session
+	sessionRepo "github.com/nguyentantai21042004/smap-api/internal/session/repository/mongo"
+	sessionUC "github.com/nguyentantai21042004/smap-api/internal/session/usecase"
 )
 
 const (
@@ -45,12 +67,52 @@ func (srv HTTPServer) mapHandlers() error {
 
 	i18n.Init()
 
+	// Role
+	roleRepo := roleRepo.New(srv.l, srv.mongoDB)
+	roleUC := roleUC.New(srv.l, roleRepo)
+	// roleHandler := roleDelivery.New(srv.l, roleUC, discord)
+
+	// User
+	userRepo := userRepo.New(srv.l, srv.mongoDB)
+	userUC := userUC.New(srv.l, userRepo, roleUC)
+	userH := userHTTP.New(srv.l, userUC, discord)
+
+	// Session
+	sessionRepo := sessionRepo.New(srv.l, srv.mongoDB)
+	sessionUC := sessionUC.New(srv.l, sessionRepo, userUC)
+
+	// SMTP Core
+	smtpUC := smtpUC.New(srv.l, srv.smtpConfig)
+
+	// Auth Producer
+	authProd := authProducer.NewProducer(srv.l, srv.amqpConn)
+	if err := authProd.Run(); err != nil {
+		return err
+	}
+	authUC := authUC.New(
+		srv.l,
+		authProd,
+		srv.encrypter,
+		srv.oauthConfig,
+		scopeUC,
+		smtpUC,
+		userUC,
+		roleUC,
+		sessionUC,
+	)
+	authH := authHTTP.New(srv.l, authUC, discord)
+
 	// Middleware
 	mw := middleware.New(srv.l, scopeUC)
 
 	// Apply locale middleware
 	srv.gin.Use(mw.Locale())
-	// api := srv.gin.Group(Api)
+	api := srv.gin.Group(Api)
+
+	// Map Routes
+	// roleDelivery.MapRoutes(api.Group("/roles"), roleHandler, mw)
+	authHTTP.MapAuthRoutes(api.Group("/auth"), authH, mw)
+	userHTTP.MapUserRoutes(api.Group("/user"), userH, mw)
 
 	return nil
 }

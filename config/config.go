@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/caarlos0/env/v9"
 )
 
@@ -14,10 +12,21 @@ type Config struct {
 	// Database Configuration
 	Mongo MongoConfig
 
+	// Cache Configuration
+	Redis RedisConfig
+
+	// Message Queue Configuration
+	RabbitMQConfig RabbitMQConfig
+
 	// Authentication & Security Configuration
 	JWT            JWTConfig
 	Encrypter      EncrypterConfig
 	InternalConfig InternalConfig
+	Oauth          OauthConfig
+	GoogleDrive    GoogleDriveConfig
+
+	// External Services Configuration
+	SMTP SMTPConfig
 
 	// WebSocket Configuration
 	WebSocket WebSocketConfig
@@ -51,7 +60,7 @@ type LoggerConfig struct {
 type MongoConfig struct {
 	Database            string `env:"MONGODB_DATABASE"`
 	MONGODB_ENCODED_URI string `env:"MONGODB_ENCODED_URI"`
-	ENABLE_MONITOR      bool   `env:"MONGODB_ENABLE_MONITORING" envDefault:"false"`
+	ENABLE_MONITOR      bool   `env:"MONGODB_ENABLE_MONITORING" envDefault:"true"`
 }
 
 type DiscordConfig struct {
@@ -82,6 +91,77 @@ type WebSocketConfig struct {
 	WriteWait       int `env:"WS_WRITE_WAIT" envDefault:"10"`
 }
 
+// RabbitMQConfig is the configuration for the RabbitMQ,
+// which is used to connect to the RabbitMQ.
+type RabbitMQConfig struct {
+	URL string `env:"RABBITMQ_URL"`
+}
+
+// SMTPConfig is the configuration for the SMTP,
+// which is used to send email.
+type SMTPConfig struct {
+	Host     string `env:"SMTP_HOST" envDefault:"smtp.gmail.com"`
+	Port     int    `env:"SMTP_PORT" envDefault:"587"`
+	Username string `env:"SMTP_USERNAME"`
+	Password string `env:"SMTP_PASSWORD"`
+	From     string `env:"SMTP_FROM"`
+	FromName string `env:"SMTP_FROM_NAME"`
+}
+
+// RedisConfig is the configuration for the Redis,
+// which is used to connect to the Redis.
+type RedisConfig struct {
+	RedisAddr         []string `env:"REDIS_ADDR" envDefault:"localhost:6379"`
+	RedisPassword     string   `env:"REDIS_PASSWORD" envDefault:""`
+	RedisDB           int      `env:"REDIS_DB" envDefault:"0"`
+	RedisStandAlone   bool     `env:"REDIS_STANDALONE" envDefault:"true"`
+	RedisPoolSize     int      `env:"REDIS_POOL_SIZE" envDefault:"10"`
+	RedisPoolTimeout  int      `env:"REDIS_POOL_TIMEOUT" envDefault:"10"`
+	RedisMinIdleConns int      `env:"REDIS_MIN_IDLE_CONNS" envDefault:"10"`
+}
+
+type OauthConfig struct {
+	Google   GoogleOauthConfig
+	Facebook FacebookOauthConfig
+	Gitlab   GitlabOauthConfig
+}
+
+type GoogleOauthConfig struct {
+	ClientID     string   `env:"GOOGLE_OAUTH_CLIENT_ID"`
+	ClientSecret string   `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
+	RedirectURL  string   `env:"GOOGLE_OAUTH_REDIRECT_URL"`
+	Scopes       []string `env:"GOOGLE_OAUTH_SCOPES"`
+	AuthURL      string   `env:"GOOGLE_OAUTH_AUTH_URL"`
+	TokenURL     string   `env:"GOOGLE_OAUTH_TOKEN_URL"`
+	UserInfoURL  string   `env:"GOOGLE_OAUTH_USER_INFO_URL"`
+}
+
+type GoogleDriveConfig struct {
+	ClientID     string `env:"GOOGLE_DRIVE_CLIENT_ID"`
+	ClientSecret string `env:"GOOGLE_DRIVE_CLIENT_SECRET"`
+	RedirectURL  string `env:"GOOGLE_DRIVE_REDIRECT_URL"`
+}
+
+type FacebookOauthConfig struct {
+	ClientID     string   `env:"FACEBOOK_OAUTH_CLIENT_ID"`
+	ClientSecret string   `env:"FACEBOOK_OAUTH_CLIENT_SECRET"`
+	RedirectURL  string   `env:"FACEBOOK_OAUTH_REDIRECT_URL"`
+	Scopes       []string `env:"FACEBOOK_OAUTH_SCOPES"`
+	AuthURL      string   `env:"FACEBOOK_OAUTH_AUTH_URL"`
+	TokenURL     string   `env:"FACEBOOK_OAUTH_TOKEN_URL"`
+	UserInfoURL  string   `env:"FACEBOOK_OAUTH_USER_INFO_URL"`
+}
+
+type GitlabOauthConfig struct {
+	ClientID     string   `env:"GITLAB_OAUTH_CLIENT_ID"`
+	ClientSecret string   `env:"GITLAB_OAUTH_CLIENT_SECRET"`
+	RedirectURL  string   `env:"GITLAB_OAUTH_REDIRECT_URL"`
+	Scopes       []string `env:"GITLAB_OAUTH_SCOPES"`
+	AuthURL      string   `env:"GITLAB_OAUTH_AUTH_URL"`
+	TokenURL     string   `env:"GITLAB_OAUTH_TOKEN_URL"`
+	UserInfoURL  string   `env:"GITLAB_OAUTH_USER_INFO_URL"`
+}
+
 // Load is the function to load the configuration from the environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{}
@@ -90,6 +170,6 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 	// Print all config for testing
-	fmt.Printf("%+v\n", cfg)
+	// fmt.Printf("%+v\n", cfg)
 	return cfg, nil
 }

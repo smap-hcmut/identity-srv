@@ -1,13 +1,15 @@
 package consumer
 
 import (
-	"database/sql"
 	"errors"
 
+	"github.com/nguyentantai21042004/smap-api/config"
+	"github.com/nguyentantai21042004/smap-api/internal/appconfig/oauth"
 	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
 	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
+	"github.com/nguyentantai21042004/smap-api/pkg/mongo"
 	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
-	"github.com/redis/go-redis/v9"
+	pkgRedis "github.com/nguyentantai21042004/smap-api/pkg/redis"
 )
 
 type Consumer struct {
@@ -17,8 +19,10 @@ type Consumer struct {
 	encrypter    pkgCrt.Encrypter
 	telegram     TeleCredentials
 	internalKey  string
-	postgresDB   *sql.DB
-	redisClient  *redis.Client
+	mongoDB      *mongo.Database
+	smtpConfig   config.SMTPConfig
+	redisClient  *pkgRedis.Client
+	oauthConfig  oauth.OauthConfig
 }
 
 type ConsumerConfig struct {
@@ -27,8 +31,10 @@ type ConsumerConfig struct {
 	Encrypter    pkgCrt.Encrypter
 	Telegram     TeleCredentials
 	InternalKey  string
-	PostgresDB   *sql.DB
-	RedisClient  *redis.Client
+	MongoDB      *mongo.Database
+	RedisClient  *pkgRedis.Client
+	SMTPConfig   config.SMTPConfig
+	OauthConfig  oauth.OauthConfig
 }
 
 type TeleCredentials struct {
@@ -49,8 +55,10 @@ func New(l pkgLog.Logger, cfg ConsumerConfig) (*Consumer, error) {
 		encrypter:    cfg.Encrypter,
 		telegram:     cfg.Telegram,
 		internalKey:  cfg.InternalKey,
-		postgresDB:   cfg.PostgresDB,
+		mongoDB:      cfg.MongoDB,
+		smtpConfig:   cfg.SMTPConfig,
 		redisClient:  cfg.RedisClient,
+		oauthConfig:  cfg.OauthConfig,
 	}
 
 	if err := h.validate(); err != nil {
@@ -71,8 +79,10 @@ func (s Consumer) validate() error {
 		{s.encrypter, "encrypter is required"},
 		{s.telegram, "telegram is required"},
 		{s.internalKey, "internalKey is required"},
-		{s.postgresDB, "postgresDB is required"},
+		{s.mongoDB, "mongoDB is required"},
 		{s.redisClient, "redisClient is required"},
+		{s.oauthConfig, "oauthConfig is required"},
+		{s.smtpConfig, "smtpConfig is required"},
 	}
 
 	for _, dep := range requiredDeps {

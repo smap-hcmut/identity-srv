@@ -12,6 +12,8 @@ import (
 	"github.com/nguyentantai21042004/smap-api/pkg/discord"
 	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
 	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
+	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	"github.com/nguyentantai21042004/smap-api/pkg/redis"
 )
 
 // @Name Smap API
@@ -51,9 +53,23 @@ func main() {
 	db := client.Database(cfg.Mongo.Database)
 	defer mongo.Disconnect(client)
 
+	// Initialize Redis
+	redisOpts := redis.NewClientOptions().SetOptions(cfg.Redis)
+	redisClient, err := redis.Connect(redisOpts)
+	if err != nil {
+		log.Fatal("Failed to connect to Redis: ", err)
+	}
+	defer redisClient.Disconnect()
+	log.Println("✅ Redis connected successfully")
+
 	// =============================================================================
 	// MESSAGE QUEUE CONFIGURATION
 	// =============================================================================
+	amqpConn, err := rabbitmq.Dial(cfg.RabbitMQConfig.URL, true)
+	if err != nil {
+		log.Fatal("Failed to connect to RabbitMQ: ", err)
+	}
+	defer amqpConn.Close()
 
 	// =============================================================================
 	// STORAGE CONFIGURATION
@@ -93,6 +109,12 @@ func main() {
 		// Database Configuration
 		MongoDB: db,
 
+		// Cache Configuration
+		RedisClient: &redisClient,
+
+		// Message Queue Configuration
+		AMQPConn: amqpConn,
+
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,
 		Encrypter:    encrypter,
@@ -100,6 +122,9 @@ func main() {
 
 		// WebSocket Configuration
 		WebSocketConfig: cfg.WebSocket,
+
+		// External Services Configuration
+		SMTPConfig: cfg.SMTP,
 
 		// Monitoring & Notification Configuration
 		DiscordConfig: discordWebhook,
