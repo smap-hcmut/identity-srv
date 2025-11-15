@@ -7,6 +7,7 @@ import (
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
 	"smap-api/pkg/log"
+	miniopkg "smap-api/pkg/minio"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,6 +34,9 @@ type HTTPServer struct {
 	// Database Configuration
 	postgresDB *sql.DB
 
+	// Storage Configuration
+	minio miniopkg.MinIO
+
 	// Authentication & Security Configuration
 	jwtSecretKey string
 	encrypter    encrypter.Encrypter
@@ -52,6 +56,9 @@ type Config struct {
 	// Database Configuration
 	PostgresDB *sql.DB
 
+	// Storage Configuration
+	MinIO miniopkg.MinIO
+
 	// Authentication & Security Configuration
 	JwtSecretKey string
 	Encrypter    encrypter.Encrypter
@@ -61,12 +68,13 @@ type Config struct {
 	Discord *discord.Discord
 }
 
-func New(l log.Logger, cfg Config) (*HTTPServer, error) {
+// New creates a new HTTPServer instance with the provided configuration.
+func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 	gin.SetMode(cfg.Mode)
 
-	h := &HTTPServer{
+	srv := &HTTPServer{
 		// Server Configuration
-		l:    l,
+		l:    logger,
 		gin:  gin.Default(),
 		host: cfg.Host,
 		port: cfg.Port,
@@ -74,6 +82,9 @@ func New(l log.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Database Configuration
 		postgresDB: cfg.PostgresDB,
+
+		// Storage Configuration
+		minio: cfg.MinIO,
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,
@@ -84,40 +95,53 @@ func New(l log.Logger, cfg Config) (*HTTPServer, error) {
 		discord: cfg.Discord,
 	}
 
-	if err := h.validate(); err != nil {
+	if err := srv.validate(); err != nil {
 		return nil, err
 	}
 
-	return h, nil
+	return srv, nil
 }
 
-func (s HTTPServer) validate() error {
-	requiredDeps := []struct {
-		dep interface{}
-		msg string
-	}{
-		// Server Configuration
-		{s.l, "logger is required"},
-		{s.mode, "mode is required"},
-		{s.host, "host is required"},
-		{s.port, "port is required"},
-
-		// Database Configuration
-		{s.postgresDB, "postgresDB is required"},
-
-		// Authentication & Security Configuration
-		{s.jwtSecretKey, "jwtSecretKey is required"},
-		{s.encrypter, "encrypter is required"},
-		{s.internalKey, "internalKey is required"},
-
-		// Monitoring & Notification Configuration
-		{s.discord, "discord is required"},
+// validate validates that all required dependencies are provided.
+func (srv HTTPServer) validate() error {
+	// Server Configuration
+	if srv.l == nil {
+		return errors.New("logger is required")
+	}
+	if srv.mode == "" {
+		return errors.New("mode is required")
+	}
+	if srv.host == "" {
+		return errors.New("host is required")
+	}
+	if srv.port == 0 {
+		return errors.New("port is required")
 	}
 
-	for _, dep := range requiredDeps {
-		if dep.dep == nil {
-			return errors.New(dep.msg)
-		}
+	// Database Configuration
+	if srv.postgresDB == nil {
+		return errors.New("postgresDB is required")
+	}
+
+	// Storage Configuration
+	if srv.minio == nil {
+		return errors.New("minio is required")
+	}
+
+	// Authentication & Security Configuration
+	if srv.jwtSecretKey == "" {
+		return errors.New("jwtSecretKey is required")
+	}
+	if srv.encrypter == nil {
+		return errors.New("encrypter is required")
+	}
+	if srv.internalKey == "" {
+		return errors.New("internalKey is required")
+	}
+
+	// Monitoring & Notification Configuration
+	if srv.discord == nil {
+		return errors.New("discord is required")
 	}
 
 	return nil
