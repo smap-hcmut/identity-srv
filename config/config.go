@@ -56,6 +56,7 @@ type PostgresConfig struct {
 	User     string `env:"POSTGRES_USER" envDefault:"postgres"`
 	Password string `env:"POSTGRES_PASSWORD" envDefault:"postgres"`
 	DBName   string `env:"POSTGRES_DB" envDefault:"postgres"`
+	SSLMode  string `env:"POSTGRES_SSLMODE" envDefault:"prefer"`
 }
 
 type MinIOConfig struct {
@@ -68,8 +69,8 @@ type MinIOConfig struct {
 }
 
 type DiscordConfig struct {
-	ReportBugID    string `env:"DISCORD_REPORT_BUG_ID"`
-	ReportBugToken string `env:"DISCORD_REPORT_BUG_TOKEN"`
+	WebhookID    string `env:"DISCORD_WEBHOOK_ID"`
+	WebhookToken string `env:"DISCORD_WEBHOOK_TOKEN"`
 }
 
 // EncrypterConfig is the configuration for the encrypter,
