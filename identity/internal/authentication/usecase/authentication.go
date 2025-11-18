@@ -4,12 +4,15 @@ import (
 	"context"
 	"smap-api/internal/authentication"
 	"smap-api/internal/model"
+	planPkg "smap-api/internal/plan"
+	subscriptionPkg "smap-api/internal/subscription"
 	"smap-api/internal/user"
 	"smap-api/pkg/email"
 	"smap-api/pkg/encrypter"
 	"smap-api/pkg/scope"
 	"smap-api/pkg/util"
 	"strconv"
+	"time"
 
 	"github.com/golang-jwt/jwt"
 )
@@ -248,6 +251,70 @@ func (uc *implUsecase) VerifyOTP(ctx context.Context, sc model.Scope, ip authent
 		return err
 	}
 
+	// Step 5: Create a free trial subscription for the newly verified user.
+	if err = uc.createFreeTrialSubscription(ctx, sc, u.ID); err != nil {
+		// Log the error but don't fail the verification process
+		uc.l.Errorf(ctx, "authentication.usecase.VerifyOTP.createFreeTrialSubscription: %v", err)
+		// We don't return error here because user is already activated
+	}
+
 	// If everything is successful, return nil.
+	return nil
+}
+
+// createFreeTrialSubscription creates a free trial subscription for a newly verified user.
+// It gets or creates a free plan and then creates a trial subscription with 14 days trial period.
+func (uc *implUsecase) createFreeTrialSubscription(ctx context.Context, sc model.Scope, userID string) error {
+	const (
+		freePlanCode     = "free"
+		trialDurationDay = 14
+	)
+
+	// Step 1: Try to get the free plan, if it doesn't exist, create it.
+	freePlan, err := uc.planUC.GetOne(ctx, sc, planPkg.GetOneInput{Code: freePlanCode})
+	if err != nil {
+		if err == planPkg.ErrPlanNotFound {
+			// Create free plan if it doesn't exist
+			description := "Free plan with basic features"
+			planOutput, createErr := uc.planUC.Create(ctx, sc, planPkg.CreateInput{
+				Name:        "Free Plan",
+				Code:        freePlanCode,
+				Description: &description,
+				MaxUsage:    100, // 100 API calls per day for free plan
+			})
+			if createErr != nil {
+				uc.l.Errorf(ctx, "authentication.usecase.createFreeTrialSubscription.planUC.Create: %v", createErr)
+				return createErr
+			}
+			freePlan = planOutput.Plan
+		} else {
+			uc.l.Errorf(ctx, "authentication.usecase.createFreeTrialSubscription.planUC.GetOne: %v", err)
+			return err
+		}
+	}
+
+	// Step 2: Create trial subscription
+	now := uc.clock()
+	trialEndsAt := now.Add(time.Duration(trialDurationDay) * 24 * time.Hour)
+	endsAt := trialEndsAt // After trial, the free plan becomes active indefinitely
+
+	_, err = uc.subscriptionUC.Create(ctx, sc, subscriptionPkg.CreateInput{
+		UserID:      userID,
+		PlanID:      freePlan.ID,
+		Status:      model.SubscriptionStatusTrialing,
+		TrialEndsAt: &trialEndsAt,
+		StartsAt:    now,
+		EndsAt:      &endsAt,
+	})
+	if err != nil {
+		// If subscription already exists (e.g., user already has subscription), ignore the error
+		if err == subscriptionPkg.ErrActiveSubscriptionExists {
+			uc.l.Warnf(ctx, "authentication.usecase.createFreeTrialSubscription: user already has subscription")
+			return nil
+		}
+		uc.l.Errorf(ctx, "authentication.usecase.createFreeTrialSubscription.subscriptionUC.Create: %v", err)
+		return err
+	}
+
 	return nil
 }

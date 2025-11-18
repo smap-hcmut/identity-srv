@@ -5,6 +5,12 @@ import (
 	authproducer "smap-api/internal/authentication/delivery/rabbitmq/producer"
 	authusecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/middleware"
+	planhttp "smap-api/internal/plan/delivery/http"
+	planrepository "smap-api/internal/plan/repository/postgre"
+	planusecase "smap-api/internal/plan/usecase"
+	subscriptionhttp "smap-api/internal/subscription/delivery/http"
+	subscriptionrepository "smap-api/internal/subscription/repository/postgre"
+	subscriptionusecase "smap-api/internal/subscription/usecase"
 	userrepository "smap-api/internal/user/repository/postgre"
 	userusecase "smap-api/internal/user/usecase"
 	"smap-api/pkg/i18n"
@@ -28,19 +34,35 @@ func (srv HTTPServer) mapHandlers() error {
 
 	i18n.Init()
 
+	// Initialize repositories
 	userRepo := userrepository.New(srv.l, srv.postgresDB)
-	userUC := userusecase.New(srv.l, userRepo)
+	planRepo := planrepository.New(srv.l, srv.postgresDB)
+	subscriptionRepo := subscriptionrepository.New(srv.l, srv.postgresDB)
 
+	// Initialize usecases
+	userUC := userusecase.New(srv.l, userRepo)
+	planUC := planusecase.New(srv.l, planRepo)
+	subscriptionUC := subscriptionusecase.New(srv.l, subscriptionRepo, planUC)
+
+	// Initialize authentication producer
 	authProd := authproducer.New(srv.l, srv.amqpConn)
 	if err := authProd.Run(); err != nil {
 		return err
 	}
 
-	authUC := authusecase.New(srv.l, authProd, scopeManager, srv.encrypter, userUC)
-	authHandler := authhttp.New(srv.l, authUC, srv.discord)
+	// Initialize authentication usecase with plan and subscription dependencies
+	authUC := authusecase.New(srv.l, authProd, scopeManager, srv.encrypter, userUC, planUC, subscriptionUC)
 
+	// Initialize HTTP handlers
+	authHandler := authhttp.New(srv.l, authUC, srv.discord)
+	planHandler := planhttp.New(srv.l, planUC)
+	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC)
+
+	// Map routes
 	api := srv.gin.Group(apiPrefix)
-	authhttp.MapAuthRoutes(api.Group("/auth"), authHandler, mw)
+	authhttp.MapAuthRoutes(api.Group("/authentication"), authHandler, mw)
+	planhttp.MapPlanRoutes(api.Group("/plans"), planHandler, mw)
+	subscriptionhttp.MapSubscriptionRoutes(api.Group("/subscriptions"), subscriptionHandler, mw)
 
 	return nil
 }

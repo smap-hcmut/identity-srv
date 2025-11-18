@@ -3,6 +3,8 @@ package usecase
 import (
 	"smap-api/internal/authentication"
 	"smap-api/internal/authentication/delivery/rabbitmq/producer"
+	"smap-api/internal/plan"
+	"smap-api/internal/subscription"
 	"smap-api/internal/user"
 	"smap-api/pkg/encrypter"
 	pkgLog "smap-api/pkg/log"
@@ -11,21 +13,25 @@ import (
 )
 
 type implUsecase struct {
-	l       pkgLog.Logger
-	prod    producer.Producer
-	scope   scope.Manager
-	encrypt encrypter.Encrypter
-	userUC  user.UseCase
-	clock   func() time.Time
+	l              pkgLog.Logger
+	prod           producer.Producer
+	scope          scope.Manager
+	encrypt        encrypter.Encrypter
+	userUC         user.UseCase
+	planUC         plan.UseCase
+	subscriptionUC subscription.UseCase
+	clock          func() time.Time
 }
 
-func New(l pkgLog.Logger, prod producer.Producer, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) authentication.UseCase {
+func New(l pkgLog.Logger, prod producer.Producer, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase, planUC plan.UseCase, subscriptionUC subscription.UseCase) authentication.UseCase {
 	return &implUsecase{
-		l:       l,
-		prod:    prod,
-		scope:   scope,
-		encrypt: encrypt,
-		userUC:  userUC,
-		clock:   time.Now,
+		l:              l,
+		prod:           prod,
+		scope:          scope,
+		encrypt:        encrypt,
+		userUC:         userUC,
+		planUC:         planUC,
+		subscriptionUC: subscriptionUC,
+		clock:          time.Now,
 	}
 }
