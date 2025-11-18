@@ -1,6 +1,6 @@
-# 🐳 Docker Build Guide - SMAP Identity API
+# Docker Build Guide - SMAP Identity API
 
-## 📋 Yêu Cầu
+## Yêu Cầu
 
 - **Docker**: >= 20.10 (hỗ trợ BuildKit)
 - **Docker Buildx**: Đã được kích hoạt (mặc định từ Docker Desktop >= 19.03)
@@ -13,7 +13,7 @@ docker buildx version
 
 ---
 
-## 🚀 Các Cách Build
+## Các Cách Build
 
 ### 1. Build Cho Máy Local (Apple Silicon M4 hoặc AMD64)
 
@@ -59,7 +59,7 @@ docker buildx build \
 
 ---
 
-## 🏃 Chạy Container
+## Chạy Container
 
 ### Development (với logs chi tiết)
 
@@ -94,7 +94,7 @@ docker run -d \
 
 ---
 
-## 🎯 Best Practices
+## Best Practices
 
 ### 1. Sử Dụng BuildKit Cache
 
@@ -104,7 +104,7 @@ BuildKit cache được enable mặc định trong Dockerfile này qua:
 
 **Lợi ích:**
 - Lần build đầu: ~3-5 phút
-- Lần build tiếp theo (chỉ thay đổi code): ~30-60 giây ⚡
+- Lần build tiếp theo (chỉ thay đổi code): ~30-60 giây
 
 ### 2. Build Tags Với Git Commit
 
@@ -140,7 +140,7 @@ trivy image smap-identity:latest
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Lỗi: "failed to solve with frontend dockerfile.v0"
 
@@ -178,7 +178,7 @@ docker run -d \
 
 ---
 
-## 📊 So Sánh Performance
+## So Sánh Performance
 
 | Metrics | Alpine (Old) | Distroless (New) | Cải thiện |
 |---------|--------------|------------------|-----------|
@@ -186,11 +186,11 @@ docker run -d \
 | Build Time (1st) | ~5 phút | ~4 phút | 20% nhanh hơn |
 | Build Time (cached) | ~2 phút | ~45 giây | **63% nhanh hơn** |
 | Attack Surface | Medium | Minimal | **Cao hơn nhiều** |
-| Shell Access | ✅ | ❌ | Security trade-off |
+| Shell Access | Có | Không | Security trade-off |
 
 ---
 
-## 🏗️ CI/CD Integration
+## CI/CD Integration
 
 ### GitHub Actions Example
 
@@ -233,7 +233,7 @@ jobs:
 
 ---
 
-## 🎓 Các Tính Năng Đặc Biệt Của Dockerfile Này
+## Các Tính Năng Đặc Biệt Của Dockerfile Này
 
 ### 1. **Multi-Platform Build Native**
 - Build trên M4 (ARM64) native → Cực nhanh
@@ -258,7 +258,7 @@ jobs:
 
 ---
 
-## 📚 Tài Liệu Tham Khảo
+## Tài Liệu Tham Khảo
 
 - [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/)
 - [Distroless Images](https://github.com/GoogleContainerTools/distroless)
@@ -267,5 +267,4 @@ jobs:
 
 ---
 
-**Happy Building! 🚀**
-
+**Happy Building!**

@@ -1,4 +1,4 @@
-# 📧 SMAP Consumer Service
+# SMAP Consumer Service
 
 > Async task processing service for SMAP Identity API
 
@@ -8,17 +8,17 @@
 
 ---
 
-## 🎯 Overview
+## Overview
 
 Consumer Service xử lý các tác vụ bất đồng bộ qua RabbitMQ:
-- ✅ **Email Sending**: Verification emails, notifications
-- 🔜 **Push Notifications**: Mobile & web push
-- 🔜 **Webhooks**: Event callbacks
-- 🔜 **Data Processing**: Background jobs
+- **Email Sending**: Verification emails, notifications
+- **Push Notifications**: Mobile & web push
+- **Webhooks**: Event callbacks
+- **Data Processing**: Background jobs
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Prerequisites
 
@@ -73,7 +73,7 @@ make consumer-run
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 API Server ──► RabbitMQ ──► Consumer Service ──► SMTP Server
@@ -85,11 +85,11 @@ API Server ──► RabbitMQ ──► Consumer Service ──► SMTP Server
 2. Consumer listens on queue
 3. Consumer processes message (e.g., send email)
 4. Consumer acknowledges message
-5. ✅ Done
+5. Done
 
 ---
 
-## 📦 Components
+## Components
 
 | Component | Description | Location |
 |-----------|-------------|----------|
@@ -100,7 +100,7 @@ API Server ──► RabbitMQ ──► Consumer Service ──► SMTP Server
 
 ---
 
-## 🚀 Commands
+## Commands
 
 ### Development
 
@@ -128,7 +128,7 @@ make docker-run            # Build and run API
 
 ---
 
-## 🐳 Docker Optimization
+## Docker Optimization
 
 Consumer uses **optimized Dockerfile**:
 
@@ -146,13 +146,13 @@ Consumer uses **optimized Dockerfile**:
 # First build: ~4 minutes
 make consumer-build
 
-# Cached rebuild: ~45 seconds ⚡
+# Cached rebuild: ~45 seconds
 # (Only code changed, dependencies cached)
 ```
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -162,7 +162,7 @@ make consumer-build
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Test Email Flow
 
@@ -194,7 +194,7 @@ docker logs -f smap-consumer-dev
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Issue: Consumer can't connect to RabbitMQ
 
@@ -234,7 +234,7 @@ open http://localhost:15672/#/queues
 
 ---
 
-## 📊 Monitoring
+## Monitoring
 
 ### Key Metrics
 
@@ -256,7 +256,7 @@ open http://localhost:15672/#/queues
 
 ---
 
-## 🚢 Production Deployment
+## Production Deployment
 
 ### 1. Build & Push
 
@@ -292,25 +292,25 @@ kubectl apply -f k8s/consumer-deployment.yaml
 docker logs -f smap-consumer
 
 # Should see:
-# ✅ "Starting SMAP Consumer Service..."
-# ✅ "Starting SMTP Email Consumer..."
-# ✅ "Queue smtp_send_email is being consumed"
+# "Starting SMAP Consumer Service..."
+# "Starting SMTP Email Consumer..."
+# "Queue smtp_send_email is being consumed"
 ```
 
 ---
 
-## 🔐 Security
+## Security
 
-- ✅ **No shell in container** (Distroless)
-- ✅ **Non-root user** (UID 65532)
-- ✅ **Secrets via env vars** (not hardcoded)
-- ✅ **Minimal dependencies** (attack surface)
-- 🔜 **TLS for SMTP** (future)
-- 🔜 **Message encryption** (future)
+- **No shell in container** (Distroless)
+- **Non-root user** (UID 65532)
+- **Secrets via env vars** (not hardcoded)
+- **Minimal dependencies** (attack surface)
+- **TLS for SMTP** (future)
+- **Message encryption** (future)
 
 ---
 
-## 📈 Scaling
+## Scaling
 
 ### Horizontal Scaling
 
@@ -333,7 +333,7 @@ docker run -d --name smap-consumer-3 --env-file .env smap-consumer:latest
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Add New Consumer
 
@@ -367,7 +367,7 @@ docker run -d --name smap-consumer-3 --env-file .env smap-consumer:latest
 
 ---
 
-## 📝 Example: Send Email via API
+## Example: Send Email via API
 
 ```bash
 # 1. User registers
@@ -383,8 +383,8 @@ curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
 # 3. Check consumer logs
 docker logs -f smap-consumer-dev
 # Output:
-# ✅ smtp.delivery.rabbitmq.consumer.sendEmailWorker: {"recipient":"user@example.com",...}
-# ✅ Email sent successfully
+# smtp.delivery.rabbitmq.consumer.sendEmailWorker: {"recipient":"user@example.com",...}
+# Email sent successfully
 
 # 4. Check email inbox
 # Subject: Email Verification
@@ -393,7 +393,7 @@ docker logs -f smap-consumer-dev
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 - **API Server**: `cmd/api/` - HTTP API with authentication, plans, subscriptions
 - **Producer**: `internal/authentication/delivery/rabbitmq/producer/` - Publishes messages
@@ -401,7 +401,7 @@ docker logs -f smap-consumer-dev
 
 ---
 
-## 📚 Tech Stack
+## Tech Stack
 
 - **Go 1.25**: Programming language
 - **RabbitMQ**: Message broker
@@ -413,7 +413,7 @@ docker logs -f smap-consumer-dev
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
@@ -423,19 +423,19 @@ docker logs -f smap-consumer-dev
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
 ---
 
-## 🆘 Support
+## Support
 
 ### Get Help
 
-- 📖 Read [CONSUMER_SETUP_GUIDE.md](CONSUMER_SETUP_GUIDE.md)
-- 🔍 Check [Troubleshooting](#troubleshooting) section
-- 📧 Contact: support@smap.com
+- Read [CONSUMER_SETUP_GUIDE.md](CONSUMER_SETUP_GUIDE.md)
+- Check [Troubleshooting](#troubleshooting) section
+- Contact: support@smap.com
 
 ### Quick Commands
 
@@ -457,7 +457,7 @@ make docker-run
 
 ---
 
-**Happy Consuming! 📧🚀**
+Happy Consuming!
 
-*Built with ❤️ for async task processing*
+*Built with love for async task processing*
 

@@ -1,18 +1,18 @@
-# 🚀 Docker Optimization Summary
+# Docker Optimization Summary
 
-## 📊 Kết Quả Tối Ưu
+## Kết Quả Tối Ưu
 
 | Metric | Before (Alpine) | After (Distroless) | Improvement |
 |--------|----------------|-------------------|-------------|
-| **Image Size** | ~65MB | ~12MB | ✅ **81% smaller** |
-| **Build Time (first)** | ~5 minutes | ~4 minutes | ✅ 20% faster |
-| **Build Time (cached)** | ~2 minutes | ~45 seconds | ✅ **63% faster** |
-| **Security** | Medium | High | ✅ Minimal attack surface |
-| **Multi-platform** | ❌ Manual | ✅ Native | ✅ M4 → AMD64 seamless |
+| **Image Size** | ~65MB | ~12MB | 81% smaller |
+| **Build Time (first)** | ~5 minutes | ~4 minutes | 20% faster |
+| **Build Time (cached)** | ~2 minutes | ~45 seconds | 63% faster |
+| **Security** | Medium | High | Minimal attack surface |
+| **Multi-platform** | Manual | Native | M4 → AMD64 seamless |
 
 ---
 
-## 🎯 Những Gì Đã Được Tối Ưu
+## Những Gì Đã Được Tối Ưu
 
 ### 1. **Multi-Platform Build Support**
 
@@ -28,9 +28,9 @@ RUN ... \
 ```
 
 **Lợi ích:**
-- ✅ Build trên M4 (ARM64) native → **không cần emulation QEMU**
-- ✅ Cross-compile sang AMD64 server tự động
-- ✅ Build nhanh gấp 2-3 lần so với QEMU emulation
+- Build trên M4 (ARM64) native → không cần emulation QEMU
+- Cross-compile sang AMD64 server tự động
+- Build nhanh gấp 2-3 lần so với QEMU emulation
 
 ### 2. **BuildKit Cache Mounts**
 
@@ -41,9 +41,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 ```
 
 **Lợi ích:**
-- ✅ Go modules được cache giữa các builds
-- ✅ Build cache được preserve
-- ✅ Rebuild chỉ mất ~45 giây (vs 2-5 phút trước đây)
+- Go modules được cache giữa các builds
+- Build cache được preserve
+- Rebuild chỉ mất ~45 giây (vs 2-5 phút trước đây)
 
 ### 3. **Distroless Static Runtime**
 
@@ -52,10 +52,10 @@ FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 ```
 
 **Lợi ích:**
-- ✅ Image size: ~2MB base (vs Alpine ~20MB)
-- ✅ Không có shell, package manager → Attack surface tối thiểu
-- ✅ Chỉ chứa: binary + ca-certs + timezone + user
-- ✅ Security compliance cao hơn
+- Image size: ~2MB base (vs Alpine ~20MB)
+- Không có shell, package manager → Attack surface tối thiểu
+- Chỉ chứa: binary + ca-certs + timezone + user
+- Security compliance cao hơn
 
 ### 4. **Optimized Binary Size**
 
@@ -67,7 +67,7 @@ go build -ldflags="-s -w" ...
 **Lợi ích:**
 - `-s`: Strip symbol table
 - `-w`: Strip debug info
-- ✅ Binary nhỏ hơn 30-40%
+- Binary nhỏ hơn 30-40%
 
 ### 5. **Swagger Integration**
 
@@ -77,8 +77,8 @@ RUN swag init -g cmd/api/main.go
 ```
 
 **Lợi ích:**
-- ✅ API docs được generate tự động trong build
-- ✅ Không cần chạy manual trên local
+- API docs được generate tự động trong build
+- Không cần chạy manual trên local
 
 ### 6. **.dockerignore File**
 
@@ -91,21 +91,21 @@ vendor/
 ```
 
 **Lợi ích:**
-- ✅ Build context nhỏ hơn → Upload nhanh hơn
-- ✅ Không copy files không cần thiết vào image
-- ✅ Tránh leak sensitive data (.env, keys)
+- Build context nhỏ hơn → Upload nhanh hơn
+- Không copy files không cần thiết vào image
+- Tránh leak sensitive data (.env, keys)
 
 ---
 
-## 🛠️ Công Cụ Hỗ Trợ
+## Công Cụ Hỗ Trợ
 
 ### 1. **build.sh Script**
 
 Bash helper script với các tính năng:
-- ✅ Build cho nhiều platforms (local, amd64, arm64, multi)
-- ✅ Auto-detect git commit SHA
-- ✅ Colored output và error handling
-- ✅ Clean, run, push commands
+- Build cho nhiều platforms (local, amd64, arm64, multi)
+- Auto-detect git commit SHA
+- Colored output và error handling
+- Clean, run, push commands
 
 **Usage:**
 ```bash
@@ -134,29 +134,29 @@ REGISTRY=docker.io/username make docker-push
 ### 3. **DOCKER_BUILD_GUIDE.md**
 
 Hướng dẫn chi tiết:
-- ✅ Các cách build khác nhau
-- ✅ Best practices
-- ✅ Troubleshooting common issues
-- ✅ CI/CD integration examples
-- ✅ Performance comparisons
+- Các cách build khác nhau
+- Best practices
+- Troubleshooting common issues
+- CI/CD integration examples
+- Performance comparisons
 
 ---
 
-## 📝 Các Files Được Tạo/Sửa
+## Các Files Được Tạo/Sửa
 
 ### Mới Tạo:
-1. ✅ `cmd/api/Dockerfile` - Optimized với BuildKit + Distroless
-2. ✅ `.dockerignore` - Ignore unnecessary files
-3. ✅ `build.sh` - Build helper script (executable)
-4. ✅ `cmd/api/DOCKER_BUILD_GUIDE.md` - Chi tiết hướng dẫn
-5. ✅ `DOCKER_OPTIMIZATION_SUMMARY.md` - File này
+1. `cmd/api/Dockerfile` - Optimized với BuildKit + Distroless
+2. `.dockerignore` - Ignore unnecessary files
+3. `build.sh` - Build helper script (executable)
+4. `cmd/api/DOCKER_BUILD_GUIDE.md` - Chi tiết hướng dẫn
+5. `DOCKER_OPTIMIZATION_SUMMARY.md` - File này
 
 ### Đã Sửa:
-1. ✅ `Makefile` - Thêm docker-* targets
+1. `Makefile` - Thêm docker-* targets
 
 ---
 
-## 🚦 Quick Start
+## Quick Start
 
 ### Development (Local)
 
@@ -200,7 +200,7 @@ make docker-push
 
 ---
 
-## 🔍 Verification
+## Verification
 
 ### 1. Check Image Size
 
@@ -209,7 +209,7 @@ docker images smap-identity:latest
 
 # Expected output:
 # REPOSITORY       TAG       SIZE
-# smap-identity    latest    ~12-15MB  ✅
+# smap-identity    latest    ~12-15MB
 ```
 
 ### 2. Check Running Container
@@ -239,7 +239,7 @@ docker buildx du
 
 ---
 
-## 🎓 Key Learnings
+## Key Learnings
 
 ### 1. **Platform-Aware Builds**
 ```bash
@@ -265,7 +265,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 ---
 
-## 🐛 Known Issues & Solutions
+## Known Issues & Solutions
 
 ### Issue 1: "Error: multiple platforms feature is currently not supported"
 
@@ -302,7 +302,7 @@ export DOCKER_BUILDKIT=1
 
 ---
 
-## 📈 Performance Benchmarks
+## Performance Benchmarks
 
 ### Build Time Comparison (on Apple M4)
 
@@ -310,17 +310,17 @@ export DOCKER_BUILDKIT=1
 First Build (no cache):
 - Alpine:      ~5 minutes
 - Distroless:  ~4 minutes
-✅ 20% faster
+20% faster
 
 Rebuild (with cache):
 - Alpine:      ~2 minutes
 - Distroless:  ~45 seconds
-✅ 63% faster
+63% faster
 
 Build + Push Multi-platform:
 - Before:      Manual, slow, error-prone
 - After:       One command, ~6 minutes
-✅ Automated
+Automated
 ```
 
 ### Runtime Performance
@@ -329,17 +329,17 @@ Build + Push Multi-platform:
 Container Start Time:
 - Alpine:      ~1-2 seconds
 - Distroless:  ~0.5-1 second
-✅ Faster startup
+Faster startup
 
 Memory Usage:
 - Alpine:      ~50MB base
 - Distroless:  ~10MB base
-✅ 80% less memory
+80% less memory
 ```
 
 ---
 
-## 🎯 Next Steps (Optional)
+## Next Steps (Optional)
 
 ### 1. Add Health Check to Dockerfile
 
@@ -374,21 +374,21 @@ docker scout cves smap-identity:latest
 
 ---
 
-## 🎉 Conclusion
+## Conclusion
 
 Dockerfile đã được optimize theo **production best practices**:
 
-✅ **Fast**: Cache mounts → 63% faster rebuilds  
-✅ **Small**: 12MB vs 65MB → 81% smaller  
-✅ **Secure**: Distroless → Minimal attack surface  
-✅ **Multi-platform**: M4 → AMD64 seamless  
-✅ **Easy**: Helper scripts + Makefile integration  
+**Fast**: Cache mounts → 63% faster rebuilds  
+**Small**: 12MB vs 65MB → 81% smaller  
+**Secure**: Distroless → Minimal attack surface  
+**Multi-platform**: M4 → AMD64 seamless  
+**Easy**: Helper scripts + Makefile integration  
 
-**Ready for production deployment!** 🚀
+**Ready for production deployment!**
 
 ---
 
-## 📚 References
+## References
 
 - [Docker Multi-platform builds](https://docs.docker.com/build/building/multi-platform/)
 - [BuildKit Cache Mounts](https://docs.docker.com/build/cache/)
@@ -397,5 +397,4 @@ Dockerfile đã được optimize theo **production best practices**:
 
 ---
 
-**Happy Containerizing! 🐳**
-
+Happy Containerizing!

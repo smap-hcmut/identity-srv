@@ -1,6 +1,6 @@
-# 📧 SMAP Consumer Service Setup Guide
+# SMAP Consumer Service Setup Guide
 
-## 🎯 Overview
+## Overview
 
 Consumer Service xử lý các tác vụ bất đồng bộ thông qua RabbitMQ:
 - **Email Sending**: Gửi email verification, notifications
@@ -8,7 +8,7 @@ Consumer Service xử lý các tác vụ bất đồng bộ thông qua RabbitMQ:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
@@ -32,7 +32,7 @@ Consumer Service xử lý các tác vụ bất đồng bộ thông qua RabbitMQ:
 
 ---
 
-## 📦 Components
+## Components
 
 ### 1. **Consumer Service** (`internal/consumer/`)
 - Orchestrate tất cả consumers
@@ -56,7 +56,7 @@ Consumer Service xử lý các tác vụ bất đồng bộ thông qua RabbitMQ:
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Development (Local)
 
@@ -89,7 +89,7 @@ docker run -d \
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Consumer cần các environment variables sau (trong `.env`):
 
@@ -130,7 +130,7 @@ LOGGER_ENCODING=json
 
 ---
 
-## 🔌 RabbitMQ Setup
+## RabbitMQ Setup
 
 ### Exchange & Queue Configuration
 
@@ -177,7 +177,7 @@ curl http://localhost:15672/api/overview
 
 ---
 
-## 🐳 Docker Build
+## Docker Build
 
 ### Local Platform
 
@@ -206,7 +206,7 @@ make consumer-push
 
 ---
 
-## 📊 Monitoring & Logs
+## Monitoring & Logs
 
 ### View Logs
 
@@ -231,16 +231,16 @@ docker logs -f smap-consumer-dev
 
 ### Key Log Messages
 
-- ✅ `Starting SMAP Consumer Service...` - Service started
-- ✅ `Starting SMTP Email Consumer...` - Email consumer started
-- ✅ `Queue smtp_send_email is being consumed` - Listening for messages
-- ✅ `smtp.delivery.rabbitmq.consumer.sendEmailWorker` - Processing message
-- ❌ `Failed to connect to RabbitMQ` - RabbitMQ connection error
-- ❌ `smtp.usecase.SendEmail.DialAndSend` - SMTP send error
+- `Starting SMAP Consumer Service...` - Service started
+- `Starting SMTP Email Consumer...` - Email consumer started
+- `Queue smtp_send_email is being consumed` - Listening for messages
+- `smtp.delivery.rabbitmq.consumer.sendEmailWorker` - Processing message
+- `Failed to connect to RabbitMQ` - RabbitMQ connection error
+- `smtp.usecase.SendEmail.DialAndSend` - SMTP send error
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### 1. Test Consumer Locally
 
@@ -282,7 +282,7 @@ curl -X POST http://localhost:8080/api/v1/authentication/send-otp ...
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Issue 1: Consumer không connect được RabbitMQ
 
@@ -337,7 +337,7 @@ json.Unmarshal: invalid character ...
 
 ---
 
-## 📈 Performance Tips
+## Performance Tips
 
 ### 1. Multiple Consumer Instances
 
@@ -374,7 +374,7 @@ SMTP connection pooling (đã có sẵn trong go-mail):
 
 ---
 
-## 🔐 Security Best Practices
+## Security Best Practices
 
 1. **No Shell in Container**
    - Distroless image → No shell access
@@ -398,7 +398,7 @@ SMTP connection pooling (đã có sẵn trong go-mail):
 
 ---
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [RabbitMQ Best Practices](https://www.rabbitmq.com/best-practices.html)
 - [Go-Mail Documentation](https://github.com/go-mail/mail)
@@ -407,7 +407,7 @@ SMTP connection pooling (đã có sẵn trong go-mail):
 
 ---
 
-## 🆘 Support
+## Support
 
 ### Check Service Health
 
@@ -444,5 +444,4 @@ make consumer-clean
 
 ---
 
-**Happy Consuming! 📧**
-
+**Happy Consuming!**

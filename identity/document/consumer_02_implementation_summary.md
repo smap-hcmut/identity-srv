@@ -1,12 +1,12 @@
-# 📧 Consumer Service Implementation Summary
+# Consumer Service Implementation Summary
 
-## ✅ Hoàn Thành
+## Hoàn Thành
 
 Đã implement **Consumer Service** hoàn chỉnh để xử lý async tasks (Email, Notifications) qua RabbitMQ.
 
 ---
 
-## 📊 Kết Quả
+## Kết Quả
 
 | Component | Status | Description |
 |-----------|--------|-------------|
@@ -21,7 +21,7 @@
 
 ---
 
-## 🏗️ Cấu Trúc Files Đã Tạo
+## Cấu Trúc Files Đã Tạo
 
 ### 1. Consumer Service Core
 
@@ -99,7 +99,7 @@ CONSUMER_IMPLEMENTATION_SUMMARY.md # This file
 
 ---
 
-## 🔄 Integration Flow
+## Integration Flow
 
 ### 1. **Authentication → Email Sending**
 
@@ -159,7 +159,7 @@ func (c Consumer) sendEmailWorker(d amqp.Delivery) {
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ### Go Modules
 
@@ -178,7 +178,7 @@ go.uber.org/zap                 # Logger
 
 ---
 
-## 🚀 Quick Start Commands
+## Quick Start Commands
 
 ### Development
 
@@ -213,7 +213,7 @@ docker run -d \
 
 ---
 
-## 🎯 Key Features
+## Key Features
 
 ### 1. **Modular Architecture**
 
@@ -274,7 +274,7 @@ func (c *Consumer) Run() error {
 
 ---
 
-## 📈 Performance Optimization
+## Performance Optimization
 
 ### Dockerfile Optimizations
 
@@ -297,7 +297,7 @@ func (c *Consumer) Run() error {
 
 ---
 
-## 🔐 Security
+## Security
 
 ### Container Security
 
@@ -316,7 +316,7 @@ func (c *Consumer) Run() error {
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 ### Unit Tests (Recommended)
 
@@ -364,7 +364,7 @@ curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
 
 ---
 
-## 🐛 Known Issues & Solutions
+## Known Issues & Solutions
 
 ### Issue: Consumer stops consuming after RabbitMQ restart
 
@@ -392,7 +392,7 @@ func (c Consumer) consumeWithReconnect() {
 
 ---
 
-## 📚 Next Steps (Recommendations)
+## Next Steps (Recommendations)
 
 ### Short Term
 
@@ -420,7 +420,7 @@ func (c Consumer) consumeWithReconnect() {
 
 ---
 
-## 📊 Metrics to Monitor
+## Metrics to Monitor
 
 ### Application Metrics
 
@@ -446,7 +446,7 @@ func (c Consumer) consumeWithReconnect() {
 
 ---
 
-## 🎉 Conclusion
+## Conclusion
 
 Consumer Service đã sẵn sàng cho **production**:
 
@@ -459,7 +459,7 @@ Consumer Service đã sẵn sàng cho **production**:
 
 ---
 
-## 🛠️ Files Changed/Created
+## Files Changed/Created
 
 ### Created (9 files)
 - `internal/consumer/consumer.go`
@@ -478,5 +478,6 @@ Consumer Service đã sẵn sàng cho **production**:
 
 ---
 
-**Consumer Service is ready to consume! 📧🚀**
+**Consumer Service is ready to consume!**
+
 

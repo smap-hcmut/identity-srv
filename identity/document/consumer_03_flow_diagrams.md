@@ -1,6 +1,6 @@
-# 🔄 Consumer Service Flow Diagrams
+# Consumer Service Flow Diagrams
 
-## 📧 Email Sending Flow (Complete)
+## Email Sending Flow (Complete)
 
 ```mermaid
 sequenceDiagram
@@ -42,12 +42,12 @@ sequenceDiagram
     
     Consumer->>RabbitMQ: Ack(message)
     
-    Note over User: Email received ✅
+    Note over User: Email received
 ```
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -118,7 +118,7 @@ sequenceDiagram
 
 ---
 
-## 📊 Component Diagram
+## Component Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -163,7 +163,7 @@ sequenceDiagram
 
 ---
 
-## 🔄 Message Flow Detail
+## Message Flow Detail
 
 ### 1. Producer Side (API Server)
 
@@ -244,7 +244,7 @@ Consumer Service (Startup)
 
 ---
 
-## 🚀 Deployment Architecture
+## Deployment Architecture
 
 ### Development (Local)
 
@@ -325,7 +325,7 @@ spec:
 
 ---
 
-## 📈 Scaling Strategy
+## Scaling Strategy
 
 ### Horizontal Scaling
 
@@ -363,7 +363,7 @@ spec:
 
 ---
 
-## 🔧 Monitoring & Observability
+## Monitoring & Observability
 
 ### Metrics to Collect
 
@@ -422,7 +422,7 @@ RabbitMQ Metrics:
 
 ---
 
-## ✅ Checklist for Production
+## Checklist for Production
 
 ### Pre-Deployment
 
@@ -453,5 +453,4 @@ RabbitMQ Metrics:
 
 ---
 
-**Consumer Service Flow Documentation Complete! 🎉**
-
+**Consumer Service Flow Documentation Complete!**
