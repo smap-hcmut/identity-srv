@@ -82,5 +82,9 @@ func (srv HTTPServer) registerSystemRoutes() {
 	api.GET("/health", srv.healthCheck)
 	api.GET("/ready", srv.readyCheck)
 	api.GET("/live", srv.liveCheck)
-	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	srv.gin.GET("/identity/swagger/*any", ginSwagger.WrapHandler(
+		swaggerFiles.Handler,
+		ginSwagger.URL("/identity/swagger/doc.json"),
+	))
 }
