@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"errors"
 
+	"smap-api/config"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
 	"smap-api/pkg/log"
 	miniopkg "smap-api/pkg/minio"
+	pkgRabbitMQ "smap-api/pkg/rabbitmq"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,6 +39,12 @@ type HTTPServer struct {
 	// Storage Configuration
 	minio miniopkg.MinIO
 
+	// SMTP Configuration
+	smtpConfig config.SMTPConfig
+
+	// Message Queue Configuration
+	amqpConn *pkgRabbitMQ.Connection
+
 	// Authentication & Security Configuration
 	jwtSecretKey string
 	encrypter    encrypter.Encrypter
@@ -58,6 +66,12 @@ type Config struct {
 
 	// Storage Configuration
 	MinIO miniopkg.MinIO
+
+	// SMTP Configuration
+	SMTP config.SMTPConfig
+
+	// Message Queue Configuration
+	AmqpConn *pkgRabbitMQ.Connection
 
 	// Authentication & Security Configuration
 	JwtSecretKey string
@@ -85,6 +99,12 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Storage Configuration
 		minio: cfg.MinIO,
+
+		// SMTP Configuration
+		smtpConfig: cfg.SMTP,
+
+		// Message Queue Configuration
+		amqpConn: cfg.AmqpConn,
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,
@@ -126,6 +146,25 @@ func (srv HTTPServer) validate() error {
 	// Storage Configuration
 	if srv.minio == nil {
 		return errors.New("minio is required")
+	}
+
+	// SMTP Configuration
+	if srv.smtpConfig.Host == "" {
+		return errors.New("smtp host is required")
+	}
+	if srv.smtpConfig.Username == "" {
+		return errors.New("smtp username is required")
+	}
+	if srv.smtpConfig.Password == "" {
+		return errors.New("smtp password is required")
+	}
+	if srv.smtpConfig.From == "" {
+		return errors.New("smtp from address is required")
+	}
+
+	// Message Queue Configuration
+	if srv.amqpConn == nil {
+		return errors.New("amqp connection is required")
 	}
 
 	// Authentication & Security Configuration

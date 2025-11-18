@@ -33,6 +33,8 @@ type User struct {
 	CreatedAt    null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
 	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	Otp          null.String `boil:"otp" json:"otp,omitempty" toml:"otp" yaml:"otp,omitempty"`
+	OtpExpiredAt null.Time   `boil:"otp_expired_at" json:"otp_expired_at,omitempty" toml:"otp_expired_at" yaml:"otp_expired_at,omitempty"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,6 +50,8 @@ var UserColumns = struct {
 	CreatedAt    string
 	UpdatedAt    string
 	DeletedAt    string
+	Otp          string
+	OtpExpiredAt string
 }{
 	ID:           "id",
 	Username:     "username",
@@ -58,6 +62,8 @@ var UserColumns = struct {
 	CreatedAt:    "created_at",
 	UpdatedAt:    "updated_at",
 	DeletedAt:    "deleted_at",
+	Otp:          "otp",
+	OtpExpiredAt: "otp_expired_at",
 }
 
 var UserTableColumns = struct {
@@ -70,6 +76,8 @@ var UserTableColumns = struct {
 	CreatedAt    string
 	UpdatedAt    string
 	DeletedAt    string
+	Otp          string
+	OtpExpiredAt string
 }{
 	ID:           "users.id",
 	Username:     "users.username",
@@ -80,6 +88,8 @@ var UserTableColumns = struct {
 	CreatedAt:    "users.created_at",
 	UpdatedAt:    "users.updated_at",
 	DeletedAt:    "users.deleted_at",
+	Otp:          "users.otp",
+	OtpExpiredAt: "users.otp_expired_at",
 }
 
 // Generated where
@@ -118,6 +128,8 @@ var UserWhere = struct {
 	CreatedAt    whereHelpernull_Time
 	UpdatedAt    whereHelpernull_Time
 	DeletedAt    whereHelpernull_Time
+	Otp          whereHelpernull_String
+	OtpExpiredAt whereHelpernull_Time
 }{
 	ID:           whereHelperstring{field: "\"users\".\"id\""},
 	Username:     whereHelperstring{field: "\"users\".\"username\""},
@@ -128,6 +140,8 @@ var UserWhere = struct {
 	CreatedAt:    whereHelpernull_Time{field: "\"users\".\"created_at\""},
 	UpdatedAt:    whereHelpernull_Time{field: "\"users\".\"updated_at\""},
 	DeletedAt:    whereHelpernull_Time{field: "\"users\".\"deleted_at\""},
+	Otp:          whereHelpernull_String{field: "\"users\".\"otp\""},
+	OtpExpiredAt: whereHelpernull_Time{field: "\"users\".\"otp_expired_at\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -167,9 +181,9 @@ func (r *userR) GetSubscriptions() SubscriptionSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "username", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at"}
+	userAllColumns            = []string{"id", "username", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at"}
 	userColumnsWithoutDefault = []string{"username"}
-	userColumnsWithDefault    = []string{"id", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at"}
+	userColumnsWithDefault    = []string{"id", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}
 )

@@ -12,6 +12,7 @@ import (
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
 	"smap-api/pkg/log"
+	rabbitmq "smap-api/pkg/rabbitmq"
 	"syscall"
 )
 
@@ -60,6 +61,14 @@ func main() {
 	defer minio.Disconnect(ctx)
 	logger.Infof(ctx, "MinIO connected successfully to %s", cfg.MinIO.Endpoint)
 
+	// Initialize RabbitMQ
+	amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
+	if err != nil {
+		logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
+		return
+	}
+	defer amqpConn.Close()
+
 	// Initialize Discord
 	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
 		ID:    cfg.Discord.WebhookID,
@@ -83,6 +92,12 @@ func main() {
 
 		// Storage Configuration
 		MinIO: minioClient,
+
+		// SMTP Configuration
+		SMTP: cfg.SMTP,
+
+		// Message Queue Configuration
+		AmqpConn: amqpConn,
 
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,

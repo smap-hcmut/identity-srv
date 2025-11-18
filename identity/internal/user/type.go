@@ -3,6 +3,7 @@ package user
 import (
 	"smap-api/internal/model"
 	"smap-api/pkg/paginator"
+	"time"
 )
 
 type CreateInput struct {
@@ -17,10 +18,12 @@ type UpdateProfileInput struct {
 }
 
 type UpdateInput struct {
-	ID        string
-	FullName  *string
-	AvatarURL *string
-	IsActive  *bool
+	ID           string
+	FullName     *string
+	AvatarURL    *string
+	IsActive     *bool
+	OTP          *string
+	OTPExpiredAt *time.Time
 }
 
 type UserOutput struct {

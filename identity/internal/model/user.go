@@ -17,6 +17,8 @@ type User struct {
 	PasswordHash *string    `json:"password_hash,omitempty"`
 	AvatarURL    *string    `json:"avatar_url,omitempty"`
 	IsActive     *bool      `json:"is_active,omitempty"`
+	OTP          *string    `json:"otp,omitempty"`
+	OTPExpiredAt *time.Time `json:"otp_expired_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
@@ -45,6 +47,12 @@ func NewUserFromDB(dbUser *sqlboiler.User) *User {
 	if dbUser.IsActive.Valid {
 		user.IsActive = &dbUser.IsActive.Bool
 	}
+	if dbUser.Otp.Valid {
+		user.OTP = &dbUser.Otp.String
+	}
+	if dbUser.OtpExpiredAt.Valid {
+		user.OTPExpiredAt = &dbUser.OtpExpiredAt.Time
+	}
 	if dbUser.DeletedAt.Valid {
 		user.DeletedAt = &dbUser.DeletedAt.Time
 	}
@@ -72,6 +80,12 @@ func (u *User) ToDBUser() *sqlboiler.User {
 	}
 	if u.IsActive != nil {
 		dbUser.IsActive = null.BoolFrom(*u.IsActive)
+	}
+	if u.OTP != nil {
+		dbUser.Otp = null.StringFrom(*u.OTP)
+	}
+	if u.OTPExpiredAt != nil {
+		dbUser.OtpExpiredAt = null.TimeFrom(*u.OTPExpiredAt)
 	}
 	if u.DeletedAt != nil {
 		dbUser.DeletedAt = null.TimeFrom(*u.DeletedAt)

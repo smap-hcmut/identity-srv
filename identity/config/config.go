@@ -17,6 +17,12 @@ type Config struct {
 	// Storage Configuration
 	MinIO MinIOConfig
 
+	// SMTP Configuration
+	SMTP SMTPConfig
+
+	// Message Queue Configuration
+	RabbitMQ RabbitMQConfig
+
 	// Authentication & Security Configuration
 	JWT            JWTConfig
 	Encrypter      EncrypterConfig
@@ -38,6 +44,23 @@ type HTTPServerConfig struct {
 	Host string `env:"HOST" envDefault:""`
 	Port int    `env:"APP_PORT" envDefault:"8080"`
 	Mode string `env:"API_MODE" envDefault:"debug"`
+}
+
+// SMTPConfig is the configuration for the SMTP,
+// which is used to send email.
+type SMTPConfig struct {
+	Host     string `env:"SMTP_HOST" envDefault:"smtp.gmail.com"`
+	Port     int    `env:"SMTP_PORT" envDefault:"587"`
+	Username string `env:"SMTP_USERNAME"`
+	Password string `env:"SMTP_PASSWORD"`
+	From     string `env:"SMTP_FROM"`
+	FromName string `env:"SMTP_FROM_NAME"`
+}
+
+// RabbitMQConfig is the configuration for the RabbitMQ,
+// which is used to connect to the RabbitMQ.
+type RabbitMQConfig struct {
+	URL string `env:"RABBITMQ_URL"`
 }
 
 // LoggerConfig is the configuration for the logger,
