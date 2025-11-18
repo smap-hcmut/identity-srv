@@ -13,7 +13,7 @@ sequenceDiagram
     participant SMTP_UC as SMTP UseCase
     participant SMTP as SMTP Server
     
-    User->>API: POST /api/v1/authentication/send-otp
+    User->>API: POST /identity/authentication/send-otp
     API->>AuthUC: SendOTP(email, password)
     
     Note over AuthUC: Validate user & password

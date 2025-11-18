@@ -35,6 +35,8 @@ type User struct {
 	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 	Otp          null.String `boil:"otp" json:"otp,omitempty" toml:"otp" yaml:"otp,omitempty"`
 	OtpExpiredAt null.Time   `boil:"otp_expired_at" json:"otp_expired_at,omitempty" toml:"otp_expired_at" yaml:"otp_expired_at,omitempty"`
+	// Encrypted role value (USER or ADMIN) using SHA256 hash
+	RoleHash null.String `boil:"role_hash" json:"role_hash,omitempty" toml:"role_hash" yaml:"role_hash,omitempty"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -52,6 +54,7 @@ var UserColumns = struct {
 	DeletedAt    string
 	Otp          string
 	OtpExpiredAt string
+	RoleHash     string
 }{
 	ID:           "id",
 	Username:     "username",
@@ -64,6 +67,7 @@ var UserColumns = struct {
 	DeletedAt:    "deleted_at",
 	Otp:          "otp",
 	OtpExpiredAt: "otp_expired_at",
+	RoleHash:     "role_hash",
 }
 
 var UserTableColumns = struct {
@@ -78,6 +82,7 @@ var UserTableColumns = struct {
 	DeletedAt    string
 	Otp          string
 	OtpExpiredAt string
+	RoleHash     string
 }{
 	ID:           "users.id",
 	Username:     "users.username",
@@ -90,6 +95,7 @@ var UserTableColumns = struct {
 	DeletedAt:    "users.deleted_at",
 	Otp:          "users.otp",
 	OtpExpiredAt: "users.otp_expired_at",
+	RoleHash:     "users.role_hash",
 }
 
 // Generated where
@@ -130,6 +136,7 @@ var UserWhere = struct {
 	DeletedAt    whereHelpernull_Time
 	Otp          whereHelpernull_String
 	OtpExpiredAt whereHelpernull_Time
+	RoleHash     whereHelpernull_String
 }{
 	ID:           whereHelperstring{field: "\"users\".\"id\""},
 	Username:     whereHelperstring{field: "\"users\".\"username\""},
@@ -142,6 +149,7 @@ var UserWhere = struct {
 	DeletedAt:    whereHelpernull_Time{field: "\"users\".\"deleted_at\""},
 	Otp:          whereHelpernull_String{field: "\"users\".\"otp\""},
 	OtpExpiredAt: whereHelpernull_Time{field: "\"users\".\"otp_expired_at\""},
+	RoleHash:     whereHelpernull_String{field: "\"users\".\"role_hash\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -181,9 +189,9 @@ func (r *userR) GetSubscriptions() SubscriptionSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "username", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at"}
+	userAllColumns            = []string{"id", "username", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at", "role_hash"}
 	userColumnsWithoutDefault = []string{"username"}
-	userColumnsWithDefault    = []string{"id", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at"}
+	userColumnsWithDefault    = []string{"id", "full_name", "password_hash", "avatar_url", "is_active", "created_at", "updated_at", "deleted_at", "otp", "otp_expired_at", "role_hash"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}
 )

@@ -8,6 +8,12 @@ import (
 	"github.com/aarondl/null/v8"
 )
 
+// User role constants
+const (
+	RoleUser  = "USER"
+	RoleAdmin = "ADMIN"
+)
+
 // User represents a user entity in the domain layer.
 // This is a safe type model that doesn't depend on database-specific types.
 type User struct {
@@ -15,6 +21,7 @@ type User struct {
 	Username     string     `json:"username"`
 	FullName     *string    `json:"full_name,omitempty"`
 	PasswordHash *string    `json:"password_hash,omitempty"`
+	RoleHash     *string    `json:"role_hash,omitempty"` // Encrypted role value
 	AvatarURL    *string    `json:"avatar_url,omitempty"`
 	IsActive     *bool      `json:"is_active,omitempty"`
 	OTP          *string    `json:"otp,omitempty"`
@@ -40,6 +47,9 @@ func NewUserFromDB(dbUser *sqlboiler.User) *User {
 	}
 	if dbUser.PasswordHash.Valid {
 		user.PasswordHash = &dbUser.PasswordHash.String
+	}
+	if dbUser.RoleHash.Valid {
+		user.RoleHash = &dbUser.RoleHash.String
 	}
 	if dbUser.AvatarURL.Valid {
 		user.AvatarURL = &dbUser.AvatarURL.String
@@ -74,6 +84,9 @@ func (u *User) ToDBUser() *sqlboiler.User {
 	}
 	if u.PasswordHash != nil {
 		dbUser.PasswordHash = null.StringFrom(*u.PasswordHash)
+	}
+	if u.RoleHash != nil {
+		dbUser.RoleHash = null.StringFrom(*u.RoleHash)
 	}
 	if u.AvatarURL != nil {
 		dbUser.AvatarURL = null.StringFrom(*u.AvatarURL)

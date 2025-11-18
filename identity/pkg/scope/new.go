@@ -25,6 +25,7 @@ type Payload struct {
 	jwt.StandardClaims
 	UserID   string `json:"sub"`      // Subject (user ID)
 	Username string `json:"username"` // Username
+	Role     string `json:"role"`     // User role (USER, ADMIN)
 	Type     string `json:"type"`     // Token type (e.g., "access", "refresh")
 	Refresh  bool   `json:"refresh"`  // Whether this is a refresh token
 }

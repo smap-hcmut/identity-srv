@@ -10,14 +10,14 @@ import (
 
 // @Summary Register
 // @Description Register
-// @Tags Auth
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param registerReq body registerReq true "Register"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errEmailExisted(110004)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/auth/register [POST]
+// @Router /identity/auth/register [POST]
 func (h handler) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -45,14 +45,14 @@ func (h handler) Register(c *gin.Context) {
 
 // @Summary Send OTP
 // @Description Send OTP
-// @Tags Auth
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param sendOTPReq body sendOTPReq true "Send OTP"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/auth/send-otp [POST]
+// @Router /identity/auth/send-otp [POST]
 func (h handler) SendOTP(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -80,14 +80,14 @@ func (h handler) SendOTP(c *gin.Context) {
 
 // @Summary Verify OTP
 // @Description Verify OTP
-// @Tags Auth
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param verifyOTPReq body verifyOTPReq true "Verify OTP"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errOTPExpired(110006), errOTPNotMatch(110007)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/auth/verify-otp [POST]
+// @Router /identity/auth/verify-otp [POST]
 func (h handler) VerifyOTP(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -115,14 +115,14 @@ func (h handler) VerifyOTP(c *gin.Context) {
 
 // @Summary Login
 // @Description Login
-// @Tags Auth
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param loginReq body loginReq true "Login"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/auth/login [POST]
+// @Router /identity/auth/login [POST]
 func (h handler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 

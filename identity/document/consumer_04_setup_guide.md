@@ -249,7 +249,7 @@ docker logs -f smap-consumer-dev
 make run-consumer
 
 # Terminal 2: Trigger API endpoint that sends email
-curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
+curl -X POST http://localhost:8080/identity/authentication/send-otp \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -269,7 +269,7 @@ make consumer-run
 docker logs -f smap-consumer-dev
 
 # Trigger API
-curl -X POST http://localhost:8080/api/v1/authentication/send-otp ...
+curl -X POST http://localhost:8080/identity/authentication/send-otp ...
 ```
 
 ### 3. Manual RabbitMQ Test

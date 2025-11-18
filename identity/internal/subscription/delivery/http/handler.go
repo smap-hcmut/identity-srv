@@ -22,7 +22,7 @@ import (
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions [GET]
+// @Router /identity/subscriptions [GET]
 func (h handler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -59,7 +59,7 @@ func (h handler) List(c *gin.Context) {
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/page [GET]
+// @Router /identity/subscriptions/page [GET]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -95,7 +95,7 @@ func (h handler) Get(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/{id} [GET]
+// @Router /identity/subscriptions/{id} [GET]
 func (h handler) Detail(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -131,7 +131,7 @@ func (h handler) Detail(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/me [GET]
+// @Router /identity/subscriptions/me [GET]
 func (h handler) GetMySubscription(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -168,7 +168,7 @@ func (h handler) GetMySubscription(c *gin.Context) {
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions [POST]
+// @Router /identity/subscriptions [POST]
 func (h handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -209,7 +209,7 @@ func (h handler) Create(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/{id} [PUT]
+// @Router /identity/subscriptions/{id} [PUT]
 func (h handler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -254,7 +254,7 @@ func (h handler) Update(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/{id} [DELETE]
+// @Router /identity/subscriptions/{id} [DELETE]
 func (h handler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -292,7 +292,7 @@ func (h handler) Delete(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/subscriptions/{id}/cancel [POST]
+// @Router /identity/subscriptions/{id}/cancel [POST]
 func (h handler) Cancel(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -317,4 +317,3 @@ func (h handler) Cancel(c *gin.Context) {
 
 	response.OK(c, h.newSubscriptionResp(output.Subscription))
 }
-

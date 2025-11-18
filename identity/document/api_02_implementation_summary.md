@@ -109,35 +109,35 @@ File: `internal/httpserver/handler.go`
 - Wire up authentication usecase với plan + subscription
 - Create HTTP handlers
 - Map routes:
-  - `/api/v1/plans` → Plan endpoints
-  - `/api/v1/subscriptions` → Subscription endpoints
+  - `/identity/plans` → Plan endpoints
+  - `/identity/subscriptions` → Subscription endpoints
 
 **Routes đã được map:**
 
 ```
 Authentication:
-POST   /api/v1/auth/register
-POST   /api/v1/auth/send-otp
-POST   /api/v1/auth/verify-otp
-POST   /api/v1/auth/login
+POST   /identity/auth/register
+POST   /identity/auth/send-otp
+POST   /identity/auth/verify-otp
+POST   /identity/auth/login
 
 Plans:
-GET    /api/v1/plans              (List all - public)
-GET    /api/v1/plans/page         (Paginated - public)
-GET    /api/v1/plans/:id          (Detail - public)
-POST   /api/v1/plans              (Create - requires auth)
-PUT    /api/v1/plans/:id          (Update - requires auth)
-DELETE /api/v1/plans/:id          (Delete - requires auth)
+GET    /identity/plans              (List all - public)
+GET    /identity/plans/page         (Paginated - public)
+GET    /identity/plans/:id          (Detail - public)
+POST   /identity/plans              (Create - requires auth)
+PUT    /identity/plans/:id          (Update - requires auth)
+DELETE /identity/plans/:id          (Delete - requires auth)
 
 Subscriptions:
-GET    /api/v1/subscriptions      (List - requires auth)
-GET    /api/v1/subscriptions/page (Paginated - requires auth)
-GET    /api/v1/subscriptions/me   (My subscription - requires auth)
-GET    /api/v1/subscriptions/:id  (Detail - requires auth)
-POST   /api/v1/subscriptions      (Create - requires auth)
-PUT    /api/v1/subscriptions/:id  (Update - requires auth)
-DELETE /api/v1/subscriptions/:id  (Delete - requires auth)
-POST   /api/v1/subscriptions/:id/cancel (Cancel - requires auth)
+GET    /identity/subscriptions      (List - requires auth)
+GET    /identity/subscriptions/page (Paginated - requires auth)
+GET    /identity/subscriptions/me   (My subscription - requires auth)
+GET    /identity/subscriptions/:id  (Detail - requires auth)
+POST   /identity/subscriptions      (Create - requires auth)
+PUT    /identity/subscriptions/:id  (Update - requires auth)
+DELETE /identity/subscriptions/:id  (Delete - requires auth)
+POST   /identity/subscriptions/:id/cancel (Cancel - requires auth)
 ```
 
 ---

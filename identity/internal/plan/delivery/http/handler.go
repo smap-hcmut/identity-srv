@@ -18,7 +18,7 @@ import (
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans [GET]
+// @Router /identity/plans [GET]
 func (h handler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -51,7 +51,7 @@ func (h handler) List(c *gin.Context) {
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans/page [GET]
+// @Router /identity/plans/page [GET]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -85,7 +85,7 @@ func (h handler) Get(c *gin.Context) {
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans/{id} [GET]
+// @Router /identity/plans/{id} [GET]
 func (h handler) Detail(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -122,7 +122,7 @@ func (h handler) Detail(c *gin.Context) {
 // @Failure 400 {object} response.Resp "Bad Request"
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans [POST]
+// @Router /identity/plans [POST]
 func (h handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -156,7 +156,7 @@ func (h handler) Create(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans/{id} [PUT]
+// @Router /identity/plans/{id} [PUT]
 func (h handler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -194,7 +194,7 @@ func (h handler) Update(c *gin.Context) {
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /api/v1/plans/{id} [DELETE]
+// @Router /identity/plans/{id} [DELETE]
 func (h handler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -219,4 +219,3 @@ func (h handler) Delete(c *gin.Context) {
 
 	response.OK(c, nil)
 }
-

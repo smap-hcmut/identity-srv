@@ -17,6 +17,11 @@ type UpdateProfileInput struct {
 	AvatarURL string
 }
 
+type ChangePasswordInput struct {
+	OldPassword string
+	NewPassword string
+}
+
 type UpdateInput struct {
 	ID           string
 	FullName     *string

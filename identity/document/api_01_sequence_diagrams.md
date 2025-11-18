@@ -34,7 +34,7 @@ sequenceDiagram
     participant UserRepo as User Repository
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/auth/register<br/>{email, password}
+    User->>API: POST /identity/auth/register<br/>{email, password}
     API->>API: Validate Request Body
     API->>AuthUC: Register(RegisterInput)
     
@@ -83,7 +83,7 @@ sequenceDiagram
     participant RabbitMQ as RabbitMQ
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/auth/send-otp<br/>{email, password}
+    User->>API: POST /identity/auth/send-otp<br/>{email, password}
     API->>API: Validate Request Body
     API->>AuthUC: SendOTP(SendOTPInput)
     
@@ -148,7 +148,7 @@ sequenceDiagram
     participant SubRepo as Subscription Repository
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/auth/verify-otp<br/>{email, otp}
+    User->>API: POST /identity/auth/verify-otp<br/>{email, otp}
     API->>API: Validate Request Body
     API->>AuthUC: VerifyOTP(VerifyOTPInput)
     
@@ -249,7 +249,7 @@ sequenceDiagram
     participant Scope as Scope Manager
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/auth/login<br/>{email, password}
+    User->>API: POST /identity/auth/login<br/>{email, password}
     API->>API: Validate Request Body
     API->>AuthUC: Login(LoginInput)
     
@@ -306,7 +306,7 @@ sequenceDiagram
     participant PlanRepo as Plan Repository
     participant DB as PostgreSQL
 
-    Admin->>API: POST /api/v1/plans<br/>Authorization: Bearer {token}<br/>{name, code, description, max_usage}
+    Admin->>API: POST /identity/plans<br/>Authorization: Bearer {token}<br/>{name, code, description, max_usage}
     API->>MW: Auth() Middleware
     MW->>MW: Validate JWT Token
     MW->>MW: Extract User Scope
@@ -357,7 +357,7 @@ sequenceDiagram
     participant PlanRepo as Plan Repository
     participant DB as PostgreSQL
 
-    User->>API: GET /api/v1/plans/page?page=1&limit=10&codes[]=free
+    User->>API: GET /identity/plans/page?page=1&limit=10&codes[]=free
     API->>API: Parse Query Parameters
     API->>PlanUC: Get(GetInput)
     
@@ -383,7 +383,7 @@ sequenceDiagram
     participant PlanRepo as Plan Repository
     participant DB as PostgreSQL
 
-    User->>API: GET /api/v1/plans?codes[]=free&codes[]=premium
+    User->>API: GET /identity/plans?codes[]=free&codes[]=premium
     API->>API: Parse Query Parameters
     API->>PlanUC: List(ListInput)
     
@@ -416,7 +416,7 @@ sequenceDiagram
     participant PlanRepo as Plan Repository
     participant DB as PostgreSQL
 
-    Admin->>API: PUT /api/v1/plans/{id}<br/>Authorization: Bearer {token}<br/>{name, max_usage}
+    Admin->>API: PUT /identity/plans/{id}<br/>Authorization: Bearer {token}<br/>{name, max_usage}
     API->>MW: Auth() Middleware
     MW->>MW: Validate JWT Token
     MW-->>API: Authorized
@@ -477,7 +477,7 @@ sequenceDiagram
     participant PlanRepo as Plan Repository
     participant DB as PostgreSQL
 
-    Admin->>API: POST /api/v1/subscriptions<br/>Authorization: Bearer {token}<br/>{user_id, plan_id, status, starts_at, trial_ends_at}
+    Admin->>API: POST /identity/subscriptions<br/>Authorization: Bearer {token}<br/>{user_id, plan_id, status, starts_at, trial_ends_at}
     API->>MW: Auth() Middleware
     MW-->>API: Authorized
     
@@ -545,7 +545,7 @@ sequenceDiagram
     participant SubRepo as Subscription Repository
     participant DB as PostgreSQL
 
-    User->>API: GET /api/v1/subscriptions/me<br/>Authorization: Bearer {token}
+    User->>API: GET /identity/subscriptions/me<br/>Authorization: Bearer {token}
     API->>MW: Auth() Middleware
     MW->>MW: Validate JWT Token
     MW->>MW: Extract User ID from token
@@ -590,7 +590,7 @@ sequenceDiagram
     participant SubRepo as Subscription Repository
     participant DB as PostgreSQL
 
-    User->>API: POST /api/v1/subscriptions/{id}/cancel<br/>Authorization: Bearer {token}
+    User->>API: POST /identity/subscriptions/{id}/cancel<br/>Authorization: Bearer {token}
     API->>MW: Auth() Middleware
     MW-->>API: Authorized
     
@@ -657,7 +657,7 @@ sequenceDiagram
     participant SubRepo as Subscription Repository
     participant DB as PostgreSQL
 
-    Admin->>API: GET /api/v1/subscriptions/page?user_ids[]={userId}&page=1&limit=10
+    Admin->>API: GET /identity/subscriptions/page?user_ids[]={userId}&page=1&limit=10
     API->>MW: Auth() Middleware
     MW-->>API: Authorized
     

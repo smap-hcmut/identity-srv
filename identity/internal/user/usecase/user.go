@@ -6,7 +6,6 @@ import (
 	"smap-api/internal/model"
 	"smap-api/internal/user"
 	"smap-api/internal/user/repository"
-	"smap-api/pkg/encrypter"
 	postgresPkg "smap-api/pkg/postgre"
 )
 
@@ -96,6 +95,61 @@ func (uc *usecase) UpdateProfile(ctx context.Context, sc model.Scope, ip user.Up
 	return user.UserOutput{User: updated}, nil
 }
 
+func (uc *usecase) ChangePassword(ctx context.Context, sc model.Scope, ip user.ChangePasswordInput) error {
+	// Validate new password length
+	if len(ip.NewPassword) < 8 {
+		return user.ErrWeakPassword
+	}
+
+	// Get current user
+	usr, err := uc.repo.Detail(ctx, sc, sc.UserID)
+	if err != nil {
+		if err == repository.ErrNotFound {
+			return user.ErrUserNotFound
+		}
+		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword.Detail: %v", err)
+		return err
+	}
+
+	// Verify old password
+	if usr.PasswordHash == nil {
+		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword: user has no password")
+		return user.ErrWrongPassword
+	}
+
+	oldPasswordPlain, err := uc.encrypt.Decrypt(*usr.PasswordHash)
+	if err != nil {
+		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword.Decrypt: %v", err)
+		return err
+	}
+
+	if oldPasswordPlain != ip.OldPassword {
+		return user.ErrWrongPassword
+	}
+
+	// Check if new password is different
+	if ip.OldPassword == ip.NewPassword {
+		return user.ErrSamePassword
+	}
+
+	// Hash new password
+	newHash, err := uc.encrypt.HashPassword(ip.NewPassword)
+	if err != nil {
+		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword.HashPassword: %v", err)
+		return err
+	}
+
+	// Update password
+	usr.PasswordHash = &newHash
+	_, err = uc.repo.Update(ctx, sc, repository.UpdateOptions{User: usr})
+	if err != nil {
+		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword.Update: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip user.CreateInput) (user.UserOutput, error) {
 	_, err := uc.repo.GetOne(ctx, sc, repository.GetOneOptions{Username: ip.Username})
 	if err == nil {
@@ -106,7 +160,7 @@ func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip user.CreateInp
 		return user.UserOutput{}, err
 	}
 
-	hash, err := encrypter.HashPassword(ip.Password)
+	hash, err := uc.encrypt.HashPassword(ip.Password)
 	if err != nil {
 		uc.l.Errorf(ctx, "internal.user.usecase.Create.HashPassword: %v", err)
 		return user.UserOutput{}, err
@@ -118,6 +172,12 @@ func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip user.CreateInp
 		PasswordHash: &hash,
 		FullName:     &ip.FullName,
 		IsActive:     boolPtr(true),
+	}
+
+	// Set default role as USER
+	if err := usr.SetRole(model.RoleUser); err != nil {
+		uc.l.Errorf(ctx, "internal.user.usecase.Create.SetRole: %v", err)
+		return user.UserOutput{}, err
 	}
 
 	created, err := uc.repo.Create(ctx, sc, repository.CreateOptions{User: usr})

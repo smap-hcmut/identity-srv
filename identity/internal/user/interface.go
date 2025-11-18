@@ -13,6 +13,7 @@ type UseCase interface {
 	List(ctx context.Context, sc model.Scope, ip ListInput) ([]model.User, error)
 	Get(ctx context.Context, sc model.Scope, ip GetInput) (GetUserOutput, error)
 	UpdateProfile(ctx context.Context, sc model.Scope, ip UpdateProfileInput) (UserOutput, error)
+	ChangePassword(ctx context.Context, sc model.Scope, ip ChangePasswordInput) error
 	Create(ctx context.Context, sc model.Scope, ip CreateInput) (UserOutput, error)
 	GetOne(ctx context.Context, sc model.Scope, ip GetOneInput) (model.User, error)
 	Update(ctx context.Context, sc model.Scope, ip UpdateInput) (UserOutput, error)

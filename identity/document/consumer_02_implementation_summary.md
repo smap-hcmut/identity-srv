@@ -356,7 +356,7 @@ make run-consumer
 
 ```bash
 # Full flow: API → RabbitMQ → Consumer → Email
-curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
+curl -X POST http://localhost:8080/identity/authentication/send-otp \
   -d '{"email": "test@example.com", "password": "password"}'
 
 # Check email inbox

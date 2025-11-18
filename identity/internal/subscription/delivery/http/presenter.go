@@ -4,6 +4,7 @@ import (
 	"smap-api/internal/model"
 	"smap-api/internal/subscription"
 	"smap-api/pkg/paginator"
+	"smap-api/pkg/response"
 	"time"
 )
 
@@ -171,16 +172,16 @@ func (q getSubscriptionQuery) toInput() subscription.GetInput {
 
 // Response objects
 type subscriptionResp struct {
-	ID          string  `json:"id"`
-	UserID      string  `json:"user_id"`
-	PlanID      string  `json:"plan_id"`
-	Status      string  `json:"status"`
-	TrialEndsAt *string `json:"trial_ends_at,omitempty"`
-	StartsAt    string  `json:"starts_at"`
-	EndsAt      *string `json:"ends_at,omitempty"`
-	CancelledAt *string `json:"cancelled_at,omitempty"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	ID          string             `json:"id"`
+	UserID      string             `json:"user_id"`
+	PlanID      string             `json:"plan_id"`
+	Status      string             `json:"status"`
+	TrialEndsAt *response.DateTime `json:"trial_ends_at,omitempty"`
+	StartsAt    response.DateTime  `json:"starts_at"`
+	EndsAt      *response.DateTime `json:"ends_at,omitempty"`
+	CancelledAt *response.DateTime `json:"cancelled_at,omitempty"`
+	CreatedAt   response.DateTime  `json:"created_at"`
+	UpdatedAt   response.DateTime  `json:"updated_at"`
 }
 
 func (h handler) newSubscriptionResp(s model.Subscription) *subscriptionResp {
@@ -189,23 +190,23 @@ func (h handler) newSubscriptionResp(s model.Subscription) *subscriptionResp {
 		UserID:    s.UserID,
 		PlanID:    s.PlanID,
 		Status:    s.Status.String(),
-		StartsAt:  s.StartsAt.Format(time.RFC3339),
-		CreatedAt: s.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: s.UpdatedAt.Format(time.RFC3339),
+		StartsAt:  response.DateTime(s.StartsAt),
+		CreatedAt: response.DateTime(s.CreatedAt),
+		UpdatedAt: response.DateTime(s.UpdatedAt),
 	}
 
 	if s.TrialEndsAt != nil {
-		t := s.TrialEndsAt.Format(time.RFC3339)
+		t := response.DateTime(*s.TrialEndsAt)
 		resp.TrialEndsAt = &t
 	}
 
 	if s.EndsAt != nil {
-		t := s.EndsAt.Format(time.RFC3339)
+		t := response.DateTime(*s.EndsAt)
 		resp.EndsAt = &t
 	}
 
 	if s.CancelledAt != nil {
-		t := s.CancelledAt.Format(time.RFC3339)
+		t := response.DateTime(*s.CancelledAt)
 		resp.CancelledAt = &t
 	}
 

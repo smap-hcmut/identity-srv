@@ -12,6 +12,7 @@ func NewScope(payload Payload) model.Scope {
 	return model.Scope{
 		UserID:   payload.UserID,
 		Username: payload.Username,
+		Role:     payload.Role,
 	}
 }
 

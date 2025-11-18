@@ -253,7 +253,7 @@ open http://localhost:15672  # guest/guest
 
 ### Base URL
 ```
-http://localhost:8080/api/v1
+http://localhost:8080/identity
 ```
 
 ### Authentication Endpoints
@@ -293,7 +293,7 @@ http://localhost:8080/api/v1
 
 **Register User:**
 ```bash
-curl -X POST http://localhost:8080/api/v1/authentication/register \
+curl -X POST http://localhost:8080/identity/authentication/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -303,7 +303,7 @@ curl -X POST http://localhost:8080/api/v1/authentication/register \
 
 **Login:**
 ```bash
-curl -X POST http://localhost:8080/api/v1/authentication/login \
+curl -X POST http://localhost:8080/identity/authentication/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -313,7 +313,7 @@ curl -X POST http://localhost:8080/api/v1/authentication/login \
 
 **Get My Subscription:**
 ```bash
-curl http://localhost:8080/api/v1/subscriptions/me \
+curl http://localhost:8080/identity/subscriptions/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 

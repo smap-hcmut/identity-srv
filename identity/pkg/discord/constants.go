@@ -1,8 +1,7 @@
-
 package discord
 
 const (
-	baseURL    = "https://discord.com/api/v10"
+	baseURL    = "https://discord.com/identity0"
 	webhookURL = "https://discord.com/api/webhooks/%s/%s"
 
 	// Discord Embed Colors

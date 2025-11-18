@@ -4,6 +4,7 @@ import (
 	"smap-api/internal/model"
 	"smap-api/internal/plan"
 	"smap-api/pkg/paginator"
+	"smap-api/pkg/response"
 )
 
 // Create Plan API Request
@@ -94,13 +95,13 @@ func (q getPlanQuery) toInput() plan.GetInput {
 
 // Response objects
 type planResp struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Code        string  `json:"code"`
-	Description *string `json:"description,omitempty"`
-	MaxUsage    int     `json:"max_usage"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Code        string            `json:"code"`
+	Description *string           `json:"description,omitempty"`
+	MaxUsage    int               `json:"max_usage"`
+	CreatedAt   response.DateTime `json:"created_at"`
+	UpdatedAt   response.DateTime `json:"updated_at"`
 }
 
 func (h handler) newPlanResp(p model.Plan) *planResp {
@@ -110,8 +111,8 @@ func (h handler) newPlanResp(p model.Plan) *planResp {
 		Code:        p.Code,
 		Description: p.Description,
 		MaxUsage:    p.MaxUsage,
-		CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt:   response.DateTime(p.CreatedAt),
+		UpdatedAt:   response.DateTime(p.UpdatedAt),
 	}
 }
 

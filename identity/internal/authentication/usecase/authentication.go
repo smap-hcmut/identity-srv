@@ -8,7 +8,6 @@ import (
 	subscriptionPkg "smap-api/internal/subscription"
 	"smap-api/internal/user"
 	"smap-api/pkg/email"
-	"smap-api/pkg/encrypter"
 	"smap-api/pkg/scope"
 	"smap-api/pkg/util"
 	"strconv"
@@ -62,6 +61,7 @@ func (uc *implUsecase) Login(ctx context.Context, sc model.Scope, ip authenticat
 		},
 		UserID:   u.ID,
 		Username: u.Username,
+		Role:     u.GetRole(), // Include user role in JWT token
 		Type:     model.ScopeTypeAccess,
 		Refresh:  false,
 	})
@@ -93,9 +93,9 @@ func (uc *implUsecase) Register(ctx context.Context, sc model.Scope, ip authenti
 	}
 
 	// Step 2: Securely hash the provided password before storing.
-	hash, err := encrypter.HashPassword(ip.Password)
+	hash, err := uc.encrypt.HashPassword(ip.Password)
 	if err != nil {
-		uc.l.Errorf(ctx, "authentication.usecase.Register.encrypter.HashPassword: %v", err)
+		uc.l.Errorf(ctx, "authentication.usecase.Register.encrypt.HashPassword: %v", err)
 		return authentication.RegisterOutput{}, err
 	}
 

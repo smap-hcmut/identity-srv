@@ -171,7 +171,7 @@ make consumer-build
 make run-consumer
 
 # Terminal 2: Trigger email via API
-curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
+curl -X POST http://localhost:8080/identity/authentication/send-otp \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -371,12 +371,12 @@ docker run -d --name smap-consumer-3 --env-file .env smap-consumer:latest
 
 ```bash
 # 1. User registers
-curl -X POST http://localhost:8080/api/v1/authentication/register \
+curl -X POST http://localhost:8080/identity/authentication/register \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password123"}'
 
 # 2. Request OTP (triggers email)
-curl -X POST http://localhost:8080/api/v1/authentication/send-otp \
+curl -X POST http://localhost:8080/identity/authentication/send-otp \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password123"}'
 

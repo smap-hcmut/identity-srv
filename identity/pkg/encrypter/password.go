@@ -6,7 +6,7 @@ import (
 
 // HashPassword hashes a password using bcrypt with the default cost.
 // Returns the hashed password as a string.
-func HashPassword(password string) (string, error) {
+func (e implEncrypter) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -16,7 +16,7 @@ func HashPassword(password string) (string, error) {
 
 // CheckPasswordHash compares a password with its bcrypt hash.
 // Returns true if the password matches the hash, false otherwise.
-func CheckPasswordHash(password, hash string) bool {
+func (e implEncrypter) CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

@@ -11,6 +11,7 @@ import (
 	subscriptionhttp "smap-api/internal/subscription/delivery/http"
 	subscriptionrepository "smap-api/internal/subscription/repository/postgre"
 	subscriptionusecase "smap-api/internal/subscription/usecase"
+	userhttp "smap-api/internal/user/delivery/http"
 	userrepository "smap-api/internal/user/repository/postgre"
 	userusecase "smap-api/internal/user/usecase"
 	"smap-api/pkg/i18n"
@@ -23,7 +24,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-const apiPrefix = "/api/v1"
+const apiPrefix = "/identity"
 
 func (srv HTTPServer) mapHandlers() error {
 	srv.registerMiddlewares()
@@ -40,7 +41,7 @@ func (srv HTTPServer) mapHandlers() error {
 	subscriptionRepo := subscriptionrepository.New(srv.l, srv.postgresDB)
 
 	// Initialize usecases
-	userUC := userusecase.New(srv.l, userRepo)
+	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
 	planUC := planusecase.New(srv.l, planRepo)
 	subscriptionUC := subscriptionusecase.New(srv.l, subscriptionRepo, planUC)
 
@@ -57,12 +58,14 @@ func (srv HTTPServer) mapHandlers() error {
 	authHandler := authhttp.New(srv.l, authUC, srv.discord)
 	planHandler := planhttp.New(srv.l, planUC)
 	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC)
+	userHandler := userhttp.New(srv.l, userUC)
 
 	// Map routes
 	api := srv.gin.Group(apiPrefix)
 	authhttp.MapAuthRoutes(api.Group("/authentication"), authHandler, mw)
 	planhttp.MapPlanRoutes(api.Group("/plans"), planHandler, mw)
 	subscriptionhttp.MapSubscriptionRoutes(api.Group("/subscriptions"), subscriptionHandler, mw)
+	userhttp.MapUserRoutes(api.Group("/users"), userHandler, mw)
 
 	return nil
 }
@@ -75,8 +78,9 @@ func (srv HTTPServer) registerMiddlewares() {
 }
 
 func (srv HTTPServer) registerSystemRoutes() {
-	srv.gin.GET("/health", srv.healthCheck)
-	srv.gin.GET("/ready", srv.readyCheck)
-	srv.gin.GET("/live", srv.liveCheck)
-	srv.gin.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	api := srv.gin.Group(apiPrefix)
+	api.GET("/health", srv.healthCheck)
+	api.GET("/ready", srv.readyCheck)
+	api.GET("/live", srv.liveCheck)
+	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

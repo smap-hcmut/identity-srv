@@ -16,11 +16,12 @@ import (
 	"syscall"
 )
 
-// @Name Smap API
-// @description This is the API documentation for Smap.
-// @version 1
-// @host localhost:8080
-// @schemes http
+// @title       Smap API
+// @description SMAP Identity Service API documentation.
+// @version     1
+// @host        localhost:8080
+// @schemes     http
+// @BasePath    /identity
 func main() {
 	// Load configuration
 	cfg, err := config.Load()

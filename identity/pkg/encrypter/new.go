@@ -10,6 +10,12 @@ type Encrypter interface {
 	EncryptBytesToString(data []byte) (string, error)
 	// DecryptStringToBytes decrypts a base64-encoded ciphertext string and returns plaintext bytes.
 	DecryptStringToBytes(ciphertext string) ([]byte, error)
+
+	// HashPassword hashes a password using bcrypt with the default cost.
+	HashPassword(password string) (string, error)
+
+	// CheckPasswordHash compares a password with its bcrypt hash.
+	CheckPasswordHash(password, hash string) bool
 }
 
 type implEncrypter struct {
