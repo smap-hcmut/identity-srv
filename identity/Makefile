@@ -30,3 +30,54 @@ build-docker-compose:
 	@make models
 	@echo "Building docker compose"
 	docker compose up --build -d
+
+# Docker build targets (using optimized Dockerfile)
+docker-build:
+	@echo "Building Docker image for local platform"
+	@./build.sh local
+
+docker-build-amd64:
+	@echo "Building Docker image for AMD64"
+	@./build.sh amd64
+
+docker-build-multi:
+	@echo "Building multi-platform Docker image (requires REGISTRY)"
+	@./build.sh multi
+
+docker-run:
+	@echo "Building and running Docker container"
+	@./build.sh run
+
+docker-clean:
+	@echo "Cleaning Docker images"
+	@./build.sh clean
+
+docker-push:
+	@echo "Building and pushing to registry (requires REGISTRY)"
+	@./build.sh push
+
+# Show all available targets
+help:
+	@echo "Available targets:"
+	@echo "  models              - Generate SQLBoiler models"
+	@echo "  swagger             - Generate Swagger documentation"
+	@echo "  run-api             - Run API server locally"
+	@echo "  run-consumer        - Run consumer locally"
+	@echo "  build-docker-compose - Build with docker-compose"
+	@echo ""
+	@echo "Docker targets (optimized Dockerfile):"
+	@echo "  docker-build        - Build for local platform"
+	@echo "  docker-build-amd64  - Build for AMD64 servers"
+	@echo "  docker-build-multi  - Build multi-platform (requires REGISTRY env)"
+	@echo "  docker-run          - Build and run container locally"
+	@echo "  docker-clean        - Remove all Docker images"
+	@echo "  docker-push         - Build and push to registry"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make docker-build"
+	@echo "  make docker-run"
+	@echo "  REGISTRY=docker.io/username make docker-push"
+
+.PHONY: models swagger run-api run-consumer build-docker-compose \
+        docker-build docker-build-amd64 docker-build-multi \
+        docker-run docker-clean docker-push help
