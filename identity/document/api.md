@@ -1,6 +1,6 @@
-# API Sequence Diagrams
+# SMAP Identity API
 
-This document provides detailed sequence diagrams for all API flows in the SMAP Identity API.
+Sequence diagrams for API flows in SMAP Identity Service.
 
 ## Table of Contents
 - [Authentication Flows](#authentication-flows)
@@ -16,6 +16,15 @@ This document provides detailed sequence diagrams for all API flows in the SMAP 
   - [8. Create Subscription Flow](#8-create-subscription-flow)
   - [9. Get My Active Subscription Flow](#9-get-my-active-subscription-flow)
   - [10. Cancel Subscription Flow](#10-cancel-subscription-flow)
+  - [11. List User's Subscriptions Flow](#11-list-users-subscriptions-flow)
+- [User Management Flows](#user-management-flows)
+  - [12. Get My Profile Flow](#12-get-my-profile-flow)
+  - [13. Update My Profile Flow](#13-update-my-profile-flow)
+  - [14. Change Password Flow](#14-change-password-flow)
+- [Admin User Management Flows](#admin-user-management-flows)
+  - [15. Get User Detail (Admin) Flow](#15-get-user-detail-admin-flow)
+  - [16. List Users (Admin) Flow](#16-list-users-admin-flow)
+  - [17. Get Users with Pagination (Admin) Flow](#17-get-users-with-pagination-admin-flow)
 
 ---
 
@@ -644,9 +653,7 @@ sequenceDiagram
 
 ---
 
-## Additional Flows
-
-### 11. List User's Subscriptions
+### 11. List User's Subscriptions Flow
 
 ```mermaid
 sequenceDiagram
@@ -677,6 +684,443 @@ sequenceDiagram
     API-->>Admin: 200 OK<br/>{subscriptions[], paginator}
 ```
 
+**Key Points:**
+- Authentication required
+- Admin can list subscriptions for specific users
+- Supports pagination
+- Returns subscription history with status
+
+---
+
+## User Management Flows
+
+### 12. Get My Profile Flow
+
+This flow retrieves the current authenticated user's profile information.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    User->>API: GET /identity/users/me<br/>Authorization: Bearer {token}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW->>AuthMW: Parse and validate token
+    AuthMW->>AuthMW: Extract Payload (userID, username, role)
+    AuthMW->>AuthMW: Create Scope and add to context
+    AuthMW-->>API: Authorized (Scope in context)
+    
+    API->>UserUC: DetailMe(ctx, scope)
+    
+    UserUC->>UserRepo: Detail(ctx, scope, scope.UserID)
+    UserRepo->>DB: SELECT * FROM users<br/>WHERE id = ? AND deleted_at IS NULL
+    
+    alt User found
+        DB-->>UserRepo: User
+        UserRepo-->>UserUC: User
+        
+        UserUC-->>API: UserOutput{User}
+        
+        API->>API: Convert to UserResponse
+        Note over API: Include: id, username, full_name,<br/>avatar_url, role, is_active
+        
+        API-->>User: 200 OK<br/>{user}
+    else User not found
+        DB-->>UserRepo: Not Found
+        UserRepo-->>UserUC: ErrNotFound
+        UserUC-->>API: ErrUserNotFound
+        API-->>User: 404 Not Found
+    end
+```
+
+**Key Points:**
+- User can only view their own profile
+- Role is decrypted from `role_hash` before response
+- Password hash is never returned to client
+- Requires valid JWT authentication
+
+---
+
+### 13. Update My Profile Flow
+
+This flow updates the authenticated user's profile information (full name and avatar).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    User->>API: PUT /identity/users/me<br/>Authorization: Bearer {token}<br/>{full_name, avatar_url}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW->>AuthMW: Extract Scope (userID, role)
+    AuthMW-->>API: Authorized
+    
+    API->>API: Validate Request Body
+    
+    alt Invalid request body
+        API-->>User: 400 Bad Request<br/>"Field required"
+    else Valid request
+        API->>UserUC: UpdateProfile(ctx, scope, input)
+        
+        UserUC->>UserRepo: Detail(ctx, scope, scope.UserID)
+        UserRepo->>DB: SELECT * FROM users WHERE id = ?
+        
+        alt User not found
+            DB-->>UserRepo: Not Found
+            UserRepo-->>UserUC: ErrNotFound
+            UserUC-->>API: ErrUserNotFound
+            API-->>User: 404 Not Found
+        else User found
+            DB-->>UserRepo: User
+            UserRepo-->>UserUC: User
+            
+            UserUC->>UserUC: Update user.FullName
+            UserUC->>UserUC: Update user.AvatarURL (if provided)
+            
+            UserUC->>UserRepo: Update(ctx, scope, UpdateOptions{User})
+            UserRepo->>DB: UPDATE users SET<br/>full_name = ?, avatar_url = ?,<br/>updated_at = ? WHERE id = ?
+            DB-->>UserRepo: Updated User
+            UserRepo-->>UserUC: Updated User
+            
+            UserUC-->>API: UserOutput{User}
+            API->>API: Convert to UserResponse
+            API-->>User: 200 OK<br/>{updated user}
+        end
+    end
+```
+
+**Key Points:**
+- User can only update their own profile
+- Only `full_name` and `avatar_url` can be updated
+- Username, role, and password cannot be changed via this endpoint
+- `updated_at` timestamp is automatically set
+
+---
+
+### 14. Change Password Flow
+
+This flow changes the authenticated user's password after verifying the old password.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant UserUC as User UseCase
+    participant Encrypter as Encrypter
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    User->>API: POST /identity/users/me/change-password<br/>Authorization: Bearer {token}<br/>{old_password, new_password}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW-->>API: Authorized (Scope in context)
+    
+    API->>API: Validate Request Body
+    Note over API: Check both passwords are provided
+    
+    alt Invalid request
+        API-->>User: 400 Bad Request<br/>"Field required"
+    else Valid request
+        API->>UserUC: ChangePassword(ctx, scope, input)
+        
+        UserUC->>UserUC: Validate new password length >= 8
+        
+        alt Weak password
+            UserUC-->>API: ErrWeakPassword
+            API-->>User: 400 Bad Request<br/>"Password must be at least 8 characters"
+        else Password valid
+            UserUC->>UserRepo: Detail(ctx, scope, scope.UserID)
+            UserRepo->>DB: SELECT * FROM users WHERE id = ?
+            
+            alt User not found
+                DB-->>UserRepo: Not Found
+                UserRepo-->>UserUC: ErrNotFound
+                UserUC-->>API: ErrUserNotFound
+                API-->>User: 404 Not Found
+            else User found
+                DB-->>UserRepo: User
+                UserRepo-->>UserUC: User
+                
+                UserUC->>Encrypter: Decrypt(user.PasswordHash)
+                Encrypter-->>UserUC: Decrypted Password
+                
+                UserUC->>UserUC: Compare old_password with decrypted
+                
+                alt Wrong old password
+                    UserUC-->>API: ErrWrongPassword
+                    API-->>User: 400 Bad Request<br/>"Wrong password"
+                else Old password correct
+                    UserUC->>UserUC: Check new != old
+                    
+                    alt Same password
+                        UserUC-->>API: ErrSamePassword
+                        API-->>User: 400 Bad Request<br/>"New password must be different"
+                    else Different password
+                        UserUC->>Encrypter: HashPassword(new_password)
+                        Encrypter-->>UserUC: Hashed Password
+                        
+                        UserUC->>UserUC: Set user.PasswordHash
+                        
+                        UserUC->>UserRepo: Update(ctx, scope, UpdateOptions{User})
+                        UserRepo->>DB: UPDATE users SET<br/>password_hash = ?, updated_at = ?<br/>WHERE id = ?
+                        DB-->>UserRepo: Success
+                        UserRepo-->>UserUC: Updated User
+                        
+                        UserUC-->>API: Success
+                        API-->>User: 200 OK<br/>{"message": "Password changed successfully"}
+                    end
+                end
+            end
+        end
+    end
+```
+
+**Key Points:**
+- Old password must be correct to change
+- New password must be at least 8 characters
+- New password must be different from old password
+- Password is encrypted before storage using bcrypt
+- User is not logged out (JWT token remains valid)
+
+**Security Considerations:**
+- Password validation on server side
+- Encrypted storage prevents plaintext exposure
+- All password operations are logged for audit
+
+---
+
+## Admin User Management Flows
+
+### 15. Get User Detail (Admin) Flow
+
+This flow retrieves detailed information about a specific user by ID. **Admin only.**
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant AdminMW as Admin Middleware
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    Admin->>API: GET /identity/users/{id}<br/>Authorization: Bearer {token}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW->>AuthMW: Extract Scope (userID, role)
+    AuthMW-->>API: Authorized (Scope in context)
+    
+    API->>AdminMW: Check Admin Role
+    AdminMW->>AdminMW: Check scope.IsAdmin()
+    
+    alt Not admin
+        Note over AdminMW: scope.Role != "ADMIN"
+        AdminMW-->>API: Forbidden
+        API-->>Admin: 403 Forbidden<br/>"Unauthorized"
+    else Is admin
+        AdminMW-->>API: Authorized
+        
+        API->>API: Extract and validate ID param
+        
+        alt Invalid ID
+            API-->>Admin: 400 Bad Request<br/>"Invalid ID"
+        else Valid ID
+            API->>UserUC: Detail(ctx, scope, id)
+            
+            UserUC->>UserRepo: Detail(ctx, scope, id)
+            UserRepo->>DB: SELECT * FROM users<br/>WHERE id = ? AND deleted_at IS NULL
+            
+            alt User not found
+                DB-->>UserRepo: Not Found
+                UserRepo-->>UserUC: ErrNotFound
+                UserUC-->>API: ErrUserNotFound
+                API-->>Admin: 404 Not Found<br/>"User not found"
+            else User found
+                DB-->>UserRepo: User
+                UserRepo-->>UserUC: User
+                
+                UserUC-->>API: UserOutput{User}
+                
+                API->>API: Convert to UserResponse
+                Note over API: Decrypt role_hash to readable role
+                
+                API-->>Admin: 200 OK<br/>{user details}
+            end
+        end
+    end
+```
+
+**Key Points:**
+- **Admin authentication required** via `AdminOnly()` middleware
+- Admin can view any user's profile
+- User's role is decrypted and included in response
+- Password hash is never exposed
+
+---
+
+### 16. List Users (Admin) Flow
+
+This flow lists all users without pagination. **Admin only.**
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant AdminMW as Admin Middleware
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    Admin->>API: GET /identity/users?ids[]=id1&ids[]=id2<br/>Authorization: Bearer {token}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW-->>API: Authorized
+    
+    API->>AdminMW: Check Admin Role
+    
+    alt Not admin
+        AdminMW-->>API: Forbidden
+        API-->>Admin: 403 Forbidden
+    else Is admin
+        AdminMW-->>API: Authorized
+        
+        API->>API: Parse Query Parameters
+        Note over API: Optional: ids[] filter
+        
+        API->>UserUC: List(ctx, scope, ListInput)
+        
+        UserUC->>UserRepo: List(ctx, scope, ListOptions)
+        
+        UserRepo->>DB: SELECT * FROM users<br/>WHERE deleted_at IS NULL<br/>[AND id IN (?)]
+        
+        DB-->>UserRepo: Users[]
+        UserRepo-->>UserUC: Users[]
+        
+        UserUC-->>API: Users[]
+        
+        API->>API: Convert each user to UserResponse
+        loop For each user
+            API->>API: Decrypt role_hash
+            API->>API: Format timestamps
+        end
+        
+        API-->>Admin: 200 OK<br/>{users: [...]}
+    end
+```
+
+**Key Points:**
+- **Admin only** endpoint
+- Returns all users (no pagination)
+- Optional filtering by user IDs
+- Useful for admin dashboards or bulk operations
+- Role is decrypted for each user
+
+---
+
+### 17. Get Users with Pagination (Admin) Flow
+
+This flow retrieves users with pagination support. **Admin only.**
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant API as API Handler
+    participant AuthMW as Auth Middleware
+    participant AdminMW as Admin Middleware
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    Admin->>API: GET /identity/users/page?page=1&limit=10&ids[]=<br/>Authorization: Bearer {token}
+    
+    API->>AuthMW: Verify JWT Token
+    AuthMW-->>API: Authorized
+    
+    API->>AdminMW: Check Admin Role
+    
+    alt Not admin
+        AdminMW-->>API: Forbidden
+        API-->>Admin: 403 Forbidden
+    else Is admin
+        AdminMW-->>API: Authorized
+        
+        API->>API: Parse Query Parameters
+        Note over API: page (default: 1)<br/>limit (default: 10)<br/>ids[] (optional)
+        
+        API->>UserUC: Get(ctx, scope, GetInput)
+        
+        UserUC->>UserRepo: Get(ctx, scope, GetOptions)
+        
+        UserRepo->>DB: SELECT COUNT(*) FROM users<br/>WHERE deleted_at IS NULL<br/>[AND id IN (?)]
+        DB-->>UserRepo: Total Count
+        
+        UserRepo->>UserRepo: Calculate offset = (page - 1) * limit
+        
+        UserRepo->>DB: SELECT * FROM users<br/>WHERE deleted_at IS NULL<br/>[AND id IN (?)]<br/>ORDER BY created_at DESC<br/>LIMIT ? OFFSET ?
+        DB-->>UserRepo: Users[]
+        
+        UserRepo->>UserRepo: Build Paginator
+        Note over UserRepo: total, count, per_page,<br/>current_page, last_page
+        
+        UserRepo-->>UserUC: Users[] + Paginator
+        
+        UserUC-->>API: GetUserOutput{Users, Paginator}
+        
+        API->>API: Convert to GetUserResponse
+        loop For each user
+            API->>API: Decrypt role_hash
+            API->>API: Format timestamps
+        end
+        
+        API-->>Admin: 200 OK<br/>{users: [...], paginator: {...}}
+    end
+```
+
+**Response Format:**
+```json
+{
+  "users": [
+    {
+      "id": "uuid",
+      "username": "user@example.com",
+      "full_name": "John Doe",
+      "avatar_url": "https://...",
+      "role": "USER",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "paginator": {
+    "total": 100,
+    "count": 10,
+    "per_page": 10,
+    "current_page": 1,
+    "last_page": 10
+  }
+}
+```
+
+**Key Points:**
+- **Admin only** endpoint
+- Pagination parameters: `page`, `limit`
+- Optional filtering by user IDs
+- Returns paginator metadata for UI
+- Efficient for large user lists
+
 ---
 
 ## Error Handling Patterns
@@ -691,6 +1135,7 @@ All API flows follow consistent error handling:
   - Validation errors
   - Business logic errors (e.g., user already exists, wrong password)
 - **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: Insufficient permissions (not admin)
 - **404 Not Found**: Resource not found (user, plan, subscription)
 - **500 Internal Server Error**: Unexpected server errors
 
@@ -710,6 +1155,7 @@ All API flows follow consistent error handling:
 - **110xxx**: Authentication errors
 - **120xxx**: Plan errors
 - **130xxx**: Subscription errors
+- **140xxx**: User errors
 
 ---
 
@@ -721,22 +1167,35 @@ This API implements a complete subscription-based system with the following key 
 2. **Automatic Free Trial**: 14-day trial subscription created on verification
 3. **Plan Management**: CRUD operations for subscription plans
 4. **Subscription Management**: Create, read, update, cancel subscriptions
-5. **Access Control**: JWT-based authentication for protected endpoints
+5. **User Management**: Profile management and admin operations
+6. **Access Control**: JWT-based authentication + Role-based authorization
 
 ### Flow Integration
 
 The flows are integrated as follows:
 1. User registers → Receives OTP
 2. User verifies OTP → Account activated + Free trial subscription created
-3. User logs in → Receives JWT token
-4. User can view their subscription status
-5. Admin can manage plans and subscriptions
+3. User logs in → Receives JWT token (with role)
+4. User can view/update their profile and subscription
+5. Admin can manage users, plans, and subscriptions
 
 ### Database Schema Dependencies
 
-- **users** table: Stores user information
+- **users** table: Stores user information (with encrypted role)
 - **plans** table: Stores subscription plans
 - **subscriptions** table: Links users to plans with status and dates
   - Foreign key: `user_id` → `users.id`
   - Foreign key: `plan_id` → `plans.id`
 
+---
+
+**Total Flows**: 17
+- Authentication: 4 flows
+- Plan Management: 3 flows
+- Subscription Management: 4 flows
+- User Management: 3 flows
+- Admin User Management: 3 flows
+
+---
+
+*Last updated: November 20, 2025*
