@@ -75,12 +75,12 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
                ▼                           ▼
 ┌──────────────────────────┐    ┌──────────────────────────┐
 │   Identity Service       │    │   WebSocket Service      │
-│   (Port 8080)           │    │   (Port 8081)           │
+│   (Port 8080)            │    │    (Port 8081)           │
 │                          │    │                          │
-│ - Authentication        │    │ - Real-time messages     │
-│ - User management       │    │ - JWT validation         │
-│ - Subscription mgmt     │    │ - Connection management  │
-│ - Plan management       │    │                          │
+│ - Authentication         │    │ - Real-time messages     │
+│ - User management        │    │ - JWT validation         │
+│ - Subscription mgmt      │    │ - Connection management  │
+│ - Plan management        │    │                          │
 └──────────┬───────────────┘    └──────────┬───────────────┘
            │                               │
            │                               │
@@ -702,5 +702,5 @@ This project is part of the SMAP graduation project.
 
 **Built for SMAP Graduation Project**
 
-*Last updated: January 2025*
+*Last updated: 2025-11-21*
 
