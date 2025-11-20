@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"smap-websocket/pkg/discord"
-	"smap-websocket/pkg/errors"
+	"smap-api/pkg/discord"
+	"smap-api/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )
