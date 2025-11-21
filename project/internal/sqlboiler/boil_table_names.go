@@ -4,11 +4,7 @@
 package sqlboiler
 
 var TableNames = struct {
-	Plans         string
-	Subscriptions string
-	Users         string
+	Projects string
 }{
-	Plans:         "plans",
-	Subscriptions: "subscriptions",
-	Users:         "users",
+	Projects: "projects",
 }
