@@ -60,6 +60,31 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
 
 ---
 
+### 3. Project Service
+
+Project and campaign management service for SMAP.
+
+**Location:** [`project/`](project/)
+
+**Key Features:**
+- Project CRUD with validation and status workflow
+- Brand and keyword tracking per project
+- Competitor monitoring with keyword mapping
+- Date-range enforcement and soft-delete support
+- User isolation with JWT authentication
+
+**Tech Stack:**
+- Go 1.23+
+- PostgreSQL 15
+- Gin Web Framework
+- SQLBoiler ORM
+
+**Documentation:** See [project/README.md](project/README.md)
+
+**API Base Path:** `http://localhost:8080/project`
+
+---
+
 ## Architecture
 
 ### System Overview
@@ -73,24 +98,23 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
                │ HTTP/REST                 │ WebSocket
                │                           │
                ▼                           ▼
-┌──────────────────────────┐    ┌──────────────────────────┐
-│   Identity Service       │    │   WebSocket Service      │
-│   (Port 8080)            │    │    (Port 8081)           │
-│                          │    │                          │
-│ - Authentication         │    │ - Real-time messages     │
-│ - User management        │    │ - JWT validation         │
-│ - Subscription mgmt      │    │ - Connection management  │
-│ - Plan management        │    │                          │
-└──────────┬───────────────┘    └──────────┬───────────────┘
-           │                               │
-           │                               │
-           ▼                               ▼
-┌──────────────────────┐         ┌──────────────────────┐
-│    PostgreSQL        │         │       Redis          │
-│    (Database)        │         │    (Pub/Sub)         │
-└──────────────────────┘         └──────────────────────┘
-           │
-           ▼
+┌──────────────────────────┐    ┌──────────────────────────┐    ┌──────────────────────────┐
+│   Identity Service       │    │   Project Service        │    │   WebSocket Service      │
+│   (Port 8080)            │    │   (APP_PORT, /project)   │    │   (Port 8081)            │
+│                          │    │                          │    │                          │
+│ - Authentication         │    │ - Project CRUD           │    │ - Real-time messages     │
+│ - User management        │    │ - Brand/keyword tracking │    │ - JWT validation         │
+│ - Subscription mgmt      │    │ - Competitor analysis    │    │ - Connection management  │
+│ - Plan management        │    │ - JWT validation         │    │                          │
+└───────┬──────────────────┘    └──────────┬───────────────┘    └──────────┬───────────────┘
+        │                                   │                                │
+        │                                   │                                │
+        ▼                                   ▼                                ▼
+┌──────────────────────┐          ┌──────────────────────┐        ┌──────────────────────┐
+│ PostgreSQL (Identity)│          │ PostgreSQL (Projects)│        │       Redis          │
+└──────────────────────┘          └──────────────────────┘        │    (Pub/Sub)         │
+        │                                                         └──────────────────────┘
+        ▼
 ┌──────────────────────┐
 │     RabbitMQ         │
 │   (Message Queue)    │
@@ -110,6 +134,11 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
 - Stores data in PostgreSQL
 - Issues JWT tokens for authentication
 
+**Project Service:**
+- Provides REST APIs for project lifecycle management
+- Stores project data, brand keywords, and competitor metadata in PostgreSQL
+- Validates JWT tokens issued by the Identity Service
+
 **WebSocket Service:**
 - Validates JWT tokens from Identity Service
 - Subscribes to Redis Pub/Sub channels (`user_noti:*`)
@@ -126,7 +155,7 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
 
 ### Prerequisites
 
-- **Go**: 1.23+ (Identity), 1.25+ (WebSocket)
+- **Go**: 1.23+ (Identity & Project), 1.25+ (WebSocket)
 - **PostgreSQL**: 15+
 - **Redis**: 7.0+
 - **RabbitMQ**: 3.x
@@ -224,6 +253,36 @@ go run tests/client_example.go YOUR_JWT_TOKEN
 
 See [websocket/README.md](websocket/README.md) for detailed setup.
 
+#### Project Service
+
+```bash
+cd project
+
+# Copy environment template
+cp template.env .env
+
+# Edit configuration
+nano .env
+
+# Start PostgreSQL (or reuse existing instance)
+docker run -d --name postgres-project -p 5442:5432 \
+  -e POSTGRES_DB=smap_project \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  postgres:15-alpine
+
+# Run migrations
+make migrate-up
+
+# Generate SQLBoiler models
+make sqlboiler
+
+# Run API server
+make run-api
+```
+
+See [project/README.md](project/README.md) for detailed setup.
+
 ---
 
 ## Development
@@ -256,8 +315,15 @@ smap-api/
 │   ├── tests/              # Test utilities
 │   └── README.md           # Service documentation
 │
+├── project/                 # Project management service
+│   ├── cmd/api/            # Project API server
+│   ├── internal/           # Project domain and business logic
+│   ├── pkg/                # Shared packages
+│   ├── document/           # Service documentation
+│   └── README.md           # Service documentation
+│
 ├── docker-compose.yml       # Full stack setup
-└── README.md               # This file
+└── README.md                # This file
 ```
 
 ### Technology Stack
@@ -268,7 +334,7 @@ smap-api/
 - Gorilla WebSocket
 
 **Databases:**
-- PostgreSQL 15 (Identity Service)
+- PostgreSQL 15 (Identity & Project Services)
 - Redis 7.0+ (WebSocket Service)
 
 **Message Queue:**
@@ -308,6 +374,16 @@ make docker-build         # Build Docker image
 make test                 # Run tests
 ```
 
+**Project Service:**
+```bash
+cd project
+make run-api              # Run API server
+make migrate-up           # Run database migrations
+make sqlboiler            # Generate SQLBoiler models
+make test                 # Run tests
+make docker-build         # Build Docker image
+```
+
 ### Code Standards
 
 Both services follow:
@@ -339,6 +415,20 @@ Both services follow:
 **Swagger UI:** http://localhost:8080/swagger/index.html
 
 See [identity/README.md](identity/README.md#api-documentation) for complete API documentation.
+
+### Project Service API
+
+**Base URL:** `http://localhost:8080/project`
+
+**Key Endpoints:**
+- `GET /projects` - List authenticated user's projects
+- `GET /projects/page` - Paginated projects with filters
+- `GET /projects/:id` - Retrieve project details
+- `POST /projects` - Create new project
+- `PUT /projects/:id` - Update existing project
+- `DELETE /projects/:id` - Soft-delete project
+
+See [project/README.md](project/README.md#api-endpoints) for payload examples and additional documentation.
 
 ### WebSocket Service API
 
@@ -374,6 +464,10 @@ make docker-build-amd64
 # WebSocket Service
 cd websocket
 make docker-build-amd64
+
+# Project Service
+cd project
+make docker-build-amd64
 ```
 
 **Run with Docker Compose:**
@@ -402,6 +496,10 @@ See service-specific documentation for detailed deployment guides:
 **WebSocket Service:**
 - See [websocket/template.env](websocket/template.env)
 - Key vars: `WS_PORT`, `REDIS_*`, `JWT_SECRET_KEY`
+
+**Project Service:**
+- See [project/template.env](project/template.env)
+- Key vars: `APP_PORT`, `POSTGRES_*`, `JWT_SECRET`, `INTERNAL_KEY`, `LOGGER_*`
 
 **Important:** Use the same `JWT_SECRET_KEY` for both services to enable cross-service authentication.
 
@@ -483,6 +581,23 @@ PUBLISH user_noti:user123 '{"type":"notification","payload":{"title":"Test"}}'
 
 See [websocket/document/TESTING_GUIDE.md](websocket/document/TESTING_GUIDE.md) for comprehensive testing procedures.
 
+### Project Service
+
+```bash
+cd project
+
+# Run unit tests
+go test ./...
+
+# Create a sample project
+curl -X POST http://localhost:8080/project/projects \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Launch Plan","status":"draft","from_date":"2025-01-01T00:00:00Z","to_date":"2025-03-31T23:59:59Z"}'
+```
+
+Refer to [project/README.md](project/README.md#getting-started) for complete testing scenarios.
+
 ---
 
 ## Documentation
@@ -508,6 +623,11 @@ See [websocket/document/TESTING_GUIDE.md](websocket/document/TESTING_GUIDE.md) f
   - **[integration.md](websocket/document/integration.md)** - Integration guide
   - **[TESTING_GUIDE.md](websocket/document/TESTING_GUIDE.md)** - Testing procedures
 
+### Project Service
+
+- **[README.md](project/README.md)** - Service overview and API usage
+- **[document/](project/document/)** - Architecture and implementation notes
+
 ---
 
 ## Security
@@ -532,6 +652,13 @@ See [websocket/document/TESTING_GUIDE.md](websocket/document/TESTING_GUIDE.md) f
 - Non-root container user
 - No secrets in code
 
+**Project Service:**
+- JWT validation for all endpoints
+- Soft delete for audit trails
+- Input validation and request sanitization
+- Structured logging with correlation IDs
+- Configurable Discord alerting
+
 ### Security Best Practices
 
 1. Never commit `.env` files to version control
@@ -554,6 +681,11 @@ See [websocket/document/TESTING_GUIDE.md](websocket/document/TESTING_GUIDE.md) f
 **Identity Service:**
 ```bash
 curl http://localhost:8080/health
+```
+
+**Project Service:**
+```bash
+curl http://localhost:8080/project/health
 ```
 
 **WebSocket Service:**
@@ -616,6 +748,15 @@ docker ps | grep postgres
 
 # Test connection
 psql -h localhost -U postgres -d smap_identity
+```
+
+**Project database migrations failing:**
+```bash
+# Verify SQLBoiler configuration
+cat template.sqlboiler.toml
+
+# Regenerate models
+make sqlboiler
 ```
 
 **Cannot connect to Redis:**
@@ -687,6 +828,10 @@ This project is part of the SMAP graduation project.
 - Swagger UI: http://localhost:8080/swagger/index.html
 - Health Check: http://localhost:8080/health
 - Documentation: [identity/README.md](identity/README.md)
+
+**Project Service:**
+- Health Check: http://localhost:8080/project/health
+- Documentation: [project/README.md](project/README.md)
 
 **WebSocket Service:**
 - Health Check: http://localhost:8081/health
