@@ -1,7 +1,7 @@
 package httpserver
 
 import (
-	"smap-api/pkg/response"
+	"smap-project/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +19,7 @@ func (srv HTTPServer) healthCheck(c *gin.Context) {
 		"status":  "healthy",
 		"message": "From Smap API V1 With Love",
 		"version": "1.0.0",
-		"service": "smap-api",
+		"service": "smap-project",
 	})
 }
 
@@ -46,7 +46,7 @@ func (srv HTTPServer) readyCheck(c *gin.Context) {
 		"status":   "ready",
 		"message":  "From Smap API V1 With Love",
 		"version":  "1.0.0",
-		"service":  "smap-api",
+		"service":  "smap-project",
 		"database": "connected",
 	})
 }
@@ -64,6 +64,6 @@ func (srv HTTPServer) liveCheck(c *gin.Context) {
 		"status":  "alive",
 		"message": "From Smap API V1 With Love",
 		"version": "1.0.0",
-		"service": "smap-api",
+		"service": "smap-project",
 	})
 }

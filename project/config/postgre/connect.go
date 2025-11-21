@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"smap-api/config"
+	"smap-project/config"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )

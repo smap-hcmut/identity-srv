@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"smap-api/config"
-	miniopkg "smap-api/pkg/minio"
+	"smap-project/config"
+	miniopkg "smap-project/pkg/minio"
 )
 
 const (

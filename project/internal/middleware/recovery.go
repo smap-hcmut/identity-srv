@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"smap-api/pkg/discord"
-	"smap-api/pkg/log"
-	"smap-api/pkg/response"
+	"smap-project/pkg/discord"
+	"smap-project/pkg/log"
+	"smap-project/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )

@@ -5,23 +5,21 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"smap-api/config"
-	"smap-api/config/minio"
-	"smap-api/config/postgre"
-	"smap-api/internal/httpserver"
-	"smap-api/pkg/discord"
-	"smap-api/pkg/encrypter"
-	"smap-api/pkg/log"
-	rabbitmq "smap-api/pkg/rabbitmq"
+	"smap-project/config"
+	"smap-project/config/postgre"
+	"smap-project/internal/httpserver"
+	"smap-project/pkg/discord"
+	"smap-project/pkg/encrypter"
+	"smap-project/pkg/log"
 	"syscall"
 )
 
 // @title       Smap API
-// @description SMAP Identity Service API documentation.
+// @description SMAP Project Service API documentation.
 // @version     1
 // @host        localhost:8080
 // @schemes     http
-// @BasePath    /identity
+// @BasePath    /project
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
@@ -53,22 +51,22 @@ func main() {
 	defer postgre.Disconnect(ctx, postgresDB)
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
-	// Initialize MinIO
-	minioClient, err := minio.Connect(ctx, cfg.MinIO)
-	if err != nil {
-		logger.Error(ctx, "Failed to connect to MinIO: ", err)
-		return
-	}
-	defer minio.Disconnect(ctx)
-	logger.Infof(ctx, "MinIO connected successfully to %s", cfg.MinIO.Endpoint)
+	// // Initialize MinIO
+	// minioClient, err := minio.Connect(ctx, cfg.MinIO)
+	// if err != nil {
+	// 	logger.Error(ctx, "Failed to connect to MinIO: ", err)
+	// 	return
+	// }
+	// defer minio.Disconnect(ctx)
+	// logger.Infof(ctx, "MinIO connected successfully to %s", cfg.MinIO.Endpoint)
 
-	// Initialize RabbitMQ
-	amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
-	if err != nil {
-		logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
-		return
-	}
-	defer amqpConn.Close()
+	// // Initialize RabbitMQ
+	// amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
+	// if err != nil {
+	// 	logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
+	// 	return
+	// }
+	// defer amqpConn.Close()
 
 	// Initialize Discord
 	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
@@ -91,14 +89,11 @@ func main() {
 		// Database Configuration
 		PostgresDB: postgresDB,
 
-		// Storage Configuration
-		MinIO: minioClient,
+		// // Storage Configuration
+		// MinIO: minioClient,
 
-		// SMTP Configuration
-		SMTP: cfg.SMTP,
-
-		// Message Queue Configuration
-		AmqpConn: amqpConn,
+		// // Message Queue Configuration
+		// AmqpConn: amqpConn,
 
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,

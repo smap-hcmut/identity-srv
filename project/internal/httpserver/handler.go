@@ -1,30 +1,22 @@
 package httpserver
 
 import (
-	authhttp "smap-api/internal/authentication/delivery/http"
-	authproducer "smap-api/internal/authentication/delivery/rabbitmq/producer"
-	authusecase "smap-api/internal/authentication/usecase"
-	"smap-api/internal/middleware"
-	planhttp "smap-api/internal/plan/delivery/http"
-	planrepository "smap-api/internal/plan/repository/postgre"
-	planusecase "smap-api/internal/plan/usecase"
-	subscriptionhttp "smap-api/internal/subscription/delivery/http"
-	subscriptionrepository "smap-api/internal/subscription/repository/postgre"
-	subscriptionusecase "smap-api/internal/subscription/usecase"
-	userhttp "smap-api/internal/user/delivery/http"
-	userrepository "smap-api/internal/user/repository/postgre"
-	userusecase "smap-api/internal/user/usecase"
-	"smap-api/pkg/i18n"
-	"smap-api/pkg/scope"
+	"smap-project/internal/middleware"
+	projecthttp "smap-project/internal/project/delivery/http"
+	projectrepository "smap-project/internal/project/repository/postgre"
+	projectusecase "smap-project/internal/project/usecase"
+	"smap-project/pkg/i18n"
+	"smap-project/pkg/scope"
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
-	_ "smap-api/docs"
+	// Uncomment after running: make swagger
+	_ "smap-project/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-const apiPrefix = "/identity"
+const apiPrefix = "/project"
 
 func (srv HTTPServer) mapHandlers() error {
 	srv.registerMiddlewares()
@@ -35,37 +27,18 @@ func (srv HTTPServer) mapHandlers() error {
 
 	i18n.Init()
 
-	// Initialize repositories
-	userRepo := userrepository.New(srv.l, srv.postgresDB)
-	planRepo := planrepository.New(srv.l, srv.postgresDB)
-	subscriptionRepo := subscriptionrepository.New(srv.l, srv.postgresDB)
+	// Initialize project repository
+	projectRepo := projectrepository.New(srv.postgresDB, srv.l)
 
-	// Initialize usecases
-	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
-	planUC := planusecase.New(srv.l, planRepo)
-	subscriptionUC := subscriptionusecase.New(srv.l, subscriptionRepo, planUC)
+	// Initialize project usecase
+	projectUC := projectusecase.New(srv.l, projectRepo)
 
-	// Initialize authentication producer
-	authProd := authproducer.New(srv.l, srv.amqpConn)
-	if err := authProd.Run(); err != nil {
-		return err
-	}
-
-	// Initialize authentication usecase with plan and subscription dependencies
-	authUC := authusecase.New(srv.l, authProd, scopeManager, srv.encrypter, userUC, planUC, subscriptionUC)
-
-	// Initialize HTTP handlers
-	authHandler := authhttp.New(srv.l, authUC, srv.discord)
-	planHandler := planhttp.New(srv.l, planUC)
-	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC)
-	userHandler := userhttp.New(srv.l, userUC)
+	// Initialize project HTTP handler
+	projectHandler := projecthttp.New(srv.l, projectUC)
 
 	// Map routes
 	api := srv.gin.Group(apiPrefix)
-	authhttp.MapAuthRoutes(api.Group("/authentication"), authHandler, mw)
-	planhttp.MapPlanRoutes(api.Group("/plans"), planHandler, mw)
-	subscriptionhttp.MapSubscriptionRoutes(api.Group("/subscriptions"), subscriptionHandler, mw)
-	userhttp.MapUserRoutes(api.Group("/users"), userHandler, mw)
+	projecthttp.MapProjectRoutes(api.Group("/projects"), projectHandler, mw)
 
 	return nil
 }
@@ -83,8 +56,8 @@ func (srv HTTPServer) registerSystemRoutes() {
 	api.GET("/ready", srv.readyCheck)
 	api.GET("/live", srv.liveCheck)
 
-	srv.gin.GET("/identity/swagger/*any", ginSwagger.WrapHandler(
+	srv.gin.GET("/project/swagger/*any", ginSwagger.WrapHandler(
 		swaggerFiles.Handler,
-		ginSwagger.URL("/identity/swagger/doc.json"),
+		ginSwagger.URL("/project/swagger/doc.json"),
 	))
 }

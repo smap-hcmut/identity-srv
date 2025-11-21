@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"smap-api/internal/model"
-	"smap-api/pkg/response"
-	"smap-api/pkg/scope"
+	"smap-project/pkg/response"
+	"smap-project/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,7 +46,7 @@ func (m Middleware) OptionalAdmin() gin.HandlerFunc {
 		sc := scope.NewScope(payload)
 
 		// Set isAdmin flag in context
-		c.Set("isAdmin", sc.Role == model.RoleAdmin)
+		c.Set("isAdmin", sc.IsAdmin())
 		c.Next()
 	}
 }
