@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 
-	"smap-api/pkg/locale"
+	"smap-project/pkg/locale"
 )
 
 func NewEmail(ctx context.Context, e EmailMeta, data interface{}) (Email, error) {

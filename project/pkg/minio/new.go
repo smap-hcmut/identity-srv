@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"smap-api/config"
+	"smap-project/config"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"

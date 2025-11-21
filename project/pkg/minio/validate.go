@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"smap-api/config"
+	"smap-project/config"
 )
 
 // validateConfig validates the MinIO configuration

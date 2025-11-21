@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"smap-api/pkg/discord"
-	"smap-api/pkg/errors"
+	"smap-project/pkg/discord"
+	"smap-project/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )
