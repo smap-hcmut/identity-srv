@@ -7,7 +7,7 @@ import (
 	"github.com/nguyentantai21042004/smap-api/pkg/scope"
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
-	_ "github.com/nguyentantai21042004/smap-api/docs"
+	// _ "github.com/nguyentantai21042004/smap-api/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"

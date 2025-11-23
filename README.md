@@ -1,175 +1,510 @@
-## Smap API
+# Social Media Scraper Services
 
-### Overview
+A collection of high-performance social media data scraping services built with Clean Architecture principles. Each service is designed as an independent worker that consumes tasks from RabbitMQ, scrapes social media platforms, and persists data to MongoDB with media files stored in MinIO.
 
-Smap API is a high-performance Golang backend designed for low-latency APIs, event-driven processing, and secure access control. It exposes an HTTP API, produces/consumes events via RabbitMQ, and integrates with MongoDB and Redis. The codebase prioritizes concurrency, predictable memory footprint, and operational robustness.
+## Overview
 
-### Core Capabilities
+This repository contains enterprise-grade scraper workers for:
+- **TikTok**: Video metadata, creator profiles, comments, and audio/video media
+- **YouTube**: Video information, channel data, comments, and media downloads
+- **Instagram**: Legacy worker (currently in production, documentation in progress)
 
-- API Layer and RBAC: Authentication via JWT and internal keys; request handling via Gin; structured logging via Zap; configurable CORS, recovery, and error handling middleware.
-- Event Orchestration: Producers and consumers using RabbitMQ for asynchronous workflows, decoupling long-running tasks from the HTTP path.
-- Caching and Session State: Redis client with configurable pool sizing and standalone/cluster modes.
-- Persistence: MongoDB for operational data models (users, roles, sessions, uploads, etc.).
-- Notifications and Monitoring: Discord webhook integration for error/incident reporting; SMTP configuration for email delivery.
-- OAuth: Google/Facebook/GitLab OAuth configuration plumbing for social sign-in flows.
+All services share a common architecture pattern and infrastructure stack for consistency and maintainability.
 
-### Process Topology
+## Architecture
 
-- API Server (cmd/api):
-  - Loads configuration and secrets from environment variables.
-  - Initializes Zap logger, Encrypter, MongoDB, Redis, RabbitMQ, Discord webhook, SMTP options.
-  - Starts an HTTP server with mapped handlers and graceful shutdown.
-- Consumer (cmd/consumer):
-  - Loads identical configuration and secrets.
-  - Connects to MongoDB, Redis, RabbitMQ.
-  - Initializes OAuth config and runs a long-lived consumer service to process events.
+```
+Producer System → RabbitMQ → Worker Services → MongoDB + MinIO
+                    ↓
+        ┌──────────┴──────────┬──────────────┐
+        │                     │              │
+   TikTok Worker        YouTube Worker   Instagram Worker
+```
 
-### Key Architectural Modules
+### Shared Infrastructure
 
-- Configuration (config/): Centralized typed config loaded via env (caarlos0/env). Includes HTTP server, logger, Mongo, Redis, RabbitMQ, JWT, encrypter, internal key, OAuth providers, SMTP, WebSocket, Discord.
-- HTTP Server (internal/httpserver/): Gin setup, handler mapping, lifecycle management, graceful shutdown.
-- Auth and RBAC (internal/auth/): Use cases and HTTP delivery for authentication/authorization flows.
-- Users/Roles/Sessions (internal/user, internal/role, internal/session): Use cases, repositories (Mongo), and HTTP delivery for identity and access management.
-- Eventing (pkg/rabbitmq, internal/auth/delivery/rabbitmq, internal/core/smtp/rabbitmq): AMQP connection management, channel utilities, and event producers/consumers.
-- Persistence (internal/appconfig/mongo, pkg/mongo): Mongo connection, monitoring, and option helpers.
-- Cache (pkg/redis): Redis client with pool configuration.
-- Logging (pkg/log): Zap logger wrappers.
-- Utilities (pkg/encrypter, pkg/email, pkg/response, pkg/paginator, pkg/util, etc.): Encryption, templated emails, response helpers, pagination, validation, time utilities.
+- **RabbitMQ**: Task queue for distributed job processing
+- **MongoDB**: Document storage for metadata and tracking
+- **MinIO**: S3-compatible object storage for media files
+- **Docker Compose**: Container orchestration for all services
 
-### Non-Functional Priorities
+### Storage Strategy
 
-- Performance: Concurrency-first design (Golang), minimal allocation patterns in hot paths, configurable pool sizes.
-- Latency: Fast request handling via Gin, Redis cache, asynchronous event offloading via RabbitMQ.
-- Reliability: Graceful shutdown, connection lifecycle management, health checks via Docker Compose for local development.
-- Observability: Structured logs; Discord webhook for incident notifications.
+- **MinIO Buckets**:
+  - `tiktok`: TikTok audio files
+  - `youtube`: YouTube audio and video files (temporary storage during processing)
+- **MongoDB Collections**: Per-service databases with dedicated collections for videos, creators/channels, comments, search results, and job tracking
 
-## Getting Started
+## Services
 
-### Prerequisites
+### TikTok Scraper
 
-- Go 1.21+ (recommended)
-- Docker and Docker Compose (for local dependencies)
-- Make
+A robust TikTok data scraper using Playwright for browser automation and HTTP APIs for efficient data collection.
 
-### Clone and bootstrap
+**Key Features:**
+- Browser automation with remote Playwright service
+- Concurrent video crawling
+- Creator profile extraction
+- Comment harvesting
+- Audio/video media download with FFmpeg
+
+**[📖 TikTok Documentation →](tiktok/README.md)**
+
+**Quick Start:**
+```bash
+cd tiktok
+cp .env.example .env
+# Edit .env with your configuration
+python -m app.main
+```
+
+**Docker:**
+```bash
+docker compose up tiktok-worker
+```
+
+---
+
+### YouTube Scraper
+
+A high-performance YouTube scraper built with yt-dlp for comprehensive data extraction.
+
+**Key Features:**
+- yt-dlp integration for video metadata
+- 100% comment coverage with youtube-comment-downloader
+- Channel information scraping
+- Search functionality with multiple sort options
+- Audio/video download with FFmpeg support
+
+**[📖 YouTube Documentation →](youtube/README.md)**
+
+**Quick Start:**
+```bash
+cd youtube
+cp .env.example .env
+# Edit .env with your configuration
+python -m app.worker_service
+```
+
+**Docker:**
+```bash
+docker compose up youtube-worker
+```
+
+---
+
+### Instagram Scraper
+
+Legacy worker currently serving production. Documentation and refactoring in progress.
+
+**[📖 Production Deployment Guide →](insta/README_PRODUCTION.md)**
+
+## Common Task Types
+
+All scraper services support three standard task types:
+
+### 1. Research Keyword
+Search by keyword and save results.
+
+**Use Case:** Discover trending content, find videos by topic
+
+### 2. Crawl Links
+Crawl specific URLs with full metadata extraction.
+
+**Use Case:** Update existing data, crawl specific content
+
+### 3. Research and Crawl
+Search then crawl all found content in one job.
+
+**Use Case:** Comprehensive data collection for specific topics
+
+## Docker Compose
+
+The repository includes a unified `docker-compose.yml` for running all services.
+
+### Services Defined
+
+```yaml
+services:
+  playwright-service:    # Remote browser automation for TikTok
+  tiktok-worker:         # TikTok scraper worker
+  youtube-worker:        # YouTube scraper worker
+```
+
+### Running Services
 
 ```bash
-git clone <your-fork-or-repo-url>
-cd smap-api
-cp env.template .env
-# edit .env with real secrets and endpoints
+# Build all services
+docker compose build
+
+# Run specific service
+docker compose up tiktok-worker
+docker compose up youtube-worker
+
+# Run all services
+docker compose up
+
+# Run in background
+docker compose up -d
+
+# View logs
+docker compose logs -f tiktok-worker
+docker compose logs -f youtube-worker
+
+# Stop services
+docker compose down
 ```
 
-### Start local dependencies (Redis, RabbitMQ)
+### Service Configuration
+
+Each service:
+- Uses its own `.env` file in its directory
+- Mounts source code as volume for live development
+- Connects to shared RabbitMQ, MongoDB, and MinIO instances
+- Has isolated dependencies and runtime environment
+
+## Prerequisites
+
+### Required Software
+
+- **Python 3.11** (TikTok) / **Python 3.10+** (YouTube)
+- **Docker & Docker Compose** (for containerized deployment)
+- **RabbitMQ 3.x** (message broker)
+- **MongoDB 6.x** (data persistence)
+- **MinIO** (object storage)
+- **FFmpeg** (media processing)
+
+### Infrastructure Setup
+
+You can run infrastructure services via Docker:
 
 ```bash
-make build-docker-compose
-# or directly: docker compose up --build -d
+# RabbitMQ
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+
+# MongoDB
+docker run -d --name mongodb -p 27017:27017 mongo:6
+
+# MinIO
+docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  minio/minio server /data --console-address ":9001"
 ```
 
-### Run services
+Or use docker-compose infrastructure file (if available).
 
-- Run API server:
+## Local Development Workflow
+
+### 1. Infrastructure Setup
+
+Ensure RabbitMQ, MongoDB, and MinIO are running and accessible.
+
+### 2. Service Configuration
+
+Each service has an `.env.example` file. Copy it to `.env` and configure:
 
 ```bash
-make run-api
-# generates Swagger and runs: go run cmd/api/main.go
+cd tiktok
+cp .env.example .env
+# Edit .env with your credentials
+
+cd ../youtube
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-- Run Consumer:
+### 3. Install Dependencies
 
 ```bash
-make run-consumer
-# runs: go run cmd/consumer/main.go
+# TikTok
+cd tiktok
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+playwright install --with-deps chromium
+
+# YouTube
+cd ../youtube
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
 ```
 
-### Generate Swagger
+### 4. Run Workers
+
+**Manual Execution:**
+```bash
+# TikTok
+cd tiktok
+python -m app.main
+
+# YouTube
+cd youtube
+python -m app.worker_service
+```
+
+**Docker Compose (Recommended):**
+```bash
+docker compose up
+```
+
+## Testing
+
+Each service manages its own test suite in a `tests/` directory.
+
+### Run Tests for a Service
 
 ```bash
-make swagger
-# swag init -g cmd/api/main.go
+# TikTok
+cd tiktok
+pytest tests/
+
+# YouTube
+cd youtube
+pytest tests/
 ```
 
-## Configuration
+### Test Categories
 
-Configuration is environment-driven. The following blocks summarize the most important variables. See `config/config.go` and `env.template` for the full list.
+- **Unit Tests**: `pytest tests/unit/` - Pure business logic
+- **Integration Tests**: `pytest tests/integration/` - Database and queue interactions
+- **E2E Tests**: `pytest tests/e2e/` - Complete workflow validation
 
-- HTTP server and logger:
-  - HOST, APP_PORT, API_MODE
-  - LOGGER_LEVEL, LOGGER_MODE, LOGGER_ENCODING
-- Security:
-  - JWT_SECRET
-  - ENCRYPT_KEY (for symmetric encryption)
-  - INTERNAL_KEY (for internal requests)
-- MongoDB:
-  - MONGODB_DATABASE
-  - MONGODB_ENCODED_URI (full connection string, optionally encrypted)
-  - MONGODB_ENABLE_MONITORING
-- Redis:
-  - REDIS_ADDR (comma-separated or array-like), REDIS_PASSWORD, REDIS_DB
-  - REDIS_STANDALONE, REDIS_POOL_SIZE, REDIS_POOL_TIMEOUT, REDIS_MIN_IDLE_CONNS
-- RabbitMQ:
-  - RABBITMQ_URL
-- SMTP (email):
-  - SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM, SMTP_FROM_NAME
-- OAuth:
-  - GOOGLE_OAUTH_* / FACEBOOK_OAUTH_* / GITLAB_OAUTH_*
-- WebSocket:
-  - WS_READ_BUFFER_SIZE, WS_WRITE_BUFFER_SIZE, WS_MAX_MESSAGE_SIZE, WS_PONG_WAIT, WS_PING_PERIOD, WS_WRITE_WAIT
-- Discord:
-  - DISCORD_REPORT_BUG_ID, DISCORD_REPORT_BUG_TOKEN
+**Best Practice:** Use separate test databases and queues to avoid affecting production data.
 
-Note: The `env.template` also includes PostgreSQL and MinIO placeholders for future integrations; the current codebase primarily uses MongoDB, Redis, RabbitMQ, SMTP, and OAuth providers.
-
-## Deployment
-
-- Docker: `cmd/api/Dockerfile` builds the API container. Use the provided `docker-compose.yml` for local infra only (Redis, RabbitMQ).
-- Kubernetes: See `deployment/deployment.yaml` for a reference manifest and `deployment/smap-api.ngtantai.pro.conf` for an nginx site configuration example.
-- CI/CD: `Jenkinsfile` contains a pipeline example for build/deploy automation.
-
-## Project Structure (high level)
+## Project Structure
 
 ```
-cmd/
-  api/            # HTTP API entrypoint
-  consumer/       # RabbitMQ consumer entrypoint
-config/           # Typed environment configuration
-internal/
-  httpserver/     # Gin server, lifecycle
-  auth/           # Auth use cases and delivery
-  user/           # User use cases, repo, delivery
-  role/           # Role use cases, repo, delivery
-  session/        # Session use cases, repo, delivery
-  consumer/       # Consumer server setup
-pkg/
-  log/            # Zap logger
-  rabbitmq/       # AMQP utilities
-  redis/          # Redis client and options
-  mongo/          # Mongo helpers
-  email/          # SMTP templates and helpers
-  encrypter/      # Symmetric encryption
-  response/       # Response helpers
-  paginator/      # Pagination utilities
+scrapper/
+├── docker-compose.yml           # Service orchestration
+├── playwright.Dockerfile        # Shared Playwright service
+├── README.MD                    # This file
+│
+├── tiktok/                      # TikTok scraper service
+│   ├── README.md                # TikTok documentation
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── app/                     # Entry points & DI
+│   ├── application/             # Use cases
+│   ├── domain/                  # Business entities
+│   ├── internal/                # Infrastructure adapters
+│   ├── config/                  # Configuration
+│   ├── utils/                   # Utilities
+│   ├── message_queue/           # RabbitMQ integration
+│   ├── tests/                   # Test suite
+│   └── docs/                    # Additional documentation
+│
+├── youtube/                     # YouTube scraper service
+│   ├── README.md                # YouTube documentation
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── app/                     # Entry points & DI
+│   ├── application/             # Use cases
+│   ├── domain/                  # Business entities
+│   ├── internal/                # Infrastructure adapters
+│   ├── config/                  # Configuration
+│   ├── utils/                   # Utilities
+│   └── tests/                   # Test suite
+│
+└── insta/                       # Instagram scraper (legacy)
+    ├── README_PRODUCTION.md     # Production deployment guide
+    └── ...
 ```
 
-## API Documentation
+## Clean Architecture
 
-- Swagger/OpenAPI is generated from annotations in `cmd/api/main.go` and HTTP handlers.
-- Use `make swagger` to refresh `docs/swagger.*` artifacts.
+All services follow **Clean Architecture** principles:
 
-## Operational Notes
+### Layer Structure
 
-- Graceful shutdown: Both API and consumer processes handle SIGINT/SIGTERM.
-- Connection lifecycle: Mongo, Redis, RabbitMQ connections are created at startup and closed on shutdown; Redis, RabbitMQ have health checks in local Compose setup.
-- Secrets: Do not commit real `.env` values. Use secrets managers in production.
+```
+┌─────────────────────────────────────────┐
+│              app/                       │  Entry points & DI container
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│          application/                   │  Use cases & interfaces
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│            domain/                      │  Business entities (NO dependencies)
+└─────────────────────────────────────────┘
+                ▲
+                │
+┌───────────────┴─────────────────────────┐
+│          internal/                      │  Adapters & infrastructure
+└─────────────────────────────────────────┘
+```
 
-## Roadmap and Extensibility
+### Benefits
 
-- Add ClickHouse and PostgreSQL adapters for analytical and relational workloads.
-- Expand Alert Service with rule evaluation and delivery guarantees (DLQs, retries).
-- Integrate API Gateway pattern in Visualization service or move to dedicated gateway.
-- Enhance observability (metrics, tracing) and structured error taxonomies.
+- **Testability**: Each layer can be tested in isolation
+- **Flexibility**: Easy to swap implementations (e.g., MongoDB → PostgreSQL)
+- **Maintainability**: Clear separation of concerns
+- **Independence**: Business logic independent of frameworks
+- **Scalability**: Easy to add new features without breaking existing code
+
+## Adding a New Service
+
+When adding a new social media scraper:
+
+1. **Create Service Directory**
+   ```bash
+   mkdir scrapper/new-service
+   cd scrapper/new-service
+   ```
+
+2. **Follow Clean Architecture Structure**
+   - Copy structure from TikTok or YouTube as template
+   - Adapt domain entities for the new platform
+   - Implement platform-specific scrapers in `internal/adapters/`
+
+3. **Add Docker Service**
+   Edit `docker-compose.yml`:
+   ```yaml
+   new-service-worker:
+     container_name: new-service-scraper
+     build:
+       context: ./new-service
+       dockerfile: Dockerfile
+     env_file:
+       - ./new-service/.env
+     command: ["python", "-m", "app.worker_service"]
+   ```
+
+4. **Create Documentation**
+   - Write comprehensive `README.md` in service directory
+   - Document task types and payload formats
+   - Include configuration examples
+
+5. **Update This README**
+   - Add service to overview section
+   - Add link to service documentation
+   - Update architecture diagram if needed
+
+## Configuration Management
+
+Each service uses environment variables for configuration:
+
+### Common Settings
+
+All services share these configuration patterns:
+
+- **RabbitMQ**: Connection, queue names, prefetch count
+- **MongoDB**: Connection string, database name, authentication
+- **MinIO**: Endpoint, credentials, bucket names
+- **Crawler**: Concurrency limits, timeouts, retry logic
+- **Media**: Download settings, FFmpeg options, storage paths
+- **Logging**: Log level, output paths, worker naming
+
+### Environment Variables
+
+See individual service `.env.example` files for complete variable lists:
+- [TikTok .env.example](tiktok/.env.example)
+- [YouTube .env.example](youtube/.env.example)
+
+## Monitoring and Observability
+
+### Job Tracking
+
+All services track jobs in MongoDB `jobs` collection:
+- **Status**: `pending`, `processing`, `completed`, `failed`
+- **Timestamps**: `created_at`, `started_at`, `completed_at`
+- **Metadata**: Error messages, retry count, associated resource IDs
+
+### Logging
+
+Each service implements structured logging:
+- **Output**: stdout + `logs/` directory
+- **Format**: Timestamp, level, service name, message, context
+- **Levels**: DEBUG, INFO, WARNING, ERROR
+
+### Health Checks
+
+Monitor service health by checking:
+- RabbitMQ connection status
+- MongoDB connection status
+- Recent job completion rates
+- Error rates in logs
+
+## Troubleshooting
+
+### Common Issues
+
+#### RabbitMQ Connection Failed
+- Verify RabbitMQ is running: `docker ps | grep rabbitmq`
+- Check credentials in service `.env` files
+- Verify port 5672 is accessible
+- Check virtual host configuration
+
+#### MongoDB Connection Failed
+- Verify MongoDB is running: `docker ps | grep mongo`
+- Check connection string format
+- Verify authentication credentials if enabled
+- Check network connectivity
+
+#### MinIO Connection Failed
+- Verify MinIO is running: `docker ps | grep minio`
+- Check endpoint URL (include port)
+- Verify access key and secret key
+- Ensure buckets are created
+
+#### FFmpeg Not Found
+- Install FFmpeg: See service-specific installation guides
+- Verify PATH environment variable
+- Test: `ffmpeg -version`
+
+#### Service Won't Start
+- Check logs: `docker compose logs service-name`
+- Verify all required environment variables are set
+- Check dependency service health
+- Ensure ports are not already in use
+
+### Getting Help
+
+For service-specific issues, refer to individual service documentation:
+- [TikTok Troubleshooting](tiktok/README.md#troubleshooting)
+- [YouTube Troubleshooting](youtube/README.md#troubleshooting)
+
+## Contributing
+
+When contributing to this project:
+
+1. **Follow Clean Architecture principles** in all services
+2. **Write comprehensive tests** (unit, integration, e2e)
+3. **Document changes** in service READMEs
+4. **Update environment examples** when adding new config options
+5. **Follow Python PEP 8** style guidelines
+6. **Use type hints** for better code clarity
+7. **Keep domain layer pure** with no external dependencies
 
 ## License
 
-Proprietary – all rights reserved unless otherwise noted.
+*License information to be added*
+
+## Changelog
+
+### Version 2.0.0 (2025-11-06)
+- Complete rewrite of TikTok scraper with Clean Architecture
+- Complete rewrite of YouTube scraper with Clean Architecture
+- Added remote Playwright service for TikTok
+- Unified Docker Compose configuration
+- Comprehensive documentation updates
+- Smart upsert logic for efficient data updates
+
+### Version 1.0.0
+- Initial TikTok scraper implementation
+- Initial YouTube scraper implementation
+- Instagram production worker
+- Basic Docker support
+
+---
+
+**Last Updated:** 2025-11-06
+**Version:** 2.0.0
+**Maintainer:** SMAP AI Team

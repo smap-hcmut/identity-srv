@@ -20,10 +20,11 @@ func Connect(mongoConfig config.MongoConfig, encrypter pkgCrt.Encrypter) (mongo.
 	ctx, cancelFunc := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancelFunc()
 
-	uri, err := encrypter.Decrypt(mongoConfig.MONGODB_ENCODED_URI)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt media mongo uri: %w", err)
-	}
+	// uri, err := encrypter.Decrypt(mongoConfig.MONGODB_ENCODED_URI)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to decrypt media mongo uri: %w", err)
+	// }
+	uri := mongoConfig.MONGODB_ENCODED_URI
 
 	opts := mongo.NewClientOptions().
 		ApplyURI(uri)
