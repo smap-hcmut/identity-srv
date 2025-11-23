@@ -24,8 +24,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-const apiPrefix = "/identity"
-
 func (srv HTTPServer) mapHandlers() error {
 	srv.registerMiddlewares()
 	srv.registerSystemRoutes()
@@ -60,12 +58,11 @@ func (srv HTTPServer) mapHandlers() error {
 	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC)
 	userHandler := userhttp.New(srv.l, userUC)
 
-	// Map routes
-	api := srv.gin.Group(apiPrefix)
-	authhttp.MapAuthRoutes(api.Group("/authentication"), authHandler, mw)
-	planhttp.MapPlanRoutes(api.Group("/plans"), planHandler, mw)
-	subscriptionhttp.MapSubscriptionRoutes(api.Group("/subscriptions"), subscriptionHandler, mw)
-	userhttp.MapUserRoutes(api.Group("/users"), userHandler, mw)
+	// Map routes (no prefix)
+	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
+	planhttp.MapPlanRoutes(srv.gin.Group("/plans"), planHandler, mw)
+	subscriptionhttp.MapSubscriptionRoutes(srv.gin.Group("/subscriptions"), subscriptionHandler, mw)
+	userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw)
 
 	return nil
 }
@@ -78,13 +75,14 @@ func (srv HTTPServer) registerMiddlewares() {
 }
 
 func (srv HTTPServer) registerSystemRoutes() {
-	api := srv.gin.Group(apiPrefix)
-	api.GET("/health", srv.healthCheck)
-	api.GET("/ready", srv.readyCheck)
-	api.GET("/live", srv.liveCheck)
+	srv.gin.GET("/health", srv.healthCheck)
+	srv.gin.GET("/ready", srv.readyCheck)
+	srv.gin.GET("/live", srv.liveCheck)
 
-	srv.gin.GET("/identity/swagger/*any", ginSwagger.WrapHandler(
+	// Swagger UI and docs
+	srv.gin.GET("/swagger/*any", ginSwagger.WrapHandler(
 		swaggerFiles.Handler,
-		ginSwagger.URL("/identity/swagger/doc.json"),
+		ginSwagger.URL("doc.json"), // Use relative path
+		ginSwagger.DefaultModelsExpandDepth(-1),
 	))
 }

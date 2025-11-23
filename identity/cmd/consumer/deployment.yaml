@@ -25,7 +25,7 @@ spec:
       - name: harbor-secret
       containers:
       - name: smap-identity-consumer
-        image: registry.tantai.dev/smap/smap-identity-consumer:251123-233114
+        image: registry.tantai.dev/smap/smap-identity-consumer:251124-000539
         imagePullPolicy: Always
         resources:
           requests:

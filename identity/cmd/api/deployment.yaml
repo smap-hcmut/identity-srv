@@ -25,7 +25,7 @@ spec:
       - name: harbor-secret
       containers:
       - name: smap-identity-api
-        image: registry.tantai.dev/smap/smap-identity:251123-233037
+        image: registry.tantai.dev/smap/smap-identity:251124-000628
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -167,7 +167,7 @@ spec:
               fieldPath: metadata.namespace
         livenessProbe:
           httpGet:
-            path: /identity/health
+            path: /health
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -175,7 +175,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /identity/health
+            path: /health
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
