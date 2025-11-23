@@ -148,19 +148,21 @@ func (srv HTTPServer) validate() error {
 		return errors.New("minio is required")
 	}
 
-	// SMTP Configuration
-	if srv.smtpConfig.Host == "" {
-		return errors.New("smtp host is required")
-	}
-	if srv.smtpConfig.Username == "" {
-		return errors.New("smtp username is required")
-	}
-	if srv.smtpConfig.Password == "" {
-		return errors.New("smtp password is required")
-	}
-	if srv.smtpConfig.From == "" {
-		return errors.New("smtp from address is required")
-	}
+	// SMTP Configuration (optional for API - only consumer needs it)
+	// API doesn't send emails directly, it uses RabbitMQ to queue email tasks
+	// Commented out to make SMTP optional for API service
+	// if srv.smtpConfig.Host == "" {
+	// 	return errors.New("smtp host is required")
+	// }
+	// if srv.smtpConfig.Username == "" {
+	// 	return errors.New("smtp username is required")
+	// }
+	// if srv.smtpConfig.Password == "" {
+	// 	return errors.New("smtp password is required")
+	// }
+	// if srv.smtpConfig.From == "" {
+	// 	return errors.New("smtp from address is required")
+	// }
 
 	// Message Queue Configuration
 	if srv.amqpConn == nil {

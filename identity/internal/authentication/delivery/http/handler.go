@@ -17,7 +17,7 @@ import (
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errEmailExisted(110004)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /identity/auth/register [POST]
+// @Router /authentication/register [POST]
 func (h handler) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -52,7 +52,7 @@ func (h handler) Register(c *gin.Context) {
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /identity/auth/send-otp [POST]
+// @Router /authentication/send-otp [POST]
 func (h handler) SendOTP(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -87,7 +87,7 @@ func (h handler) SendOTP(c *gin.Context) {
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errOTPExpired(110006), errOTPNotMatch(110007)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /identity/auth/verify-otp [POST]
+// @Router /authentication/verify-otp [POST]
 func (h handler) VerifyOTP(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -122,7 +122,7 @@ func (h handler) VerifyOTP(c *gin.Context) {
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /identity/auth/login [POST]
+// @Router /authentication/login [POST]
 func (h handler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 

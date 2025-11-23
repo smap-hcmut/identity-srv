@@ -16,11 +16,11 @@ import (
 	"syscall"
 )
 
-// @title       Smap API
+// @title       SMAP Identity Service API
 // @description SMAP Identity Service API documentation.
 // @version     1
-// @host        localhost:8080
-// @schemes     http
+// @host        smap-api.tantai.dev
+// @schemes     https
 // @BasePath    /identity
 func main() {
 	// Load configuration
