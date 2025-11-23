@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smap-project-config
+  namespace: smap
+  labels:
+    app: smap-project-api
+data:
+  # HTTP Server Configuration
+  HOST: "0.0.0.0"
+  APP_PORT: "8080"
+  API_MODE: "release"
+  
+  # Logger Configuration
+  LOGGER_LEVEL: "info"
+  LOGGER_MODE: "production"
+  LOGGER_ENCODING: "json"
+  
+  # MinIO Configuration (non-sensitive)
+  MINIO_USE_SSL: "true"
+  MINIO_REGION: "us-east-1"
+  MINIO_BUCKET: "smap-project"

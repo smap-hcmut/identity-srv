@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smap-ingress
+  namespace: smap
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - smap-api.tantai.dev
+    secretName: smap-api-tls
+  rules:
+  - host: smap-api.tantai.dev
+    http:
+      paths:
+      # Project Service
+      - path: /project(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: smap-project-api
+            port:
+              number: 80
+
