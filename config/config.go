@@ -22,6 +22,9 @@ type Config struct {
 	// WebSocket Configuration
 	WebSocket WebSocketConfig
 
+	// Message Queue Configuration
+	RabbitMQConfig RabbitMQConfig
+
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
 }
@@ -80,6 +83,12 @@ type WebSocketConfig struct {
 	PongWait        int `env:"WS_PONG_WAIT" envDefault:"60"`
 	PingPeriod      int `env:"WS_PING_PERIOD" envDefault:"54"`
 	WriteWait       int `env:"WS_WRITE_WAIT" envDefault:"10"`
+}
+
+// RabbitMQConfig is the configuration for RabbitMQ,
+// which is used to connect to RabbitMQ server.
+type RabbitMQConfig struct {
+	URL string `env:"RABBITMQ_URL"`
 }
 
 // Load is the function to load the configuration from the environment variables.
