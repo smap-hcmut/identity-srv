@@ -1,3 +1,27 @@
+# Kubernetes secrets
+k8s/secret.yaml
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# Binary builds
+websocket-server
+/bin
+/dist
+
+# Test coverage
+*.out
+coverage.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-vendor/
+Thumbs.db
