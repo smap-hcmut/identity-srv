@@ -16,8 +16,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-const apiPrefix = "/project"
-
 func (srv HTTPServer) mapHandlers() error {
 	srv.registerMiddlewares()
 	srv.registerSystemRoutes()
@@ -36,9 +34,8 @@ func (srv HTTPServer) mapHandlers() error {
 	// Initialize project HTTP handler
 	projectHandler := projecthttp.New(srv.l, projectUC)
 
-	// Map routes
-	api := srv.gin.Group(apiPrefix)
-	projecthttp.MapProjectRoutes(api.Group("/projects"), projectHandler, mw)
+	// Map routes (no prefix)
+	projecthttp.MapProjectRoutes(srv.gin.Group("/projects"), projectHandler, mw)
 
 	return nil
 }
@@ -51,13 +48,14 @@ func (srv HTTPServer) registerMiddlewares() {
 }
 
 func (srv HTTPServer) registerSystemRoutes() {
-	api := srv.gin.Group(apiPrefix)
-	api.GET("/health", srv.healthCheck)
-	api.GET("/ready", srv.readyCheck)
-	api.GET("/live", srv.liveCheck)
+	srv.gin.GET("/health", srv.healthCheck)
+	srv.gin.GET("/ready", srv.readyCheck)
+	srv.gin.GET("/live", srv.liveCheck)
 
-	srv.gin.GET("/project/swagger/*any", ginSwagger.WrapHandler(
+	// Swagger UI and docs
+	srv.gin.GET("/swagger/*any", ginSwagger.WrapHandler(
 		swaggerFiles.Handler,
-		ginSwagger.URL("/project/swagger/doc.json"),
+		ginSwagger.URL("doc.json"), // Use relative path
+		ginSwagger.DefaultModelsExpandDepth(-1),
 	))
 }
