@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# SMAP Identity Consumer - Build and Push Script
-# Usage: ./build-consumer.sh [build-push|login|help]
+# SMAP Identity API - Build and Push Script
+# Usage: ./build-api.sh [build-push|login|help]
 
 set -e
 
@@ -15,8 +15,8 @@ NC='\033[0m'
 # Configuration
 REGISTRY="${REGISTRY:-docker.io}"
 PROJECT="smap"
-SERVICE="smap-identity-consumer"
-DOCKERFILE="cmd/consumer/Dockerfile"
+SERVICE="smap-identity"
+DOCKERFILE="cmd/api/Dockerfile"
 PLATFORM="linux/amd64"
 
 # Helper functions
@@ -122,7 +122,7 @@ build_and_push() {
 # Show help
 show_help() {
     cat << EOF
-${GREEN}SMAP Identity Consumer - Build and Push Script${NC}
+${GREEN}SMAP Identity API - Build and Push Script${NC}
 
 Usage: $0 [command]
 
