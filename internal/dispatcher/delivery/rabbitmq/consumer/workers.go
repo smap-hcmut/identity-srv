@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -22,11 +21,6 @@ func (c Consumer) dispatchWorker(d amqp.Delivery) {
 		return
 	}
 
-	// Derive platform/task_type từ routing key nếu thiếu.
-	if req.Platform == "" || req.TaskType == "" {
-		setFromRouting(&req, d.RoutingKey)
-	}
-
 	tasks, err := c.uc.Dispatch(ctx, req)
 	if err != nil {
 		if err == dispatcher.ErrInvalidInput || err == dispatcher.ErrUnknownRoute {
@@ -41,14 +35,4 @@ func (c Consumer) dispatchWorker(d amqp.Delivery) {
 
 	c.l.Infof(ctx, "dispatcher.consumer.Dispatch published %d task(s)", len(tasks))
 	d.Ack(false)
-}
-
-func setFromRouting(req *models.CrawlRequest, routing string) {
-	parts := strings.Split(routing, ".")
-	if len(parts) >= 3 && req.Platform == "" {
-		req.Platform = models.Platform(parts[1])
-	}
-	if len(parts) >= 3 && req.TaskType == "" {
-		req.TaskType = models.TaskType(parts[2])
-	}
 }

@@ -1,85 +1,37 @@
 package consumer
 
 import (
-	"database/sql"
 	"errors"
 
-	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
+	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
 	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
 	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
-	"github.com/redis/go-redis/v9"
 )
 
-type Consumer struct {
-	l            pkgLog.Logger
-	jwtSecretKey string
-	amqpConn     *rabbitmq.Connection
-	encrypter    pkgCrt.Encrypter
-	telegram     TeleCredentials
-	internalKey  string
-	postgresDB   *sql.DB
-	redisClient  *redis.Client
+// Server gom toàn bộ wiring của service: RabbitMQ connection, dispatcher producer/usecase và inbound consumer.
+type Server struct {
+	l    pkgLog.Logger
+	conn *rabbitmq.Connection
+	cfg  Config
 }
 
-type ConsumerConfig struct {
-	JwtSecretKey string
-	AMQPConn     *rabbitmq.Connection
-	Encrypter    pkgCrt.Encrypter
-	Telegram     TeleCredentials
-	InternalKey  string
-	PostgresDB   *sql.DB
-	RedisClient  *redis.Client
+type Config struct {
+	Logger            pkgLog.Logger
+	AMQPConn          *rabbitmq.Connection
+	DispatcherOptions dispatcher.Options
 }
 
-type TeleCredentials struct {
-	BotKey string
-	ChatIDs
-}
-
-type ChatIDs struct {
-	ReportBug int64
-}
-
-func New(l pkgLog.Logger, cfg ConsumerConfig) (*Consumer, error) {
-
-	h := &Consumer{
-		l:            l,
-		amqpConn:     cfg.AMQPConn,
-		jwtSecretKey: cfg.JwtSecretKey,
-		encrypter:    cfg.Encrypter,
-		telegram:     cfg.Telegram,
-		internalKey:  cfg.InternalKey,
-		postgresDB:   cfg.PostgresDB,
-		redisClient:  cfg.RedisClient,
+func New(cfg Config) (*Server, error) {
+	if cfg.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+	if cfg.AMQPConn == nil {
+		return nil, errors.New("amqp connection is required")
 	}
 
-	if err := h.validate(); err != nil {
-		return nil, err
-	}
-
-	return h, nil
-}
-
-func (s Consumer) validate() error {
-	requiredDeps := []struct {
-		dep interface{}
-		msg string
-	}{
-		{s.l, "logger is required"},
-		{s.amqpConn, "amqpConn is required"},
-		{s.jwtSecretKey, "jwtSecretKey is required"},
-		{s.encrypter, "encrypter is required"},
-		{s.telegram, "telegram is required"},
-		{s.internalKey, "internalKey is required"},
-		{s.postgresDB, "postgresDB is required"},
-		{s.redisClient, "redisClient is required"},
-	}
-
-	for _, dep := range requiredDeps {
-		if dep.dep == nil {
-			return errors.New(dep.msg)
-		}
-	}
-
-	return nil
+	return &Server{
+		l:    cfg.Logger,
+		conn: cfg.AMQPConn,
+		cfg:  cfg,
+	}, nil
 }

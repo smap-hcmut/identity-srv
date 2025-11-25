@@ -1,68 +1,49 @@
 package main
 
 import (
-	
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/nguyentantai21042004/smap-api/config"
+	"github.com/nguyentantai21042004/smap-api/internal/consumer"
+	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
+	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
 )
 
-// func main() {
-// 	ctx := context.Background()
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-// 	// Load config
-// 	cfg, err := config.Load()
-// 	if err != nil {
-// 		panic(err)
-// 	}
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
-// 	i18n.InitI18n()
+	l := pkgLog.InitializeZapLogger(pkgLog.ZapConfig{
+		Level:    cfg.Logger.Level,
+		Mode:     cfg.Logger.Mode,
+		Encoding: cfg.Logger.Encoding,
+	})
 
-// 	l := pkgLog.InitializeZapLogger(pkgLog.ZapConfig{
-// 		Level:    cfg.Logger.Level,
-// 		Mode:     cfg.Logger.Mode,
-// 		Encoding: cfg.Logger.Encoding,
-// 	})
+	conn, err := rabbitmq.Dial(cfg.RabbitMQConfig.URL, true)
+	if err != nil {
+		l.Fatalf(ctx, "failed to connect to RabbitMQ: %v", err)
+	}
+	defer conn.Close()
 
-// 	crp := pkgCrt.NewEncrypter(cfg.Encrypter.Key)
+	srv, err := consumer.New(consumer.Config{
+		Logger:   l,
+		AMQPConn: conn,
+	})
+	if err != nil {
+		l.Fatalf(ctx, "failed to init consumer: %v", err)
+	}
+	defer srv.Close()
 
-// 	client, err := mongo.Connect(cfg.Mongo, crp)
-// 	if err != nil {
-// 		l.Fatalf(ctx, "Failed to connect to MongoDB: %v", err)
-// 	}
-// 	defer mongo.Disconnect(client)
-
-// 	db := client.Database(cfg.Mongo.Database)
-
-// 	conn, err := rabbitmq.Dial(cfg.RabbitMQConfig.URL, true)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer conn.Close()
-
-// 	redisClient, err := redis.Connect(cfg.RedisConfig)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer redisClient.Disconnect()
-
-// 	microservice := consumer.TancaMicroserviceConfig{
-// 		TANCA_TIMESHEET:    cfg.TancaMicroservice.TANCA_TIMESHEET,
-// 		TANCA_AUTH:         cfg.TancaMicroservice.TANCA_AUTH,
-// 		TANCA_SHOP:         cfg.TancaMicroservice.TANCA_SHOP,
-// 		TANCA_NOTIFICATION: cfg.TancaMicroservice.TANCA_NOTIFICATION,
-// 		TANCA_REQUEST:      cfg.TancaMicroservice.TANCA_REQUEST,
-// 		TANCA_TASK:         cfg.TancaMicroservice.TANCA_TASK,
-// 		TANCA_INTEGRATION:  cfg.TancaMicroservice.TANCA_INTEGRATION,
-// 	}
-
-// 	config := consumer.ServerConfig{
-// 		Conn:              conn,
-// 		DB:                db,
-// 		Redis:             redisClient,
-// 		TancaMicroservice: microservice,
-// 		Encrypter:         crp,
-// 		InternalKey:       cfg.InternalConfig.InternalKey,
-// 	}
-
-// 	if err := consumer.NewServer(l, config).Run(); err != nil {
-// 		l.Fatalf(ctx, "Failed to run consumer server: %v", err)
-// 	}
-// }
+	if err := srv.Run(ctx); err != nil {
+		l.Fatalf(ctx, "consumer stopped with error: %v", err)
+	}
+}

@@ -1,10 +1,31 @@
 package rabbitmq
 
-// Exchange và queue cho ingress dispatcher.
-const (
-	InboundExchangeName = "collector.inbound"
+import pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
 
-	YouTubeQueueName = "crawler.youtube.queue"
-	TikTokQueueName  = "crawler.tiktok.queue"
-	// Mặc định routing pattern: crawler.<platform>.<task_type>
+const (
+	InboundExchangeName = "collector.inbound" // upstream ingress (collector consumes)
+	TaskExchangeName    = ""                  // default exchange publish trực tiếp queue
+
+	InboundQueueName      = "collector.inbound.queue"
+	InboundRoutingPattern = "crawler.#"
+)
+
+var (
+	InboundExchange = pkgRabbit.ExchangeArgs{
+		Name:       InboundExchangeName,
+		Type:       pkgRabbit.ExchangeTypeTopic,
+		Durable:    true,
+		AutoDelete: false,
+		Internal:   false,
+		NoWait:     false,
+	}
+
+	TaskExchange = pkgRabbit.ExchangeArgs{
+		Name:       TaskExchangeName,
+		Type:       pkgRabbit.ExchangeTypeDirect,
+		Durable:    true,
+		AutoDelete: false,
+		Internal:   false,
+		NoWait:     false,
+	}
 )
