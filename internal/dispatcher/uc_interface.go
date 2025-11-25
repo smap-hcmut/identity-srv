@@ -8,6 +8,6 @@ import (
 
 //go:generate mockery --name=UseCase
 type UseCase interface {
-	// Dispatch nhận CrawlRequest, chuẩn hóa thành CollectorTask (kèm payload typed) và publish tới worker queue.
-	Dispatch(ctx context.Context, req models.CrawlRequest) (models.CollectorTask, error)
+	// Dispatch nhận CrawlRequest, chuẩn hóa thành các CollectorTask (kèm payload typed) và publish tới từng worker queue theo strategy (fan-out khi platform trống).
+	Dispatch(ctx context.Context, req models.CrawlRequest) ([]models.CollectorTask, error)
 }

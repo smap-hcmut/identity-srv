@@ -10,44 +10,62 @@ import (
 	"github.com/nguyentantai21042004/smap-api/internal/models"
 )
 
-func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) (models.CollectorTask, error) {
-	if req.TaskType == "" || req.Platform == "" {
-		return models.CollectorTask{}, dispatcher.ErrInvalidInput
+func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]models.CollectorTask, error) {
+	if req.TaskType == "" {
+		return nil, dispatcher.ErrInvalidInput
 	}
 
-	task := models.CollectorTask{
-		JobID:         req.JobID,
-		Platform:      req.Platform,
-		TaskType:      req.TaskType,
-		TimeRange:     req.TimeRange,
-		Attempt:       req.Attempt,
-		MaxAttempts:   req.MaxAttempts,
-		SchemaVersion: uc.defaultOptions.SchemaVersion,
-		EmittedAt:     req.EmittedAt,
-	}
-
-	if task.Attempt <= 0 {
-		task.Attempt = 1
-	}
-	if task.MaxAttempts <= 0 {
-		task.MaxAttempts = uc.defaultOptions.DefaultMaxAttempts
-	}
-	if task.EmittedAt.IsZero() {
-		task.EmittedAt = time.Now().UTC()
-	}
-
-	payload, err := mapPayload(req.Platform, req.TaskType, req.Payload)
+	targetPlatforms, err := uc.selectPlatforms(req.Platform)
 	if err != nil {
-		return models.CollectorTask{}, err
-	}
-	task.Payload = payload
-	task.RoutingKey = fmt.Sprintf("crawler.%s.queue", req.Platform)
-
-	if err := uc.prod.PublishTask(ctx, task); err != nil {
-		return models.CollectorTask{}, fmt.Errorf("%w: %v", dispatcher.ErrPublish, err)
+		return nil, err
 	}
 
-	return task, nil
+	tasks := make([]models.CollectorTask, 0, len(targetPlatforms))
+	for _, platform := range targetPlatforms {
+		task := models.CollectorTask{
+			JobID:         req.JobID,
+			Platform:      platform,
+			TaskType:      req.TaskType,
+			TimeRange:     req.TimeRange,
+			Attempt:       req.Attempt,
+			MaxAttempts:   req.MaxAttempts,
+			SchemaVersion: uc.defaultOptions.SchemaVersion,
+			EmittedAt:     req.EmittedAt,
+		}
+
+		if task.Attempt <= 0 {
+			task.Attempt = 1
+		}
+		if task.MaxAttempts <= 0 {
+			task.MaxAttempts = uc.defaultOptions.DefaultMaxAttempts
+		}
+		if task.EmittedAt.IsZero() {
+			task.EmittedAt = time.Now().UTC()
+		}
+
+		payload, err := mapPayload(platform, req.TaskType, req.Payload)
+		if err != nil {
+			return nil, err
+		}
+		task.Payload = payload
+
+		queue, err := uc.queueRoutingKey(platform)
+		if err != nil {
+			return nil, err
+		}
+		task.RoutingKey = queue
+		task.Headers = map[string]any{
+			"x-schema-version": uc.defaultOptions.SchemaVersion,
+		}
+
+		if err := uc.prod.PublishTask(ctx, task); err != nil {
+			return nil, fmt.Errorf("%w: %v", dispatcher.ErrPublish, err)
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
 }
 
 func mapPayload(platform models.Platform, taskType models.TaskType, raw map[string]any) (any, error) {
@@ -106,4 +124,31 @@ func decodePayload(raw map[string]any, dest any) (any, error) {
 		return nil, dispatcher.ErrInvalidInput
 	}
 	return dest, nil
+}
+
+func (uc implUseCase) queueRoutingKey(p models.Platform) (string, error) {
+	if queue, ok := uc.defaultOptions.PlatformQueues[p]; ok && queue != "" {
+		return queue, nil
+	}
+	return "", dispatcher.ErrUnknownRoute
+}
+
+func (uc implUseCase) selectPlatforms(platform models.Platform) ([]models.Platform, error) {
+	if platform != "" && platform != "all" {
+		if _, ok := uc.defaultOptions.PlatformQueues[platform]; !ok {
+			return nil, dispatcher.ErrUnknownRoute
+		}
+		return []models.Platform{platform}, nil
+	}
+
+	platforms := make([]models.Platform, 0, len(uc.defaultOptions.PlatformQueues))
+	for p := range uc.defaultOptions.PlatformQueues {
+		platforms = append(platforms, p)
+	}
+
+	if len(platforms) == 0 {
+		return nil, dispatcher.ErrUnknownRoute
+	}
+
+	return platforms, nil
 }
