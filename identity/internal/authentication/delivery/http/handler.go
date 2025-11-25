@@ -23,21 +23,23 @@ func (h handler) Register(c *gin.Context) {
 
 	req, sc, err := h.processRegisterRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "authentication.http.Register.processRegisterRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), h.d)
+		h.l.Errorf(ctx, "authentication.http.Register.processRegisterRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	_, err = h.uc.Register(ctx, sc, req.toInput())
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "authentication.http.Register.Register.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "authentication.http.Register.Register: %v", err)
+			response.Error(c, err, h.discord)
+			return
+		} else {
+			h.l.Warnf(ctx, "authentication.http.Register.Register: %v", err)
+			response.Error(c, err, h.discord)
+			return
 		}
-		response.Error(c, mapErr, h.d)
-		return
 	}
 
 	response.OK(c, nil)
@@ -58,21 +60,23 @@ func (h handler) SendOTP(c *gin.Context) {
 
 	req, sc, err := h.processSendOTPRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "authentication.http.SendOTP.processSendOTPRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), h.d)
+		h.l.Errorf(ctx, "authentication.http.SendOTP.processSendOTPRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	err = h.uc.SendOTP(ctx, sc, req.toInput())
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "authentication.http.SendOTP.SendOTP.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "authentication.http.SendOTP.SendOTP: %v", err)
+			response.Error(c, err, h.discord)
+			return
+		} else {
+			h.l.Warnf(ctx, "authentication.http.SendOTP.SendOTP: %v", err)
+			response.Error(c, err, h.discord)
+			return
 		}
-		response.Error(c, mapErr, h.d)
-		return
 	}
 
 	response.OK(c, nil)
@@ -93,21 +97,23 @@ func (h handler) VerifyOTP(c *gin.Context) {
 
 	req, sc, err := h.processVerifyOTPRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "authentication.http.VerifyOTP.processVerifyOTPRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), h.d)
+		h.l.Errorf(ctx, "authentication.http.VerifyOTP.processVerifyOTPRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	err = h.uc.VerifyOTP(ctx, sc, req.toInput())
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "authentication.http.VerifyOTP.VerifyOTP.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "authentication.http.VerifyOTP.VerifyOTP: %v", err)
+			response.Error(c, err, h.discord)
+			return
+		} else {
+			h.l.Warnf(ctx, "authentication.http.VerifyOTP.VerifyOTP: %v", err)
+			response.Error(c, err, h.discord)
+			return
 		}
-		response.Error(c, mapErr, h.d)
-		return
 	}
 
 	response.OK(c, nil)
@@ -128,21 +134,23 @@ func (h handler) Login(c *gin.Context) {
 
 	req, sc, err := h.processLoginRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "authentication.http.Login.processLoginRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), h.d)
+		h.l.Errorf(ctx, "authentication.http.Login.processLoginRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	o, err := h.uc.Login(ctx, sc, req.toInput())
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "authentication.http.Login.Login.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "authentication.http.Login.Login: %v", err)
+			response.Error(c, err, h.discord)
+			return
+		} else {
+			h.l.Warnf(ctx, "authentication.http.Login.Login: %v", err)
+			response.Error(c, err, h.discord)
+			return
 		}
-		response.Error(c, mapErr, h.d)
-		return
 	}
 
 	response.OK(c, h.newLoginResp(o))

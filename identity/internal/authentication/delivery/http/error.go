@@ -6,23 +6,21 @@ import (
 )
 
 var (
-	errWrongBody       = pkgErrors.NewHTTPError(110002, "Wrong body")
-	errUserNotFound    = pkgErrors.NewHTTPError(110003, "User not found")
-	errUsernameExisted = pkgErrors.NewHTTPError(110004, "Username existed")
-	errWrongPassword   = pkgErrors.NewHTTPError(110005, "Wrong password")
-	errWrongOTP        = pkgErrors.NewHTTPError(110006, "Wrong OTP")
-	errUserVerified    = pkgErrors.NewHTTPError(110007, "User verified")
-	errOTPExpired      = pkgErrors.NewHTTPError(110008, "OTP expired")
-	errTooManyAttempts = pkgErrors.NewHTTPError(110009, "Too many attempts")
-	errUserNotVerified = pkgErrors.NewHTTPError(110010, "User not verified")
-	errInvalidProvider = pkgErrors.NewHTTPError(110011, "Invalid provider")
-	errInvalidEmail    = pkgErrors.NewHTTPError(110012, "Invalid email")
+	errWrongBody       = pkgErrors.NewHTTPError(20001, "Wrong body")
+	errUserNotFound    = pkgErrors.NewHTTPError(20002, "User not found")
+	errUsernameExisted = pkgErrors.NewHTTPError(20003, "Username existed")
+	errWrongPassword   = pkgErrors.NewHTTPError(20004, "Wrong password")
+	errWrongOTP        = pkgErrors.NewHTTPError(20005, "Wrong OTP")
+	errUserVerified    = pkgErrors.NewHTTPError(20006, "User verified")
+	errOTPExpired      = pkgErrors.NewHTTPError(20007, "OTP expired")
+	errTooManyAttempts = pkgErrors.NewHTTPError(20008, "Too many attempts")
+	errUserNotVerified = pkgErrors.NewHTTPError(20009, "User not verified")
+	errInvalidProvider = pkgErrors.NewHTTPError(20010, "Invalid provider")
+	errInvalidEmail    = pkgErrors.NewHTTPError(20011, "Invalid email")
 )
 
 func (h handler) mapErrorCode(err error) error {
 	switch err {
-	case errWrongBody:
-		return errWrongBody
 	case authentication.ErrUserNotFound:
 		return errUserNotFound
 	case authentication.ErrUsernameExisted:

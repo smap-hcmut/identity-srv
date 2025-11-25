@@ -11,12 +11,12 @@ func (h handler) processRegisterRequest(c *gin.Context) (registerReq, model.Scop
 
 	var req registerReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processRegisterRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processRegisterRequest.ShouldBindJSON: %v", err)
 		return registerReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processRegisterRequest.validate: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processRegisterRequest.validate: %v", err)
 		return registerReq{}, model.Scope{}, errWrongBody
 	}
 
@@ -28,12 +28,12 @@ func (h handler) processSendOTPRequest(c *gin.Context) (sendOTPReq, model.Scope,
 
 	var req sendOTPReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processSendOTPRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processSendOTPRequest.ShouldBindJSON: %v", err)
 		return sendOTPReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processSendOTPRequest.validate: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processSendOTPRequest.validate: %v", err)
 		return sendOTPReq{}, model.Scope{}, errWrongBody
 	}
 
@@ -45,12 +45,12 @@ func (h handler) processVerifyOTPRequest(c *gin.Context) (verifyOTPReq, model.Sc
 
 	var req verifyOTPReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processVerifyOTPRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processVerifyOTPRequest.ShouldBindJSON: %v", err)
 		return verifyOTPReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processVerifyOTPRequest.validate: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processVerifyOTPRequest.validate: %v", err)
 		return verifyOTPReq{}, model.Scope{}, errWrongBody
 	}
 
@@ -62,12 +62,12 @@ func (h handler) processLoginRequest(c *gin.Context) (loginReq, model.Scope, err
 
 	var req loginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processLoginRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processLoginRequest.ShouldBindJSON: %v", err)
 		return loginReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "authentication.http.processLoginRequest.validate: %v", err)
+		h.l.Errorf(ctx, "authentication.http.processLoginRequest.validate: %v", err)
 		return loginReq{}, model.Scope{}, errWrongBody
 	}
 

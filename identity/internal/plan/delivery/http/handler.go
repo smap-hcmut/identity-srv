@@ -24,15 +24,20 @@ func (h handler) List(c *gin.Context) {
 
 	query, sc, err := h.processListPlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.List.processListPlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.List.processListPlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	plans, err := h.uc.List(ctx, sc, query.toInput())
 	if err != nil {
-		h.l.Errorf(ctx, "plan.http.List.List: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "plan.http.List.List: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.List.List: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -57,15 +62,20 @@ func (h handler) Get(c *gin.Context) {
 
 	query, sc, err := h.processGetPlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.Get.processGetPlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.Get.processGetPlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Get(ctx, sc, query.toInput())
 	if err != nil {
-		h.l.Errorf(ctx, "plan.http.Get.Get: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "plan.http.Get.Get: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.Get.Get: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -91,20 +101,20 @@ func (h handler) Detail(c *gin.Context) {
 
 	id, sc, err := h.processDetailPlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.Detail.processDetailPlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.Detail.processDetailPlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Detail(ctx, sc, id)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "plan.http.Detail.Detail.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "plan.http.Detail.Detail: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.Detail.Detail: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -128,15 +138,20 @@ func (h handler) Create(c *gin.Context) {
 
 	req, sc, err := h.processCreatePlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.Create.processCreatePlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.Create.processCreatePlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Create(ctx, sc, req.toInput())
 	if err != nil {
-		h.l.Errorf(ctx, "plan.http.Create.Create: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "plan.http.Create.Create: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.Create.Create: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -162,20 +177,20 @@ func (h handler) Update(c *gin.Context) {
 
 	req, id, sc, err := h.processUpdatePlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.Update.processUpdatePlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.Update.processUpdatePlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Update(ctx, sc, req.toInput(id))
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "plan.http.Update.Update.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "plan.http.Update.Update: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.Update.Update: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -200,20 +215,20 @@ func (h handler) Delete(c *gin.Context) {
 
 	id, sc, err := h.processDeletePlanRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "plan.http.Delete.processDeletePlanRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "plan.http.Delete.processDeletePlanRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	err = h.uc.Delete(ctx, sc, id)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "plan.http.Delete.Delete.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "plan.http.Delete.Delete: %v", err)
+		} else {
+			h.l.Warnf(ctx, "plan.http.Delete.Delete: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 

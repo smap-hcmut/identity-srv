@@ -1,6 +1,7 @@
 package http
 
 import (
+	"slices"
 	"smap-api/pkg/response"
 	"smap-api/pkg/scope"
 
@@ -19,23 +20,29 @@ import (
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/me [get]
-func (h Handler) GetMe(c *gin.Context) {
+func (h handler) GetMe(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
+
+	p, ok := scope.GetPayloadFromContext(ctx)
 	if !ok {
 		response.Unauthorized(c)
 		return
 	}
-	sc := scope.NewScope(payload)
+	sc := scope.NewScope(p)
 
-	output, err := h.uc.DetailMe(ctx, sc)
+	o, err := h.uc.DetailMe(ctx, sc)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.GetMe.DetailMe: %v", err)
-		reportError(c, err)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.GetMe.DetailMe: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.GetMe.DetailMe: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	response.OK(c, toUserResponse(output.User))
+	response.OK(c, h.newUserResp(o))
 }
 
 // UpdateProfile godoc
@@ -52,30 +59,29 @@ func (h Handler) GetMe(c *gin.Context) {
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/me [put]
-func (h Handler) UpdateProfile(c *gin.Context) {
+func (h handler) UpdateProfile(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		return
-	}
-	sc := scope.NewScope(payload)
 
-	input, err := processUpdateProfileRequest(c)
+	ip, sc, err := h.processUpdateProfileRequest(c)
 	if err != nil {
 		h.l.Errorf(ctx, "user.delivery.http.UpdateProfile.processUpdateProfileRequest: %v", err)
-		reportError(c, err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	output, err := h.uc.UpdateProfile(ctx, sc, input)
+	o, err := h.uc.UpdateProfile(ctx, sc, ip)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.UpdateProfile.UpdateProfile: %v", err)
-		reportError(c, err)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.UpdateProfile.UpdateProfile: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.UpdateProfile.UpdateProfile: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	response.OK(c, toUserResponse(output.User))
+	response.OK(c, h.newUserResp(o))
 }
 
 // ChangePassword godoc
@@ -92,25 +98,24 @@ func (h Handler) UpdateProfile(c *gin.Context) {
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/me/change-password [post]
-func (h Handler) ChangePassword(c *gin.Context) {
+func (h handler) ChangePassword(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		return
-	}
-	sc := scope.NewScope(payload)
 
-	input, err := processChangePasswordRequest(c)
+	ip, sc, err := h.processChangePasswordRequest(c)
 	if err != nil {
 		h.l.Errorf(ctx, "user.delivery.http.ChangePassword.processChangePasswordRequest: %v", err)
-		reportError(c, err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	if err := h.uc.ChangePassword(ctx, sc, input); err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.ChangePassword.ChangePassword: %v", err)
-		reportError(c, err)
+	if err := h.uc.ChangePassword(ctx, sc, ip); err != nil {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.ChangePassword.ChangePassword: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.ChangePassword.ChangePassword: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -131,30 +136,29 @@ func (h Handler) ChangePassword(c *gin.Context) {
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/{id} [get]
-func (h Handler) GetDetail(c *gin.Context) {
+func (h handler) GetDetail(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		return
-	}
-	sc := scope.NewScope(payload)
 
-	id, err := processIDParam(c)
+	id, sc, err := h.processIDParam(c)
 	if err != nil {
 		h.l.Errorf(ctx, "user.delivery.http.GetDetail.processIDParam: %v", err)
-		reportError(c, err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	output, err := h.uc.Detail(ctx, sc, id)
+	o, err := h.uc.Detail(ctx, sc, id)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.GetDetail.Detail: %v", err)
-		reportError(c, err)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.GetDetail.Detail: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.GetDetail.Detail: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	response.OK(c, toUserResponse(output.User))
+	response.OK(c, h.newUserResp(o))
 }
 
 // List godoc
@@ -170,30 +174,29 @@ func (h Handler) GetDetail(c *gin.Context) {
 // @Failure 403 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users [get]
-func (h Handler) List(c *gin.Context) {
+func (h handler) List(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		return
-	}
-	sc := scope.NewScope(payload)
 
-	input, err := processListRequest(c)
+	input, sc, err := h.processListRequest(c)
 	if err != nil {
 		h.l.Errorf(ctx, "user.delivery.http.List.processListRequest: %v", err)
-		reportError(c, err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	users, err := h.uc.List(ctx, sc, input)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.List.List: %v", err)
-		reportError(c, err)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.List.List: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.List.List: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	response.OK(c, toListUserResponse(users))
+	response.OK(c, h.newListUserResp(users))
 }
 
 // Get godoc
@@ -211,28 +214,27 @@ func (h Handler) List(c *gin.Context) {
 // @Failure 403 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/page [get]
-func (h Handler) Get(c *gin.Context) {
+func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
-	payload, ok := scope.GetPayloadFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		return
-	}
-	sc := scope.NewScope(payload)
 
-	input, err := processGetRequest(c)
+	input, sc, err := h.processGetRequest(c)
 	if err != nil {
 		h.l.Errorf(ctx, "user.delivery.http.Get.processGetRequest: %v", err)
-		reportError(c, err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Get(ctx, sc, input)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.Get.Get: %v", err)
-		reportError(c, err)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "user.delivery.http.Get.Get: %v", err)
+		} else {
+			h.l.Warnf(ctx, "user.delivery.http.Get.Get: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	response.OK(c, toGetUserResponse(output))
+	response.OK(c, h.newGetUserResp(output))
 }

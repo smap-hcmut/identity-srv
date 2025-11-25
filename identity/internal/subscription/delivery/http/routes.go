@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func MapSubscriptionRoutes(r *gin.RouterGroup, h Handler, mw middleware.Middleware) {
+func MapSubscriptionRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	r.GET("", mw.Auth(), h.List)
 	r.GET("/page", mw.Auth(), h.Get)
 	r.GET("/me", mw.Auth(), h.GetMySubscription)

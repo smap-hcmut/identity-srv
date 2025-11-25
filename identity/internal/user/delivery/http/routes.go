@@ -7,7 +7,7 @@ import (
 )
 
 // MapUserRoutes maps user routes to the router
-func MapUserRoutes(group *gin.RouterGroup, h Handler, mw middleware.Middleware) {
+func MapUserRoutes(group *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	// Public/authenticated user endpoints
 	group.Use(mw.Auth())
 	{

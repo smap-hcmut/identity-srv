@@ -2,65 +2,45 @@ package http
 
 import (
 	"smap-api/internal/user"
-	"smap-api/pkg/errors"
+	pkgErrors "smap-api/pkg/errors"
 )
 
-const (
-	ErrCodeWrongBody     = 140001
-	ErrCodeUserNotFound  = 140002
-	ErrCodeUserExists    = 140003
-	ErrCodeFieldRequired = 140004
-	ErrCodeInvalidID     = 140005
-	ErrCodeWrongPassword = 140006
-	ErrCodeWeakPassword  = 140007
-	ErrCodeSamePassword  = 140008
-	ErrCodeInvalidRole   = 140009
-	ErrCodeUnauthorized  = 140010
+var (
+	errWrongQuery    = pkgErrors.NewHTTPError(10000, "Wrong query")
+	errWrongBody     = pkgErrors.NewHTTPError(10001, "Wrong body")
+	errUserNotFound  = pkgErrors.NewHTTPError(10002, "User not found")
+	errUserExists    = pkgErrors.NewHTTPError(10003, "User already exists")
+	errFieldRequired = pkgErrors.NewHTTPError(10004, "Field required")
+	errWrongPassword = pkgErrors.NewHTTPError(10006, "Wrong password")
+	errWeakPassword  = pkgErrors.NewHTTPError(10007, "Password must be at least 8 characters")
+	errSamePassword  = pkgErrors.NewHTTPError(10008, "New password must be different from old password")
+	errInvalidRole   = pkgErrors.NewHTTPError(10009, "Invalid role")
+	errUnauthorized  = pkgErrors.NewHTTPError(10010, "Unauthorized")
 )
 
-func toHTTPError(err error) *errors.HTTPError {
+func (h handler) mapErrorCode(err error) error {
 	switch err {
 	case user.ErrUserNotFound:
-		return &errors.HTTPError{
-			Code:    ErrCodeUserNotFound,
-			Message: "User not found",
-		}
+		return errUserNotFound
 	case user.ErrUserExists:
-		return &errors.HTTPError{
-			Code:    ErrCodeUserExists,
-			Message: "User already exists",
-		}
+		return errUserExists
 	case user.ErrFieldRequired:
-		return &errors.HTTPError{
-			Code:    ErrCodeFieldRequired,
-			Message: "Field required",
-		}
+		return errFieldRequired
 	case user.ErrWrongPassword:
-		return &errors.HTTPError{
-			Code:    ErrCodeWrongPassword,
-			Message: "Wrong password",
-		}
+		return errWrongPassword
 	case user.ErrWeakPassword:
-		return &errors.HTTPError{
-			Code:    ErrCodeWeakPassword,
-			Message: "Password must be at least 8 characters",
-		}
+		return errWeakPassword
 	case user.ErrSamePassword:
-		return &errors.HTTPError{
-			Code:    ErrCodeSamePassword,
-			Message: "New password must be different from old password",
-		}
+		return errSamePassword
 	case user.ErrInvalidRole:
-		return &errors.HTTPError{
-			Code:    ErrCodeInvalidRole,
-			Message: "Invalid role",
-		}
+		return errInvalidRole
 	case user.ErrUnauthorized:
-		return &errors.HTTPError{
-			Code:    ErrCodeUnauthorized,
-			Message: "Unauthorized",
-		}
+		return errUnauthorized
 	default:
-		return nil
+		return err
 	}
+}
+
+var NotFound = []error{
+	errUserNotFound,
 }

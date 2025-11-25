@@ -12,12 +12,12 @@ func (h handler) processCreatePlanRequest(c *gin.Context) (createPlanReq, model.
 
 	var req createPlanReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "plan.http.processCreatePlanRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "plan.http.processCreatePlanRequest.ShouldBindJSON: %v", err)
 		return createPlanReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "plan.http.processCreatePlanRequest.validate: %v", err)
+		h.l.Errorf(ctx, "plan.http.processCreatePlanRequest.validate: %v", err)
 		return createPlanReq{}, model.Scope{}, err
 	}
 
@@ -35,12 +35,12 @@ func (h handler) processUpdatePlanRequest(c *gin.Context) (updatePlanReq, string
 
 	var req updatePlanReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "plan.http.processUpdatePlanRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "plan.http.processUpdatePlanRequest.ShouldBindJSON: %v", err)
 		return updatePlanReq{}, "", model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "plan.http.processUpdatePlanRequest.validate: %v", err)
+		h.l.Errorf(ctx, "plan.http.processUpdatePlanRequest.validate: %v", err)
 		return updatePlanReq{}, "", model.Scope{}, err
 	}
 
@@ -52,7 +52,7 @@ func (h handler) processListPlanRequest(c *gin.Context) (listPlanQuery, model.Sc
 
 	var query listPlanQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		h.l.Warnf(ctx, "plan.http.processListPlanRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "plan.http.processListPlanRequest.ShouldBindQuery: %v", err)
 		return listPlanQuery{}, model.Scope{}, errWrongBody
 	}
 
@@ -64,7 +64,7 @@ func (h handler) processGetPlanRequest(c *gin.Context) (getPlanQuery, model.Scop
 
 	var query getPlanQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		h.l.Warnf(ctx, "plan.http.processGetPlanRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "plan.http.processGetPlanRequest.ShouldBindQuery: %v", err)
 		return getPlanQuery{}, model.Scope{}, errWrongBody
 	}
 
@@ -91,4 +91,3 @@ func (h handler) processDeletePlanRequest(c *gin.Context) (string, model.Scope, 
 
 	return id, sc, nil
 }
-

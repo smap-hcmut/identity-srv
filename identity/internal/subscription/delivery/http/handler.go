@@ -28,15 +28,20 @@ func (h handler) List(c *gin.Context) {
 
 	query, sc, err := h.processListSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.List.processListSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.List.processListSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	subs, err := h.uc.List(ctx, sc, query.toInput())
 	if err != nil {
-		h.l.Errorf(ctx, "subscription.http.List.List: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "subscription.http.List.List: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.List.List: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -65,15 +70,20 @@ func (h handler) Get(c *gin.Context) {
 
 	query, sc, err := h.processGetSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Get.processGetSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Get.processGetSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Get(ctx, sc, query.toInput())
 	if err != nil {
-		h.l.Errorf(ctx, "subscription.http.Get.Get: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "subscription.http.Get.Get: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Get.Get: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -101,20 +111,20 @@ func (h handler) Detail(c *gin.Context) {
 
 	id, sc, err := h.processDetailSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Detail.processDetailSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Detail.processDetailSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Detail(ctx, sc, id)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "subscription.http.Detail.Detail.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "subscription.http.Detail.Detail: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Detail.Detail: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -137,20 +147,20 @@ func (h handler) GetMySubscription(c *gin.Context) {
 
 	sc, err := h.processGetMySubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.GetMySubscription.processGetMySubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.GetMySubscription.processGetMySubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	sub, err := h.uc.GetActiveSubscription(ctx, sc, sc.UserID)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "subscription.http.GetMySubscription.GetActiveSubscription.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "subscription.http.GetMySubscription.GetActiveSubscription: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.GetMySubscription.GetActiveSubscription: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -174,22 +184,27 @@ func (h handler) Create(c *gin.Context) {
 
 	req, sc, err := h.processCreateSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Create.processCreateSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Create.processCreateSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	input, err := req.toInput()
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Create.toInput: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Create.toInput: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Create(ctx, sc, input)
 	if err != nil {
-		h.l.Errorf(ctx, "subscription.http.Create.Create: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "subscription.http.Create.Create: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Create.Create: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -215,27 +230,27 @@ func (h handler) Update(c *gin.Context) {
 
 	req, id, sc, err := h.processUpdateSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Update.processUpdateSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Update.processUpdateSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	input, err := req.toInput(id)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Update.toInput: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Update.toInput: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Update(ctx, sc, input)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "subscription.http.Update.Update.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "subscription.http.Update.Update: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Update.Update: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -260,20 +275,20 @@ func (h handler) Delete(c *gin.Context) {
 
 	id, sc, err := h.processDeleteSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Delete.processDeleteSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Delete.processDeleteSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	err = h.uc.Delete(ctx, sc, id)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "subscription.http.Delete.Delete.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "subscription.http.Delete.Delete: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Delete.Delete: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
@@ -298,20 +313,20 @@ func (h handler) Cancel(c *gin.Context) {
 
 	id, sc, err := h.processCancelSubscriptionRequest(c)
 	if err != nil {
-		h.l.Warnf(ctx, "subscription.http.Cancel.processCancelSubscriptionRequest: %v", err)
-		response.Error(c, h.mapErrorCode(err), nil)
+		h.l.Errorf(ctx, "subscription.http.Cancel.processCancelSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Cancel(ctx, sc, id)
 	if err != nil {
-		mapErr := h.mapErrorCode(err)
-		if slices.Contains(NotFound, err) {
-			h.l.Warnf(ctx, "subscription.http.Cancel.Cancel.NotFound: %v", err)
-		} else {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
 			h.l.Errorf(ctx, "subscription.http.Cancel.Cancel: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.Cancel.Cancel: %v", err)
 		}
-		response.Error(c, mapErr, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 

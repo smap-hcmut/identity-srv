@@ -54,9 +54,9 @@ func (srv HTTPServer) mapHandlers() error {
 
 	// Initialize HTTP handlers
 	authHandler := authhttp.New(srv.l, authUC, srv.discord)
-	planHandler := planhttp.New(srv.l, planUC)
-	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC)
-	userHandler := userhttp.New(srv.l, userUC)
+	planHandler := planhttp.New(srv.l, planUC, srv.discord)
+	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC, srv.discord)
+	userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
 	// Map routes (no prefix)
 	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
