@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func MapProjectRoutes(r *gin.RouterGroup, h Handler, mw middleware.Middleware) {
+func MapProjectRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	// All routes require authentication
 	r.GET("", mw.Auth(), h.List)
 	r.GET("/page", mw.Auth(), h.Get)
