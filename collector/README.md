@@ -2,7 +2,7 @@
 
 This repository houses the **Dispatcher Service** for the SMAP data collection system. It serves as the central coordinator that receives high-level crawl requests, validates them, and distributes granular tasks to platform-specific workers via RabbitMQ.
 
-## 🏗 System Architecture
+## System Architecture
 
 The service follows a **Producer-Consumer** and **Fan-out** architecture pattern. It acts as an intermediary between the request initiator (e.g., a frontend or scheduler) and the actual scraping workers.
 
@@ -53,7 +53,7 @@ The system supports three primary task types (`internal/models/task.go`):
 -   **YouTube** (`PlatformYouTube`)
 -   **TikTok** (`PlatformTikTok`)
 
-## 📐 Design Patterns
+## Design Patterns
 
 The project strictly follows **Clean Architecture** and **SOLID** principles:
 
@@ -70,7 +70,7 @@ The project strictly follows **Clean Architecture** and **SOLID** principles:
 -   **Strategy/Factory Pattern**:
     -   The `mapPayload` function (`internal/dispatcher/usecase/mapper.go`) acts as a factory, selecting the correct payload structure and validation strategy based on the `Platform` and `TaskType`.
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 smap-api/
@@ -90,7 +90,7 @@ smap-api/
 └── ...
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 -   Go 1.23+
