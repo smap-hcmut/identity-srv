@@ -50,18 +50,18 @@ func (h handler) processGetRequest(c *gin.Context) (user.GetInput, model.Scope, 
 	return req.toInput(), sc, nil
 }
 
-func (h handler) processUpdateProfileRequest(c *gin.Context) (user.UpdateProfileInput, model.Scope, error) {
+func (h handler) processUpdateProfileReq(c *gin.Context) (user.UpdateProfileInput, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	p, ok := scope.GetPayloadFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileRequest: %v", errors.NewUnauthorizedHTTPError())
+		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileReq: %v", errors.NewUnauthorizedHTTPError())
 		return user.UpdateProfileInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
 	}
 
 	var req UpdateProfileReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileRequest: %v", errWrongBody)
+		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileReq: %v", errWrongBody)
 		return user.UpdateProfileInput{}, model.Scope{}, errWrongBody
 	}
 
@@ -70,18 +70,18 @@ func (h handler) processUpdateProfileRequest(c *gin.Context) (user.UpdateProfile
 	return req.toInput(), sc, nil
 }
 
-func (h handler) processChangePasswordRequest(c *gin.Context) (user.ChangePasswordInput, model.Scope, error) {
+func (h handler) processChangePasswordReq(c *gin.Context) (user.ChangePasswordInput, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	p, ok := scope.GetPayloadFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordRequest: %v", errors.NewUnauthorizedHTTPError())
+		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordReq: %v", errors.NewUnauthorizedHTTPError())
 		return user.ChangePasswordInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
 	}
 
 	var req ChangePasswordReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordRequest: %v", errWrongBody)
+		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordReq: %v", errWrongBody)
 		return user.ChangePasswordInput{}, model.Scope{}, errWrongBody
 	}
 
