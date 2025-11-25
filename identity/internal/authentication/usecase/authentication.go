@@ -87,17 +87,11 @@ func (uc *implUsecase) Register(ctx context.Context, sc model.Scope, ip authenti
 		return authentication.RegisterOutput{}, err
 	}
 
-	// Step 2: Securely hash the provided password before storing.
-	hash, err := uc.encrypt.HashPassword(ip.Password)
-	if err != nil {
-		uc.l.Errorf(ctx, "authentication.usecase.Register.encrypt.HashPassword: %v", err)
-		return authentication.RegisterOutput{}, err
-	}
-
-	// Step 3: Create a new user with the checked username and hashed password.
+	// Step 2: Create a new user with the checked username and password.
+	// Note: userUC.Create will handle password hashing.
 	uco, err := uc.userUC.Create(ctx, sc, user.CreateInput{
 		Username: ip.Email,
-		Password: hash,
+		Password: ip.Password,
 	})
 	if err != nil {
 		uc.l.Errorf(ctx, "authentication.usecase.Register.userUC.Create: %v", err)

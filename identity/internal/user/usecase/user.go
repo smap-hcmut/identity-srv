@@ -117,13 +117,7 @@ func (uc *usecase) ChangePassword(ctx context.Context, sc model.Scope, ip user.C
 		return user.ErrWrongPassword
 	}
 
-	oldPasswordPlain, err := uc.encrypt.Decrypt(*usr.PasswordHash)
-	if err != nil {
-		uc.l.Errorf(ctx, "internal.user.usecase.ChangePassword.Decrypt: %v", err)
-		return err
-	}
-
-	if oldPasswordPlain != ip.OldPassword {
+	if !uc.encrypt.CheckPasswordHash(ip.OldPassword, *usr.PasswordHash) {
 		return user.ErrWrongPassword
 	}
 
