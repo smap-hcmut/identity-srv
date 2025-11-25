@@ -1,9 +1,9 @@
 package consumer
 
 import (
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
-	pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	"smap-collector/internal/dispatcher"
+	pkgLog "smap-collector/pkg/log"
+	pkgRabbit "smap-collector/pkg/rabbitmq"
 )
 
 type Consumer struct {

@@ -5,7 +5,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	pkgRabbit "smap-collector/pkg/rabbitmq"
 )
 
 type WorkerFunc func(msg amqp.Delivery)

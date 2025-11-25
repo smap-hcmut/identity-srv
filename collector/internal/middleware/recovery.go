@@ -3,9 +3,10 @@ package middleware
 import (
 	"log"
 
+	"smap-collector/pkg/discord"
+	"smap-collector/pkg/response"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/pkg/discord"
-	"github.com/nguyentantai21042004/smap-api/pkg/response"
 )
 
 func Recovery(d *discord.Discord) gin.HandlerFunc {

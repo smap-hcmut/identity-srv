@@ -3,7 +3,7 @@ package results
 import (
 	"context"
 
-	"github.com/nguyentantai21042004/smap-api/internal/models"
+	"smap-collector/internal/models"
 )
 
 //go:generate mockery --name=ResultUseCase

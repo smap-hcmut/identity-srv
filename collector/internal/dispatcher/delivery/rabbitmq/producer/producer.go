@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	rabb "github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq"
-	"github.com/nguyentantai21042004/smap-api/internal/models"
-	pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	rabb "smap-collector/internal/dispatcher/delivery/rabbitmq"
+	"smap-collector/internal/models"
+	pkgRabbit "smap-collector/pkg/rabbitmq"
 )
 
 func (p implProducer) PublishTask(ctx context.Context, task models.CollectorTask) error {

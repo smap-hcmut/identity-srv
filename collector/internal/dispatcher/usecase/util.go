@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	"github.com/nguyentantai21042004/smap-api/internal/models"
+	"smap-collector/internal/dispatcher"
+	"smap-collector/internal/models"
 )
 
 func (uc implUseCase) queueRoutingKey(p models.Platform) (string, error) {

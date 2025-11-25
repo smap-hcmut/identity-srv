@@ -3,10 +3,10 @@ package usecase
 import (
 	"errors"
 
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq/producer"
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	"github.com/nguyentantai21042004/smap-api/internal/models"
-	"github.com/nguyentantai21042004/smap-api/pkg/log"
+	"smap-collector/internal/dispatcher"
+	"smap-collector/internal/dispatcher/delivery/rabbitmq/producer"
+	"smap-collector/internal/models"
+	"smap-collector/pkg/log"
 )
 
 type implUseCase struct {

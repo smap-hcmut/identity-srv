@@ -3,9 +3,9 @@ package consumer
 import (
 	"errors"
 
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
-	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	"smap-collector/internal/dispatcher"
+	pkgLog "smap-collector/pkg/log"
+	"smap-collector/pkg/rabbitmq"
 )
 
 // Server gom toàn bộ wiring của service: RabbitMQ connection, dispatcher producer/usecase và inbound consumer.

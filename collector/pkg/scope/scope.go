@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/nguyentantai21042004/smap-api/internal/models"
+	"smap-collector/internal/models"
 )
 
 // NewScope creates a new scope.

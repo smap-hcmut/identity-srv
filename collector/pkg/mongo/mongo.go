@@ -3,7 +3,8 @@ package mongo
 import (
 	"context"
 
-	"github.com/nguyentantai21042004/smap-api/pkg/util"
+	"smap-collector/pkg/util"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

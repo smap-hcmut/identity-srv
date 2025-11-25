@@ -1,4 +1,4 @@
-module github.com/nguyentantai21042004/smap-api
+module smap-collector
 
 go 1.23.8
 

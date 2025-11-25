@@ -6,8 +6,8 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	"github.com/nguyentantai21042004/smap-api/internal/models"
+	"smap-collector/internal/dispatcher"
+	"smap-collector/internal/models"
 )
 
 func (c Consumer) dispatchWorker(d amqp.Delivery) {

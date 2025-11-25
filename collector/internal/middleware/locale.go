@@ -1,8 +1,9 @@
 package middleware
 
 import (
+	"smap-collector/pkg/locale"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/pkg/locale"
 )
 
 func (m Middleware) Locale() gin.HandlerFunc {

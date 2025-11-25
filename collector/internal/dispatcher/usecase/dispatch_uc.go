@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher"
-	"github.com/nguyentantai21042004/smap-api/internal/models"
+	"smap-collector/internal/dispatcher"
+	"smap-collector/internal/models"
 )
 
 func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]models.CollectorTask, error) {
@@ -56,5 +56,3 @@ func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]
 
 	return tasks, nil
 }
-
-

@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq"
+	"smap-collector/internal/dispatcher/delivery/rabbitmq"
 )
 
 // Consume start consume inbound queue.

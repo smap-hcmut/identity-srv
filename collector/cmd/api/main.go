@@ -6,18 +6,18 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nguyentantai21042004/smap-api/config"
-	"github.com/nguyentantai21042004/smap-api/internal/appconfig/mongo"
-	"github.com/nguyentantai21042004/smap-api/internal/httpserver"
-	"github.com/nguyentantai21042004/smap-api/pkg/discord"
-	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
-	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
+	"smap-collector/config"
+	"smap-collector/internal/appconfig/mongo"
+	"smap-collector/internal/httpserver"
+	"smap-collector/pkg/discord"
+	pkgCrt "smap-collector/pkg/encrypter"
+	pkgLog "smap-collector/pkg/log"
 )
 
 // @Name Smap API
 // @description This is the API documentation for Smap.
 // @version 1
-// @host smap-api.ngtantai.pro
+// @host smap-collector.ngtantai.pro
 // @schemes https
 func main() {
 	// Load configuration
@@ -54,7 +54,7 @@ func main() {
 	// =============================================================================
 	// MESSAGE QUEUE CONFIGURATION
 	// =============================================================================
-	
+
 	// =============================================================================
 	// STORAGE CONFIGURATION
 	// =============================================================================

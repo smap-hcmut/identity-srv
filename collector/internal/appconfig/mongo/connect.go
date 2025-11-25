@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/nguyentantai21042004/smap-api/config"
-	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
-	"github.com/nguyentantai21042004/smap-api/pkg/mongo"
+	"smap-collector/config"
+	pkgCrt "smap-collector/pkg/encrypter"
+	"smap-collector/pkg/mongo"
 )
 
 const (

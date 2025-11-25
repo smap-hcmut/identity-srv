@@ -3,9 +3,10 @@ package middleware
 import (
 	"strings"
 
+	"smap-collector/pkg/response"
+	"smap-collector/pkg/scope"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/pkg/response"
-	"github.com/nguyentantai21042004/smap-api/pkg/scope"
 )
 
 func (m Middleware) Auth() gin.HandlerFunc {

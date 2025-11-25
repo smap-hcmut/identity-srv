@@ -1,6 +1,6 @@
 package rabbitmq
 
-import pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+import pkgRabbit "smap-collector/pkg/rabbitmq"
 
 const (
 	InboundExchangeName = "collector.inbound" // upstream ingress (collector consumes)

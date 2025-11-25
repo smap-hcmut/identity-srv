@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nguyentantai21042004/smap-api/config"
-	"github.com/nguyentantai21042004/smap-api/internal/consumer"
-	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
-	"github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	"smap-collector/config"
+	"smap-collector/internal/consumer"
+	pkgLog "smap-collector/pkg/log"
+	"smap-collector/pkg/rabbitmq"
 )
 
 func main() {

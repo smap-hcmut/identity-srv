@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	pkgErrors "github.com/nguyentantai21042004/smap-api/pkg/errors"
+	pkgErrors "smap-collector/pkg/errors"
 )
 
 var (

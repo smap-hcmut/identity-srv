@@ -3,12 +3,13 @@ package httpserver
 import (
 	"errors"
 
+	"smap-collector/config"
+	"smap-collector/pkg/discord"
+	pkgCrt "smap-collector/pkg/encrypter"
+	pkgLog "smap-collector/pkg/log"
+	"smap-collector/pkg/mongo"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/config"
-	"github.com/nguyentantai21042004/smap-api/pkg/discord"
-	pkgCrt "github.com/nguyentantai21042004/smap-api/pkg/encrypter"
-	pkgLog "github.com/nguyentantai21042004/smap-api/pkg/log"
-	"github.com/nguyentantai21042004/smap-api/pkg/mongo"
 )
 
 type HTTPServer struct {

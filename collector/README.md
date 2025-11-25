@@ -73,7 +73,7 @@ The project strictly follows **Clean Architecture** and **SOLID** principles:
 ## Project Structure
 
 ```
-smap-api/
+smap-collector/
 ├── cmd/
 │   ├── api/          # HTTP Server entry point
 │   └── consumer/     # RabbitMQ Worker entry point

@@ -3,9 +3,9 @@ package consumer
 import (
 	"context"
 
-	dispatcherConsumer "github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq/consumer"
-	dispatcherProducer "github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq/producer"
-	dispatcherUsecase "github.com/nguyentantai21042004/smap-api/internal/dispatcher/usecase"
+	dispatcherConsumer "smap-collector/internal/dispatcher/delivery/rabbitmq/consumer"
+	dispatcherProducer "smap-collector/internal/dispatcher/delivery/rabbitmq/producer"
+	dispatcherUsecase "smap-collector/internal/dispatcher/usecase"
 )
 
 func (srv *Server) Run(ctx context.Context) error {

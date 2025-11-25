@@ -57,6 +57,30 @@ type MongoConfig struct {
 	ENABLE_MONITOR      bool   `env:"MONGODB_ENABLE_MONITORING" envDefault:"false"`
 }
 
+// PostgresConfig is the configuration for the Postgres,
+// which is used to connect to the Postgres.
+type PostgresConfig struct {
+	Host     string `env:"POSTGRES_HOST" envDefault:"localhost"`
+	Port     int    `env:"POSTGRES_PORT" envDefault:"5432"`
+	User     string `env:"POSTGRES_USER" envDefault:"postgres"`
+	Password string `env:"POSTGRES_PASSWORD" envDefault:"postgres"`
+	DBName   string `env:"POSTGRES_DB" envDefault:"postgres"`
+	SSLMode  string `env:"POSTGRES_SSLMODE" envDefault:"prefer"`
+}
+
+type MinIOConfig struct {
+	Endpoint  string `env:"MINIO_ENDPOINT" envDefault:"localhost:9000"`
+	AccessKey string `env:"MINIO_ACCESS_KEY" envDefault:"minioadmin"`
+	SecretKey string `env:"MINIO_SECRET_KEY" envDefault:"minioadmin"`
+	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
+	Region    string `env:"MINIO_REGION" envDefault:"us-east-1"`
+	Bucket    string `env:"MINIO_BUCKET"`
+
+	// Async upload settings
+	AsyncUploadWorkers   int `env:"MINIO_ASYNC_UPLOAD_WORKERS" envDefault:"4"`
+	AsyncUploadQueueSize int `env:"MINIO_ASYNC_UPLOAD_QUEUE_SIZE" envDefault:"100"`
+}
+
 type DiscordConfig struct {
 	ReportBugID    string `env:"DISCORD_REPORT_BUG_ID"`
 	ReportBugToken string `env:"DISCORD_REPORT_BUG_TOKEN"`

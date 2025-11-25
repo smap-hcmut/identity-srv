@@ -1,6 +1,6 @@
 package dispatcher
 
-import "github.com/nguyentantai21042004/smap-api/internal/models"
+import "smap-collector/internal/models"
 
 // Options for dispatcher defaults.
 type Options struct {

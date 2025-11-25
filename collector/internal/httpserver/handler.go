@@ -1,19 +1,20 @@
 package httpserver
 
 import (
-	"github.com/nguyentantai21042004/smap-api/internal/middleware"
-	"github.com/nguyentantai21042004/smap-api/pkg/discord"
-	"github.com/nguyentantai21042004/smap-api/pkg/i18n"
-	"github.com/nguyentantai21042004/smap-api/pkg/scope"
+	"smap-collector/internal/middleware"
+	"smap-collector/pkg/discord"
+	"smap-collector/pkg/i18n"
+	"smap-collector/pkg/scope"
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
-	// _ "github.com/nguyentantai21042004/smap-api/docs"
+	// _ "smap-collector/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"smap-collector/pkg/response"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/pkg/response"
 )
 
 const (
@@ -68,7 +69,7 @@ func (srv HTTPServer) healthCheck(c *gin.Context) {
 		"status":  "healthy",
 		"message": "From Tan Tai API V1 With Love",
 		"version": "1.0.0",
-		"service": "smap-api",
+		"service": "smap-collector",
 	})
 }
 
@@ -95,7 +96,7 @@ func (srv HTTPServer) readyCheck(c *gin.Context) {
 		"status":   "ready",
 		"message":  "From Tan Tai API V1 With Love",
 		"version":  "1.0.0",
-		"service":  "smap-api",
+		"service":  "smap-collector",
 		"database": "connected",
 	})
 }
@@ -113,6 +114,6 @@ func (srv HTTPServer) liveCheck(c *gin.Context) {
 		"status":  "alive",
 		"message": "From Tan Tai API V1 With Love",
 		"version": "1.0.0",
-		"service": "smap-api",
+		"service": "smap-collector",
 	})
 }

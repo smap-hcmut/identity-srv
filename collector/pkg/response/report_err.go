@@ -9,8 +9,9 @@ import (
 	"net/http"
 	"strings"
 
+	"smap-collector/pkg/discord"
+
 	"github.com/gin-gonic/gin"
-	"github.com/nguyentantai21042004/smap-api/pkg/discord"
 )
 
 func sendDiscordMesssageAsync(c *gin.Context, d *discord.Discord, message string) {

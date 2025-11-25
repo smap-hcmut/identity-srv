@@ -3,8 +3,8 @@ package producer
 import (
 	"fmt"
 
-	rabb "github.com/nguyentantai21042004/smap-api/internal/dispatcher/delivery/rabbitmq"
-	pkgRabbit "github.com/nguyentantai21042004/smap-api/pkg/rabbitmq"
+	rabb "smap-collector/internal/dispatcher/delivery/rabbitmq"
+	pkgRabbit "smap-collector/pkg/rabbitmq"
 )
 
 // Run prepares writer channel.
