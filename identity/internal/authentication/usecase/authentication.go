@@ -38,12 +38,7 @@ func (uc *implUsecase) Login(ctx context.Context, sc model.Scope, ip authenticat
 	}
 
 	// Verify the provided password matches the stored password.
-	pass, err := uc.encrypt.Decrypt(*u.PasswordHash)
-	if err != nil {
-		uc.l.Errorf(ctx, "auth.usecase.Login.encrypt.Decrypt: %v", err)
-		return authentication.LoginOutput{}, err
-	}
-	if pass != ip.Password {
+	if !uc.encrypt.CheckPasswordHash(ip.Password, *u.PasswordHash) {
 		uc.l.Warnf(ctx, "authentication.usecase.Login: %v", authentication.ErrWrongPassword)
 		return authentication.LoginOutput{}, authentication.ErrWrongPassword
 	}
@@ -133,13 +128,7 @@ func (uc *implUsecase) SendOTP(ctx context.Context, sc model.Scope, ip authentic
 	}
 
 	// Step 2: Verify the provided password matches the user's stored password.
-	pass, err := uc.encrypt.Decrypt(*u.PasswordHash)
-	if err != nil {
-		// Log and return if password decryption fails.
-		uc.l.Errorf(ctx, "authentication.usecase.SendOTP.encrypt.Decrypt: %v", err)
-		return err
-	}
-	if pass != ip.Password {
+	if !uc.encrypt.CheckPasswordHash(ip.Password, *u.PasswordHash) {
 		// If the password does not match, log and return wrong password error.
 		uc.l.Warnf(ctx, "authentication.usecase.SendOTP: %v", authentication.ErrWrongPassword)
 		return authentication.ErrWrongPassword
