@@ -2,10 +2,9 @@ package http
 
 import (
 	"net/http"
+	"slices"
 
-	"smap-project/internal/project"
 	"smap-project/pkg/response"
-	"smap-project/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,36 +23,27 @@ import (
 // @Router /projects/{id} [get]
 func (h handler) Detail(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
-		return
-	}
 
-	id := c.Param("id")
-	if id == "" {
-		response.Error(c, ErrInvalidID, nil)
+	id, sc, err := h.processDetailRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.Detail.processDetailRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
 	output, err := h.uc.Detail(ctx, sc, id)
 	if err != nil {
-		if err == project.ErrProjectNotFound {
-			response.Error(c, err, nil)
-			return
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.Detail.Detail: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.Detail.Detail: %v", err)
 		}
-		if err == project.ErrUnauthorized {
-			response.Error(c, err, nil)
-			return
-		}
-		h.l.Errorf(ctx, "project.delivery.http.Detail: %v", err)
-		response.Error(c, err, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	resp := ToProjectResponse(output.Project)
-	response.OK(c, resp)
+	response.OK(c, h.newProjectResp(output.Project))
 }
 
 // @Summary List all projects
@@ -71,33 +61,27 @@ func (h handler) Detail(c *gin.Context) {
 // @Router /projects [get]
 func (h handler) List(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
+
+	input, sc, err := h.processListRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.List.processListRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	var req GetProjectsRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		response.Error(c, err, nil)
-		return
-	}
-
-	input := req.ToListInput()
 	projects, err := h.uc.List(ctx, sc, input)
 	if err != nil {
-		h.l.Errorf(ctx, "project.delivery.http.List: %v", err)
-		response.Error(c, err, nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.List.List: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.List.List: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	resp := make([]ProjectResponse, len(projects))
-	for i, p := range projects {
-		resp[i] = ToProjectResponse(p)
-	}
-
-	response.OK(c, resp)
+	response.OK(c, h.newProjectListResp(projects))
 }
 
 // @Summary Get projects with pagination
@@ -117,29 +101,27 @@ func (h handler) List(c *gin.Context) {
 // @Router /projects/page [get]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
+
+	input, sc, err := h.processGetRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.Get.processGetRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	var req GetProjectsRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		response.Error(c, err, nil)
-		return
-	}
-
-	input := req.ToGetInput()
 	output, err := h.uc.Get(ctx, sc, input)
 	if err != nil {
-		h.l.Errorf(ctx, "project.delivery.http.Get: %v", err)
-		response.Error(c, err, nil)
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.Get.Get: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.Get.Get: %v", err)
+		}
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	resp := ToProjectListResponse(output.Projects, output.Paginator)
-	response.OK(c, resp)
+	response.OK(c, h.newProjectPageResp(output.Projects, output.Paginator))
 }
 
 // @Summary Create a new project
@@ -155,37 +137,27 @@ func (h handler) Get(c *gin.Context) {
 // @Router /projects [post]
 func (h handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
+
+	input, sc, err := h.processCreateRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.Create.processCreateRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	var req CreateProjectRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, err, nil)
-		return
-	}
-
-	input := req.ToCreateInput()
 	output, err := h.uc.Create(ctx, sc, input)
 	if err != nil {
-		if err == project.ErrInvalidStatus {
-			response.Error(c, err, nil)
-			return
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.Create.Create: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.Create.Create: %v", err)
 		}
-		if err == project.ErrInvalidDateRange {
-			response.Error(c, err, nil)
-			return
-		}
-		h.l.Errorf(ctx, "project.delivery.http.Create: %v", err)
-		response.Error(c, err, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	resp := ToProjectResponse(output.Project)
-	response.OK(c, resp)
+	response.OK(c, h.newProjectResp(output.Project))
 }
 
 // @Summary Update a project
@@ -204,51 +176,27 @@ func (h handler) Create(c *gin.Context) {
 // @Router /projects/{id} [put]
 func (h handler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
+
+	input, _, sc, err := h.processUpdateRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.Update.processUpdateRequest: %v", err)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	id := c.Param("id")
-	if id == "" {
-		response.Error(c, ErrInvalidID, nil)
-		return
-	}
-
-	var req UpdateProjectRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, err, nil)
-		return
-	}
-
-	input := req.ToUpdateInput(id)
 	output, err := h.uc.Update(ctx, sc, input)
 	if err != nil {
-		if err == project.ErrProjectNotFound {
-			response.Error(c, err, nil)
-			return
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.Update.Update: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.Update.Update: %v", err)
 		}
-		if err == project.ErrUnauthorized {
-			response.Error(c, err, nil)
-			return
-		}
-		if err == project.ErrInvalidStatus {
-			response.Error(c, err, nil)
-			return
-		}
-		if err == project.ErrInvalidDateRange {
-			response.Error(c, err, nil)
-			return
-		}
-		h.l.Errorf(ctx, "project.delivery.http.Update: %v", err)
-		response.Error(c, err, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	resp := ToProjectResponse(output.Project)
-	response.OK(c, resp)
+	response.OK(c, h.newProjectResp(output.Project))
 }
 
 // @Summary Delete a project
@@ -266,31 +214,23 @@ func (h handler) Update(c *gin.Context) {
 // @Router /projects/{id} [delete]
 func (h handler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
-	sc, ok := scope.GetScopeFromContext(ctx)
-	if !ok {
-		response.Unauthorized(c)
-		c.Abort()
-		return
-	}
 
-	id := c.Param("id")
-	if id == "" {
-		response.Error(c, ErrInvalidID, nil)
-		return
-	}
-
-	err := h.uc.Delete(ctx, sc, id)
+	id, sc, err := h.processDeleteRequest(c)
 	if err != nil {
-		if err == project.ErrProjectNotFound {
-			response.Error(c, err, nil)
-			return
+		h.l.Errorf(ctx, "project.http.Delete.processDeleteRequest: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	err = h.uc.Delete(ctx, sc, id)
+	if err != nil {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.Delete.Delete: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.Delete.Delete: %v", err)
 		}
-		if err == project.ErrUnauthorized {
-			response.Error(c, err, nil)
-			return
-		}
-		h.l.Errorf(ctx, "project.delivery.http.Delete: %v", err)
-		response.Error(c, err, nil)
+		response.Error(c, err, h.discord)
 		return
 	}
 

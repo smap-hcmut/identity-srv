@@ -1,12 +1,35 @@
 package http
 
-import "errors"
+import (
+	"smap-project/internal/project"
+	pkgErrors "smap-project/pkg/errors"
+)
 
 var (
-	ErrInvalidRequest     = errors.New("invalid request")
-	ErrInvalidID          = errors.New("invalid project ID")
-	ErrInvalidPagination  = errors.New("invalid pagination parameters")
-	ErrInvalidDateRange   = errors.New("to_date must be after from_date")
-	ErrInvalidStatus      = errors.New("invalid project status")
-	ErrMissingRequired    = errors.New("missing required fields")
+	errWrongQuery       = pkgErrors.NewHTTPError(30001, "Wrong query")
+	errWrongBody        = pkgErrors.NewHTTPError(30002, "Wrong body")
+	errInvalidID        = pkgErrors.NewHTTPError(30003, "Invalid project ID")
+	errNotFound         = pkgErrors.NewHTTPError(30004, "Project not found")
+	errUnauthorized     = pkgErrors.NewHTTPError(30005, "Unauthorized")
+	errInvalidStatus    = pkgErrors.NewHTTPError(30006, "Invalid project status")
+	errInvalidDateRange = pkgErrors.NewHTTPError(30007, "Invalid date range")
 )
+
+var NotFound = []error{
+	errNotFound,
+}
+
+func (h handler) mapErrorCode(err error) error {
+	switch err {
+	case project.ErrProjectNotFound:
+		return errNotFound
+	case project.ErrUnauthorized:
+		return errUnauthorized
+	case project.ErrInvalidStatus:
+		return errInvalidStatus
+	case project.ErrInvalidDateRange:
+		return errInvalidDateRange
+	default:
+		return err
+	}
+}

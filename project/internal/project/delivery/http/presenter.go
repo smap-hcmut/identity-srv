@@ -30,8 +30,7 @@ type ProjectListResponse struct {
 	Paginator paginator.Paginator `json:"paginator"`
 }
 
-// ToProjectResponse converts domain model to HTTP response
-func ToProjectResponse(p model.Project) ProjectResponse {
+func (h handler) newProjectResp(p model.Project) ProjectResponse {
 	return ProjectResponse{
 		ID:                    p.ID,
 		Name:                  p.Name,
@@ -49,15 +48,17 @@ func ToProjectResponse(p model.Project) ProjectResponse {
 	}
 }
 
-// ToProjectListResponse converts list of domain models to HTTP response
-func ToProjectListResponse(projects []model.Project, pag paginator.Paginator) ProjectListResponse {
+func (h handler) newProjectListResp(projects []model.Project) []ProjectResponse {
 	resp := make([]ProjectResponse, len(projects))
 	for i, p := range projects {
-		resp[i] = ToProjectResponse(p)
+		resp[i] = h.newProjectResp(p)
 	}
+	return resp
+}
 
+func (h handler) newProjectPageResp(projects []model.Project, pag paginator.Paginator) ProjectListResponse {
 	return ProjectListResponse{
-		Projects:  resp,
+		Projects:  h.newProjectListResp(projects),
 		Paginator: pag,
 	}
 }

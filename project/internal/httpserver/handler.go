@@ -10,7 +10,7 @@ import (
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
 	// Uncomment after running: make swagger
-	_ "smap-project/docs"
+	// _ "smap-project/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -32,7 +32,7 @@ func (srv HTTPServer) mapHandlers() error {
 	projectUC := projectusecase.New(srv.l, projectRepo)
 
 	// Initialize project HTTP handler
-	projectHandler := projecthttp.New(srv.l, projectUC)
+	projectHandler := projecthttp.New(srv.l, projectUC, srv.discord)
 
 	// Map routes (no prefix)
 	projecthttp.MapProjectRoutes(srv.gin.Group("/projects"), projectHandler, mw)
