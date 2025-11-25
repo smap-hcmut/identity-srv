@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  consumer:
+    build:
+      context: .
+      dockerfile: cmd/consumer/Dockerfile
+    container_name: smap-consumer
+    env_file:
+      - .env
+    environment:
+      # RabbitMQ URL must be provided by host/.env; no bundled RabbitMQ here
+      RABBITMQ_URL: ${RABBITMQ_URL:?provide_rabbitmq_url}
+      LOGGER_LEVEL: ${LOGGER_LEVEL:-info}
+      LOGGER_MODE: ${LOGGER_MODE:-production}
+      LOGGER_ENCODING: ${LOGGER_ENCODING:-json}
+    restart: unless-stopped
