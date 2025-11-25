@@ -122,3 +122,33 @@ go run cmd/consumer/main.go
 ```bash
 go run cmd/api/main.go
 ```
+
+## 🔌 Integration Guide
+
+### RabbitMQ Connection (Inbound)
+
+External services (e.g., API Gateway, Scheduler) should publish `CrawlRequest` messages to the **Inbound** exchange.
+
+-   **Exchange**: `collector.inbound` (Type: `topic`)
+-   **Routing Key**: `crawler.#` (e.g., `crawler.request`)
+-   **Queue**: `collector.inbound.queue`
+
+> [!NOTE]
+> The `collector.tiktok` and `collector.youtube` exchanges are **internal** and managed by the dispatcher. Do not publish to them directly.
+
+#### Payload Example (`CrawlRequest`)
+
+```json
+{
+  "job_id": "job_12345",
+  "task_type": "research_keyword",
+  "payload": {
+    "keyword": "golang tutorial",
+    "limit": 10
+  },
+  "time_range": 7,
+  "attempt": 1,
+  "max_attempts": 3,
+  "emitted_at": "2023-10-27T10:00:00Z"
+}
+```
