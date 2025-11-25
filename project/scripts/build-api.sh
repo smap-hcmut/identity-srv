@@ -15,7 +15,7 @@ NC='\033[0m'
 # Configuration
 REGISTRY="${REGISTRY:-docker.io}"
 PROJECT="smap"
-SERVICE="smap-identity"
+SERVICE="smap-project"
 DOCKERFILE="cmd/api/Dockerfile"
 PLATFORM="linux/amd64"
 
