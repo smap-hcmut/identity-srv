@@ -726,7 +726,7 @@ sequenceDiagram
         
         UserUC-->>API: UserOutput{User}
         
-        API->>API: Convert to UserResponse
+        API->>API: Convert to UserResp
         Note over API: Include: id, username, full_name,<br/>avatar_url, role, is_active
         
         API-->>User: 200 OK<br/>{user}
@@ -793,7 +793,7 @@ sequenceDiagram
             UserRepo-->>UserUC: Updated User
             
             UserUC-->>API: UserOutput{User}
-            API->>API: Convert to UserResponse
+            API->>API: Convert to UserResp
             API-->>User: 200 OK<br/>{updated user}
         end
     end
@@ -953,7 +953,7 @@ sequenceDiagram
                 
                 UserUC-->>API: UserOutput{User}
                 
-                API->>API: Convert to UserResponse
+                API->>API: Convert to UserResp
                 Note over API: Decrypt role_hash to readable role
                 
                 API-->>Admin: 200 OK<br/>{user details}
@@ -1011,7 +1011,7 @@ sequenceDiagram
         
         UserUC-->>API: Users[]
         
-        API->>API: Convert each user to UserResponse
+        API->>API: Convert each user to UserResp
         loop For each user
             API->>API: Decrypt role_hash
             API->>API: Format timestamps
@@ -1079,7 +1079,7 @@ sequenceDiagram
         
         UserUC-->>API: GetUserOutput{Users, Paginator}
         
-        API->>API: Convert to GetUserResponse
+        API->>API: Convert to GetUserResp
         loop For each user
             API->>API: Decrypt role_hash
             API->>API: Format timestamps

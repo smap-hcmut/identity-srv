@@ -15,7 +15,7 @@ import (
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} UserResponse
+// @Success 200 {object} UserResp
 // @Failure 401 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
@@ -52,8 +52,8 @@ func (h handler) GetMe(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body UpdateProfileRequest true "Update profile request"
-// @Success 200 {object} UserResponse
+// @Param request body UpdateProfileReq true "Update profile request"
+// @Success 200 {object} UserResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 401 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
@@ -62,9 +62,9 @@ func (h handler) GetMe(c *gin.Context) {
 func (h handler) UpdateProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	ip, sc, err := h.processUpdateProfileRequest(c)
+	ip, sc, err := h.processUpdateProfileReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.UpdateProfile.processUpdateProfileRequest: %v", err)
+		h.l.Errorf(ctx, "user.delivery.http.UpdateProfile.processUpdateProfileReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -91,7 +91,7 @@ func (h handler) UpdateProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body ChangePasswordRequest true "Change password request"
+// @Param request body ChangePasswordReq true "Change password request"
 // @Success 200 {object} nil
 // @Failure 400 {object} errors.HTTPError
 // @Failure 401 {object} errors.HTTPError
@@ -101,9 +101,9 @@ func (h handler) UpdateProfile(c *gin.Context) {
 func (h handler) ChangePassword(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	ip, sc, err := h.processChangePasswordRequest(c)
+	ip, sc, err := h.processChangePasswordReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.ChangePassword.processChangePasswordRequest: %v", err)
+		h.l.Errorf(ctx, "user.delivery.http.ChangePassword.processChangePasswordReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -130,7 +130,7 @@ func (h handler) ChangePassword(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "User ID"
-// @Success 200 {object} UserResponse
+// @Success 200 {object} UserResp
 // @Failure 401 {object} errors.HTTPError
 // @Failure 403 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
@@ -169,7 +169,7 @@ func (h handler) GetDetail(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param ids[] query []string false "User IDs to filter"
-// @Success 200 {object} ListUserResponse
+// @Success 200 {object} ListUserResp
 // @Failure 401 {object} errors.HTTPError
 // @Failure 403 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
@@ -209,7 +209,7 @@ func (h handler) List(c *gin.Context) {
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
 // @Param ids[] query []string false "User IDs to filter"
-// @Success 200 {object} GetUserResponse
+// @Success 200 {object} GetUserResp
 // @Failure 401 {object} errors.HTTPError
 // @Failure 403 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
