@@ -75,6 +75,10 @@ type MinIOConfig struct {
 	UseSSL    bool   `env:"MINIO_USE_SSL" envDefault:"false"`
 	Region    string `env:"MINIO_REGION" envDefault:"us-east-1"`
 	Bucket    string `env:"MINIO_BUCKET"`
+
+	// Async upload settings
+	AsyncUploadWorkers   int `env:"MINIO_ASYNC_UPLOAD_WORKERS" envDefault:"4"`
+	AsyncUploadQueueSize int `env:"MINIO_ASYNC_UPLOAD_QUEUE_SIZE" envDefault:"100"`
 }
 
 type DiscordConfig struct {
