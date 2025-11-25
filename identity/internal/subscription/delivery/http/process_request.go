@@ -12,12 +12,12 @@ func (h handler) processCreateSubscriptionRequest(c *gin.Context) (createSubscri
 
 	var req createSubscriptionReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processCreateSubscriptionRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processCreateSubscriptionRequest.ShouldBindJSON: %v", err)
 		return createSubscriptionReq{}, model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processCreateSubscriptionRequest.validate: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processCreateSubscriptionRequest.validate: %v", err)
 		return createSubscriptionReq{}, model.Scope{}, err
 	}
 
@@ -35,12 +35,12 @@ func (h handler) processUpdateSubscriptionRequest(c *gin.Context) (updateSubscri
 
 	var req updateSubscriptionReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processUpdateSubscriptionRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processUpdateSubscriptionRequest.ShouldBindJSON: %v", err)
 		return updateSubscriptionReq{}, "", model.Scope{}, errWrongBody
 	}
 
 	if err := req.validate(); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processUpdateSubscriptionRequest.validate: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processUpdateSubscriptionRequest.validate: %v", err)
 		return updateSubscriptionReq{}, "", model.Scope{}, err
 	}
 
@@ -53,7 +53,7 @@ func (h handler) processListSubscriptionRequest(c *gin.Context) (listSubscriptio
 
 	var query listSubscriptionQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processListSubscriptionRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processListSubscriptionRequest.ShouldBindQuery: %v", err)
 		return listSubscriptionQuery{}, model.Scope{}, errWrongBody
 	}
 
@@ -66,7 +66,7 @@ func (h handler) processGetSubscriptionRequest(c *gin.Context) (getSubscriptionQ
 
 	var query getSubscriptionQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		h.l.Warnf(ctx, "subscription.http.processGetSubscriptionRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "subscription.http.processGetSubscriptionRequest.ShouldBindQuery: %v", err)
 		return getSubscriptionQuery{}, model.Scope{}, errWrongBody
 	}
 
@@ -110,4 +110,3 @@ func (h handler) processGetMySubscriptionRequest(c *gin.Context) (model.Scope, e
 	sc := c.MustGet("scope").(model.Scope)
 	return sc, nil
 }
-

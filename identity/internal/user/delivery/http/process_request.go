@@ -1,104 +1,111 @@
 package http
 
 import (
+	"smap-api/internal/model"
 	"smap-api/internal/user"
 	"smap-api/pkg/errors"
-	"smap-api/pkg/paginator"
-	"smap-api/pkg/response"
+
+	"smap-api/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )
 
-func processListRequest(c *gin.Context) (user.ListInput, error) {
-	var req ListRequest
+func (h handler) processListRequest(c *gin.Context) (user.ListInput, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	p, ok := scope.GetPayloadFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "user.delivery.http.processListRequest: %v", errors.NewUnauthorizedHTTPError())
+		return user.ListInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
+	}
+
+	var req ListReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		return user.ListInput{}, &errors.HTTPError{
-			Code:    ErrCodeWrongBody,
-			Message: err.Error(),
-		}
+		h.l.Errorf(ctx, "user.delivery.http.processListRequest: %v", errWrongBody)
+		return user.ListInput{}, model.Scope{}, errWrongBody
 	}
 
-	return user.ListInput{
-		Filter: user.Filter{
-			IDs: req.IDs,
-		},
-	}, nil
+	sc := scope.NewScope(p)
+
+	return req.toInput(), sc, nil
 }
 
-func processGetRequest(c *gin.Context) (user.GetInput, error) {
-	var req GetRequest
+func (h handler) processGetRequest(c *gin.Context) (user.GetInput, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	p, ok := scope.GetPayloadFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "user.delivery.http.processGetRequest: %v", errors.NewUnauthorizedHTTPError())
+		return user.GetInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
+	}
+
+	var req GetReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		return user.GetInput{}, &errors.HTTPError{
-			Code:    ErrCodeWrongBody,
-			Message: err.Error(),
-		}
+		h.l.Errorf(ctx, "user.delivery.http.processGetRequest: %v", errWrongBody)
+		return user.GetInput{}, model.Scope{}, errWrongBody
 	}
 
-	return user.GetInput{
-		Filter: user.Filter{
-			IDs: req.IDs,
-		},
-		PaginateQuery: paginator.PaginateQuery{
-			Page:  req.Page,
-			Limit: req.Limit,
-		},
-	}, nil
+	sc := scope.NewScope(p)
+
+	return req.toInput(), sc, nil
 }
 
-func processUpdateProfileRequest(c *gin.Context) (user.UpdateProfileInput, error) {
-	var req UpdateProfileRequest
+func (h handler) processUpdateProfileRequest(c *gin.Context) (user.UpdateProfileInput, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	p, ok := scope.GetPayloadFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileRequest: %v", errors.NewUnauthorizedHTTPError())
+		return user.UpdateProfileInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
+	}
+
+	var req UpdateProfileReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return user.UpdateProfileInput{}, &errors.HTTPError{
-			Code:    ErrCodeWrongBody,
-			Message: err.Error(),
-		}
+		h.l.Errorf(ctx, "user.delivery.http.processUpdateProfileRequest: %v", errWrongBody)
+		return user.UpdateProfileInput{}, model.Scope{}, errWrongBody
 	}
 
-	return user.UpdateProfileInput{
-		FullName:  req.FullName,
-		AvatarURL: req.AvatarURL,
-	}, nil
+	sc := scope.NewScope(p)
+
+	return req.toInput(), sc, nil
 }
 
-func processChangePasswordRequest(c *gin.Context) (user.ChangePasswordInput, error) {
-	var req ChangePasswordRequest
+func (h handler) processChangePasswordRequest(c *gin.Context) (user.ChangePasswordInput, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	p, ok := scope.GetPayloadFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordRequest: %v", errors.NewUnauthorizedHTTPError())
+		return user.ChangePasswordInput{}, model.Scope{}, errors.NewUnauthorizedHTTPError()
+	}
+
+	var req ChangePasswordReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		return user.ChangePasswordInput{}, &errors.HTTPError{
-			Code:    ErrCodeWrongBody,
-			Message: err.Error(),
-		}
+		h.l.Errorf(ctx, "user.delivery.http.processChangePasswordRequest: %v", errWrongBody)
+		return user.ChangePasswordInput{}, model.Scope{}, errWrongBody
 	}
 
-	if req.OldPassword == "" || req.NewPassword == "" {
-		return user.ChangePasswordInput{}, &errors.HTTPError{
-			Code:    ErrCodeFieldRequired,
-			Message: "Old password and new password are required",
-		}
-	}
+	sc := scope.NewScope(p)
 
-	return user.ChangePasswordInput{
-		OldPassword: req.OldPassword,
-		NewPassword: req.NewPassword,
-	}, nil
+	return req.toInput(), sc, nil
 }
 
-func processIDParam(c *gin.Context) (string, error) {
+func (h handler) processIDParam(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	p, ok := scope.GetPayloadFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "user.delivery.http.processIDParam: %v", errors.NewUnauthorizedHTTPError())
+		return "", model.Scope{}, errors.NewUnauthorizedHTTPError()
+	}
+
 	id := c.Param("id")
 	if id == "" {
-		return "", &errors.HTTPError{
-			Code:    ErrCodeInvalidID,
-			Message: "Invalid ID",
-		}
-	}
-	return id, nil
-}
-
-func reportError(c *gin.Context, err error) {
-	httpErr := toHTTPError(err)
-	if httpErr != nil {
-		response.Error(c, *httpErr, nil)
-		return
+		h.l.Errorf(ctx, "user.delivery.http.processIDParam: %v", errWrongQuery)
+		return "", model.Scope{}, errWrongQuery
 	}
 
-	response.Error(c, err, nil)
+	sc := scope.NewScope(p)
+
+	return id, sc, nil
 }

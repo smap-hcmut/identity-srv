@@ -8,29 +8,61 @@ import (
 )
 
 // Request DTOs
-
-type UpdateProfileRequest struct {
+type UpdateProfileReq struct {
 	FullName  string `json:"full_name" binding:"required"`
 	AvatarURL string `json:"avatar_url"`
 }
 
-type ChangePasswordRequest struct {
+func (r UpdateProfileReq) toInput() user.UpdateProfileInput {
+	return user.UpdateProfileInput{
+		FullName:  r.FullName,
+		AvatarURL: r.AvatarURL,
+	}
+}
+
+type ChangePasswordReq struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
-type ListRequest struct {
+func (r ChangePasswordReq) toInput() user.ChangePasswordInput {
+	return user.ChangePasswordInput{
+		OldPassword: r.OldPassword,
+		NewPassword: r.NewPassword,
+	}
+}
+
+type ListReq struct {
 	IDs []string `form:"ids[]"`
 }
 
-type GetRequest struct {
+func (r ListReq) toInput() user.ListInput {
+	return user.ListInput{
+		Filter: user.Filter{
+			IDs: r.IDs,
+		},
+	}
+}
+
+type GetReq struct {
 	paginator.PaginateQuery
 	IDs []string `form:"ids[]"`
 }
 
-// Response DTOs
+func (r GetReq) toInput() user.GetInput {
+	return user.GetInput{
+		Filter: user.Filter{
+			IDs: r.IDs,
+		},
+		PaginateQuery: paginator.PaginateQuery{
+			Page:  r.Page,
+			Limit: r.Limit,
+		},
+	}
+}
 
-type UserResponse struct {
+// Response DTOs
+type UserResp struct {
 	ID        string            `json:"id"`
 	Username  string            `json:"username"`
 	FullName  *string           `json:"full_name,omitempty"`
@@ -41,51 +73,68 @@ type UserResponse struct {
 	UpdatedAt response.DateTime `json:"updated_at"`
 }
 
-type ListUserResponse struct {
-	Users []UserResponse `json:"users"`
+type ListUserResp struct {
+	Users []UserResp `json:"users"`
 }
 
-type GetUserResponse struct {
-	Users     []UserResponse      `json:"users"`
-	Paginator paginator.Paginator `json:"paginator"`
+type GetUserResp struct {
+	Users    []UserResp                  `json:"users"`
+	Metadata paginator.PaginatorResponse `json:"metadata"`
 }
 
 // Converters
-
-func toUserResponse(u model.User) UserResponse {
-	role := u.GetRole()
-	return UserResponse{
-		ID:        u.ID,
-		Username:  u.Username,
-		FullName:  u.FullName,
-		AvatarURL: u.AvatarURL,
+func (h handler) newUserResp(o user.UserOutput) UserResp {
+	role := o.User.GetRole()
+	return UserResp{
+		ID:        o.User.ID,
+		Username:  o.User.Username,
+		FullName:  o.User.FullName,
+		AvatarURL: o.User.AvatarURL,
 		Role:      role,
-		IsActive:  u.IsActive,
-		CreatedAt: response.DateTime(u.CreatedAt),
-		UpdatedAt: response.DateTime(u.UpdatedAt),
+		IsActive:  o.User.IsActive,
+		CreatedAt: response.DateTime(o.User.CreatedAt),
+		UpdatedAt: response.DateTime(o.User.UpdatedAt),
 	}
 }
 
-func toListUserResponse(users []model.User) ListUserResponse {
-	resp := ListUserResponse{
-		Users: make([]UserResponse, 0, len(users)),
+func (h handler) newListUserResp(us []model.User) ListUserResp {
+	resp := ListUserResp{
+		Users: make([]UserResp, 0, len(us)),
 	}
 
-	for _, u := range users {
-		resp.Users = append(resp.Users, toUserResponse(u))
+	for _, u := range us {
+		resp.Users = append(resp.Users, UserResp{
+			ID:        u.ID,
+			Username:  u.Username,
+			FullName:  u.FullName,
+			AvatarURL: u.AvatarURL,
+			Role:      u.GetRole(),
+			IsActive:  u.IsActive,
+			CreatedAt: response.DateTime(u.CreatedAt),
+			UpdatedAt: response.DateTime(u.UpdatedAt),
+		})
 	}
 
 	return resp
 }
 
-func toGetUserResponse(output user.GetUserOutput) GetUserResponse {
-	resp := GetUserResponse{
-		Users:     make([]UserResponse, 0, len(output.Users)),
-		Paginator: output.Paginator,
+func (h handler) newGetUserResp(o user.GetUserOutput) GetUserResp {
+	resp := GetUserResp{
+		Users:    make([]UserResp, 0, len(o.Users)),
+		Metadata: o.Paginator.ToResponse(),
 	}
 
-	for _, u := range output.Users {
-		resp.Users = append(resp.Users, toUserResponse(u))
+	for _, u := range o.Users {
+		resp.Users = append(resp.Users, UserResp{
+			ID:        u.ID,
+			Username:  u.Username,
+			FullName:  u.FullName,
+			AvatarURL: u.AvatarURL,
+			Role:      u.GetRole(),
+			IsActive:  u.IsActive,
+			CreatedAt: response.DateTime(u.CreatedAt),
+			UpdatedAt: response.DateTime(u.UpdatedAt),
+		})
 	}
 
 	return resp
