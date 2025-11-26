@@ -15,4 +15,6 @@ type UseCase interface {
 	GetOne(ctx context.Context, sc model.Scope, ip GetOneInput) (model.Project, error)
 	Update(ctx context.Context, sc model.Scope, ip UpdateInput) (ProjectOutput, error)
 	Delete(ctx context.Context, sc model.Scope, id string) error
+	SuggestKeywords(ctx context.Context, sc model.Scope, brandName string) ([]string, []string, error)
+	DryRunKeywords(ctx context.Context, sc model.Scope, keywords []string) ([]interface{}, error)
 }

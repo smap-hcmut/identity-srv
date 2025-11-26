@@ -35,6 +35,7 @@ type Project struct {
 	CompetitorNames       types.StringArray `boil:"competitor_names" json:"competitor_names,omitempty" toml:"competitor_names" yaml:"competitor_names,omitempty"`
 	BrandKeywords         types.StringArray `boil:"brand_keywords" json:"brand_keywords" toml:"brand_keywords" yaml:"brand_keywords"`
 	CompetitorKeywordsMap null.JSON         `boil:"competitor_keywords_map" json:"competitor_keywords_map,omitempty" toml:"competitor_keywords_map" yaml:"competitor_keywords_map,omitempty"`
+	ExcludeKeywords       types.StringArray `boil:"exclude_keywords" json:"exclude_keywords,omitempty" toml:"exclude_keywords" yaml:"exclude_keywords,omitempty"`
 	CreatedBy             string            `boil:"created_by" json:"created_by" toml:"created_by" yaml:"created_by"`
 	CreatedAt             null.Time         `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt             null.Time         `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
@@ -55,6 +56,7 @@ var ProjectColumns = struct {
 	CompetitorNames       string
 	BrandKeywords         string
 	CompetitorKeywordsMap string
+	ExcludeKeywords       string
 	CreatedBy             string
 	CreatedAt             string
 	UpdatedAt             string
@@ -86,7 +88,8 @@ var ProjectTableColumns = struct {
 	BrandName             string
 	CompetitorNames       string
 	BrandKeywords         string
-	CompetitorKeywordsMap string
+	CompetitorKeywordsMap string	
+	ExcludeKeywords       string
 	CreatedBy             string
 	CreatedAt             string
 	UpdatedAt             string

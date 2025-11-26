@@ -22,6 +22,7 @@ type Project struct {
 	CompetitorNames       []string
 	BrandKeywords         []string
 	CompetitorKeywordsMap map[string][]string // JSON map of competitor -> keywords
+	ExcludeKeywords       []string
 	CreatedBy             string
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
@@ -43,6 +44,7 @@ func NewProjectFromDB(p *sqlboiler.Project) *Project {
 		BrandName:       p.BrandName,
 		CompetitorNames: []string(p.CompetitorNames),
 		BrandKeywords:   []string(p.BrandKeywords),
+		ExcludeKeywords: []string(p.ExcludeKeywords),
 		CreatedBy:       p.CreatedBy,
 	}
 
@@ -85,6 +87,7 @@ func (p *Project) ToDBProject() *sqlboiler.Project {
 		BrandName:       p.BrandName,
 		CompetitorNames: types.StringArray(p.CompetitorNames),
 		BrandKeywords:   types.StringArray(p.BrandKeywords),
+		ExcludeKeywords: types.StringArray(p.ExcludeKeywords), // TODO: Uncomment after migration
 		CreatedBy:       p.CreatedBy,
 	}
 

@@ -18,3 +18,7 @@ Currently, the system accepts keywords without strict validation. If a user ente
 
 - Full SEO suite replacement.
 - Real-time monitoring (this is configuration time).
+
+## Architectural Decision
+
+To maintain clean separation of concerns and improve testability, all keyword-related functionality will be extracted into a dedicated **Keyword Module** (`internal/keyword`). This module will be injected into the Project UseCase as a dependency, following the Dependency Injection pattern already established in the codebase.

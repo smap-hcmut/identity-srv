@@ -18,6 +18,7 @@ type CreateInput struct {
 	CompetitorNames       []string
 	BrandKeywords         []string
 	CompetitorKeywordsMap map[string][]string // Map competitor name to their keywords
+	ExcludeKeywords       []string
 }
 
 // UpdateInput represents input for updating a project
@@ -32,6 +33,7 @@ type UpdateInput struct {
 	CompetitorNames       []string
 	BrandKeywords         []string
 	CompetitorKeywordsMap map[string][]string
+	ExcludeKeywords       []string
 }
 
 // ProjectOutput represents output for a single project
