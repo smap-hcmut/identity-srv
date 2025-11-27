@@ -129,6 +129,16 @@ spec:
             configMapKeyRef:
               name: smap-identity-config
               key: MINIO_BUCKET
+        - name: MINIO_ASYNC_UPLOAD_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: MINIO_ASYNC_UPLOAD_WORKERS
+        - name: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
         - name: RABBITMQ_URL
           valueFrom:
             secretKeyRef:
@@ -159,6 +169,36 @@ spec:
             secretKeyRef:
               name: smap-identity-secrets
               key: DISCORD_WEBHOOK_TOKEN
+        - name: COOKIE_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_DOMAIN
+        - name: COOKIE_SECURE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_SECURE
+        - name: COOKIE_SAMESITE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_SAMESITE
+        - name: COOKIE_MAX_AGE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_MAX_AGE
+        - name: COOKIE_MAX_AGE_REMEMBER
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_MAX_AGE_REMEMBER
+        - name: COOKIE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: smap-identity-config
+              key: COOKIE_NAME
         - name: CONTAINER_NAME
           value: "smap-identity-api"
         - name: KUBERNETES_NAMESPACE
