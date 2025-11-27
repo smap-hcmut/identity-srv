@@ -165,7 +165,7 @@ func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip user.CreateInp
 		Username:     ip.Username,
 		PasswordHash: &hash,
 		FullName:     &ip.FullName,
-		IsActive:     boolPtr(true),
+		IsActive:     boolPtr(false), // New users are unverified until they verify OTP
 	}
 
 	// Set default role as USER
