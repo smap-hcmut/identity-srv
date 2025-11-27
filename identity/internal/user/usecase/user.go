@@ -218,6 +218,12 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip user.UpdateInp
 	if ip.IsActive != nil {
 		usr.IsActive = ip.IsActive
 	}
+	if ip.OTP != nil {
+		usr.OTP = ip.OTP
+	}
+	if ip.OTPExpiredAt != nil {
+		usr.OTPExpiredAt = ip.OTPExpiredAt
+	}
 
 	updated, err := uc.repo.Update(ctx, sc, repository.UpdateOptions{User: usr})
 	if err != nil {

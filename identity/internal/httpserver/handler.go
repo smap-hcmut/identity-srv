@@ -25,11 +25,11 @@ import (
 )
 
 func (srv HTTPServer) mapHandlers() error {
-	srv.registerMiddlewares()
-	srv.registerSystemRoutes()
-
 	scopeManager := scope.New(srv.jwtSecretKey)
 	mw := middleware.New(srv.l, scopeManager)
+
+	srv.registerMiddlewares(mw)
+	srv.registerSystemRoutes()
 
 	i18n.Init()
 
@@ -67,11 +67,14 @@ func (srv HTTPServer) mapHandlers() error {
 	return nil
 }
 
-func (srv HTTPServer) registerMiddlewares() {
+func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
 	srv.gin.Use(middleware.Recovery(srv.l, srv.discord))
 
 	corsConfig := middleware.DefaultCORSConfig()
 	srv.gin.Use(middleware.CORS(corsConfig))
+
+	// Add locale middleware to extract and set locale from request header
+	srv.gin.Use(mw.Locale())
 }
 
 func (srv HTTPServer) registerSystemRoutes() {
