@@ -27,6 +27,8 @@ func (m Middleware) Auth() gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 		ctx = scope.SetPayloadToContext(ctx, payload)
+		sc := scope.NewScope(payload)
+		ctx = scope.SetScopeToContext(ctx, sc)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
