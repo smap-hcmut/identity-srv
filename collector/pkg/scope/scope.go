@@ -4,17 +4,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-<<<<<<<< HEAD:identity/pkg/scope/scope.go
-	"smap-api/internal/model"
-========
-	"smap-collector/internal/models"
->>>>>>>> 9c65a15b02994a6cc9940a129c9a3c4f61fd0697:collector/pkg/scope/scope.go
+	model "smap-collector/internal/models"
 )
 
 // NewScope creates a new scope.
 func NewScope(payload Payload) model.Scope {
+	userID := payload.UserID
+	if userID == "" {
+		userID = payload.Subject
+	}
+
 	return model.Scope{
-		UserID:   payload.UserID,
+		UserID:   userID,
 		Username: payload.Username,
 		Role:     payload.Role,
 	}
