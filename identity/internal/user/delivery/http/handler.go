@@ -14,7 +14,7 @@ import (
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Success 200 {object} UserResp
 // @Failure 401 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
@@ -51,7 +51,7 @@ func (h handler) GetMe(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Param request body UpdateProfileReq true "Update profile request"
 // @Success 200 {object} UserResp
 // @Failure 400 {object} errors.HTTPError
@@ -90,7 +90,7 @@ func (h handler) UpdateProfile(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Param request body ChangePasswordReq true "Change password request"
 // @Success 200 {object} nil
 // @Failure 400 {object} errors.HTTPError
@@ -128,7 +128,7 @@ func (h handler) ChangePassword(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Param id path string true "User ID"
 // @Success 200 {object} UserResp
 // @Failure 401 {object} errors.HTTPError
@@ -167,7 +167,7 @@ func (h handler) GetDetail(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Param ids[] query []string false "User IDs to filter"
 // @Success 200 {object} ListUserResp
 // @Failure 401 {object} errors.HTTPError
@@ -205,7 +205,7 @@ func (h handler) List(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Security Bearer
+// @Security CookieAuth
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
 // @Param ids[] query []string false "User IDs to filter"

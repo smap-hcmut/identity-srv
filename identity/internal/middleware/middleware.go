@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"strings"
-
 	"smap-api/pkg/response"
 	"smap-api/pkg/scope"
 
@@ -11,13 +9,17 @@ import (
 
 func (m Middleware) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := strings.ReplaceAll(c.GetHeader("Authorization"), "Bearer ", "")
-		if tokenString == "" {
+		// First, attempt to read token from cookie (preferred method)
+		tokenString, err := c.Cookie(m.cookieConfig.Name)
+
+		// If no token found in cookie, return unauthorized
+		if err != nil || tokenString == "" {
 			response.Unauthorized(c)
 			c.Abort()
 			return
 		}
 
+		// Verify JWT token
 		payload, err := m.jwtManager.Verify(tokenString)
 		if err != nil {
 			response.Unauthorized(c)
@@ -25,6 +27,7 @@ func (m Middleware) Auth() gin.HandlerFunc {
 			return
 		}
 
+		// Set payload and scope in context for downstream handlers
 		ctx := c.Request.Context()
 		ctx = scope.SetPayloadToContext(ctx, payload)
 		sc := scope.NewScope(payload)

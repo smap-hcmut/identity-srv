@@ -10,3 +10,10 @@ sqlboiler.toml
 k8s/secret.yaml
 
 docs
+
+# OpenSpec
+.cursor/*
+.agent/*
+.claude/*
+AGENTS.md
+CLAUDE.md

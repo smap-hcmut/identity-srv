@@ -13,7 +13,7 @@ import (
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param ids query []string false "Subscription IDs"
 // @Param user_ids query []string false "User IDs"
 // @Param plan_ids query []string false "Plan IDs"
@@ -53,7 +53,7 @@ func (h handler) List(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param ids query []string false "Subscription IDs"
 // @Param user_ids query []string false "User IDs"
 // @Param plan_ids query []string false "Plan IDs"
@@ -98,7 +98,7 @@ func (h handler) Get(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Subscription ID"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -136,7 +136,7 @@ func (h handler) Detail(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Success 200 {object} response.Resp "Success"
 // @Failure 401 {object} response.Resp "Unauthorized"
 // @Failure 404 {object} response.Resp "Not Found"
@@ -172,7 +172,7 @@ func (h handler) GetMySubscription(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param createSubscriptionReq body createSubscriptionReq true "Create Subscription"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -216,7 +216,7 @@ func (h handler) Create(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Subscription ID"
 // @Param updateSubscriptionReq body updateSubscriptionReq true "Update Subscription"
 // @Success 200 {object} response.Resp "Success"
@@ -262,7 +262,7 @@ func (h handler) Update(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Subscription ID"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -300,7 +300,7 @@ func (h handler) Delete(c *gin.Context) {
 // @Tags Subscription
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Subscription ID"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"

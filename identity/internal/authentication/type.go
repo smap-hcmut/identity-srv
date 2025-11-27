@@ -46,6 +46,11 @@ type TokenOutput struct {
 	TokenType   string
 }
 
+// GetCurrentUser
+type GetCurrentUserOutput struct {
+	User model.User
+}
+
 // Producer
 type PublishSendEmailMsgInput struct {
 	Subject     string

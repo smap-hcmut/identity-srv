@@ -126,7 +126,7 @@ func (h handler) Detail(c *gin.Context) {
 // @Tags Plan
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param createPlanReq body createPlanReq true "Create Plan"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -163,7 +163,7 @@ func (h handler) Create(c *gin.Context) {
 // @Tags Plan
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Plan ID"
 // @Param updatePlanReq body updatePlanReq true "Update Plan"
 // @Success 200 {object} response.Resp "Success"
@@ -202,7 +202,7 @@ func (h handler) Update(c *gin.Context) {
 // @Tags Plan
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Plan ID"
 // @Success 200 {object} response.Resp "Success"
 // @Failure 400 {object} response.Resp "Bad Request"

@@ -244,13 +244,15 @@ sequenceDiagram
 
 ---
 
-### 4. Login Flow
+### 4. Login Flow (HttpOnly Cookie Authentication)
 
-This flow authenticates the user and returns an access token.
+This flow authenticates the user and sets an HttpOnly cookie with the JWT token.
+
+> **Security Update**: Login now uses HttpOnly cookies instead of returning tokens in the response body for enhanced XSS protection.
 
 ```mermaid
 sequenceDiagram
-    actor User
+    actor User as Browser/Client
     participant API as API Handler
     participant AuthUC as Authentication UseCase
     participant UserUC as User UseCase
@@ -258,36 +260,41 @@ sequenceDiagram
     participant Scope as Scope Manager
     participant DB as PostgreSQL
 
-    User->>API: POST /identity/auth/login<br/>{email, password}
+    User->>API: POST /identity/authentication/login<br/>{email, password, remember}
     API->>API: Validate Request Body
     API->>AuthUC: Login(LoginInput)
-    
+
     AuthUC->>UserUC: GetOne(username: email)
     UserUC->>UserRepo: GetOne(username: email)
     UserRepo->>DB: SELECT * FROM users WHERE username = ?
     DB-->>UserRepo: User
     UserRepo-->>UserUC: User
     UserUC-->>AuthUC: User
-    
+
     alt User not active
         AuthUC-->>API: ErrUserNotVerified
         API-->>User: 400 Bad Request<br/>User not verified
     else User active
         AuthUC->>AuthUC: Decrypt(user.PasswordHash)
         AuthUC->>AuthUC: Compare passwords
-        
+
         alt Password incorrect
             AuthUC-->>API: ErrWrongPassword
             API-->>User: 400 Bad Request<br/>Wrong password
         else Password correct
-            AuthUC->>Scope: CreateToken(Payload)
-            Note over Scope: JWT Token with:<br/>- user_id<br/>- username<br/>- type: access<br/>- expires_at: never (for now)
-            Scope-->>AuthUC: Access Token
-            
+            AuthUC->>Scope: Generate(Payload)
+            Note over Scope: JWT Token with:<br/>- user_id<br/>- username<br/>- type: access<br/>- expires_at: 2h or 30d
+            Scope-->>AuthUC: JWT Access Token
+
             AuthUC-->>API: LoginOutput{User, Token}
-            API-->>User: 200 OK<br/>{user, token, token_type}
-            
-            Note over User: User can now use the token<br/>for authenticated requests
+
+            Note over API: Calculate Cookie MaxAge:<br/>- Normal: 7200s (2h)<br/>- Remember: 2592000s (30d)
+
+            API->>API: SetCookie(smap_auth_token, JWT)<br/>HttpOnly=true, Secure=true<br/>SameSite=Lax, Domain=.smap.com
+
+            API-->>User: 200 OK + Set-Cookie Header<br/>{user} (no token in body)
+
+            Note over User: Cookie stored by browser<br/>Automatically sent with future requests
         end
     end
 ```
@@ -296,7 +303,99 @@ sequenceDiagram
 - User must be verified (`is_active = true`) to login
 - Password is validated against the stored hash
 - JWT token is generated with user information
-- Token currently doesn't expire (expires_at: 0)
+- Token sent as HttpOnly cookie (not in response body)
+- Cookie attributes: `HttpOnly`, `Secure`, `SameSite=Lax`
+- MaxAge: 2 hours (normal) or 30 days (remember me)
+- Domain: `.smap.com` (shared across subdomains)
+
+**CORS Requirements:**
+- Frontend MUST set `withCredentials: true` (axios) or `credentials: 'include'` (fetch)
+- Backend MUST set `Access-Control-Allow-Credentials: true`
+- Backend MUST specify exact origins (no wildcard `*`)
+
+---
+
+### 4a. Logout Flow
+
+This flow logs out the user by expiring the authentication cookie.
+
+```mermaid
+sequenceDiagram
+    actor User as Browser/Client
+    participant API as API Handler
+    participant MW as Auth Middleware
+    participant AuthUC as Authentication UseCase
+
+    User->>API: POST /identity/authentication/logout<br/>Cookie: smap_auth_token=<JWT>
+    API->>MW: Auth() Middleware
+    MW->>MW: Extract token from cookie
+    MW->>MW: Verify JWT Token
+    MW->>MW: Set Scope in Context
+    MW-->>API: Authorized
+
+    API->>AuthUC: Logout(scope)
+    AuthUC-->>API: LogoutOutput{}
+
+    API->>API: SetCookie(smap_auth_token, "")<br/>MaxAge=-1 (expire immediately)
+    API-->>User: 200 OK + Set-Cookie Header<br/>Cookie expired
+
+    Note over User: Cookie cleared by browser<br/>User is logged out
+```
+
+**Key Points:**
+- Requires authentication (cookie must be present)
+- Middleware validates JWT from cookie
+- Cookie expired by setting `MaxAge: -1`
+- Logout is client-side (cookie removal)
+
+**Note**: For complete token invalidation, implement JWT blacklist (future enhancement)
+
+---
+
+### 4b. Get Current User Flow
+
+This flow retrieves the authenticated user's information from the cookie.
+
+```mermaid
+sequenceDiagram
+    actor User as Browser/Client
+    participant API as API Handler
+    participant MW as Auth Middleware
+    participant AuthUC as Authentication UseCase
+    participant UserUC as User UseCase
+    participant UserRepo as User Repository
+    participant DB as PostgreSQL
+
+    User->>API: GET /identity/authentication/me<br/>Cookie: smap_auth_token=<JWT>
+    API->>MW: Auth() Middleware
+    MW->>MW: Extract token from cookie
+    MW->>MW: Verify JWT & decode payload
+    MW->>MW: Set Scope in Context
+    MW-->>API: Authorized (user_id in scope)
+
+    API->>AuthUC: GetCurrentUser(scope)
+    AuthUC->>UserUC: GetOne(user_id from scope)
+    UserUC->>UserRepo: GetOne(id: user_id)
+    UserRepo->>DB: SELECT * FROM users WHERE id = ?
+    DB-->>UserRepo: User
+    UserRepo-->>UserUC: User
+    UserUC-->>AuthUC: User
+    AuthUC-->>API: GetCurrentUserOutput{User}
+
+    API-->>User: 200 OK<br/>{id, email, full_name, role}
+```
+
+**Key Points:**
+- Requires authentication via cookie
+- User ID extracted from JWT payload in cookie
+- Returns current user profile information
+- No need to decode JWT client-side (HttpOnly prevents access)
+
+**Frontend Usage:**
+```javascript
+// Check authentication status
+const user = await api.get('/authentication/me');
+```
 
 ---
 
@@ -963,7 +1062,7 @@ sequenceDiagram
 ```
 
 **Key Points:**
-- **Admin authentication required** via `AdminOnly()` middleware
+- Admin authentication required via `AdminOnly()` middleware
 - Admin can view any user's profile
 - User's role is decrypted and included in response
 - Password hash is never exposed
@@ -1022,7 +1121,7 @@ sequenceDiagram
 ```
 
 **Key Points:**
-- **Admin only** endpoint
+- Admin only endpoint
 - Returns all users (no pagination)
 - Optional filtering by user IDs
 - Useful for admin dashboards or bulk operations
@@ -1115,7 +1214,7 @@ sequenceDiagram
 ```
 
 **Key Points:**
-- **Admin only** endpoint
+- Admin only endpoint
 - Pagination parameters: `page`, `limit`
 - Optional filtering by user IDs
 - Returns paginator metadata for UI
@@ -1163,12 +1262,12 @@ All API flows follow consistent error handling:
 
 This API implements a complete subscription-based system with the following key features:
 
-1. **User Authentication**: Registration, OTP verification, and login
-2. **Automatic Free Trial**: 14-day trial subscription created on verification
-3. **Plan Management**: CRUD operations for subscription plans
-4. **Subscription Management**: Create, read, update, cancel subscriptions
-5. **User Management**: Profile management and admin operations
-6. **Access Control**: JWT-based authentication + Role-based authorization
+1. User Authentication: Registration, OTP verification, and login
+2. Automatic Free Trial: 14-day trial subscription created on verification
+3. Plan Management: CRUD operations for subscription plans
+4. Subscription Management: Create, read, update, cancel subscriptions
+5. User Management: Profile management and admin operations
+6. Access Control: JWT-based authentication + Role-based authorization
 
 ### Flow Integration
 
