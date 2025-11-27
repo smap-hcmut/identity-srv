@@ -20,6 +20,8 @@ data:
   MINIO_USE_SSL: "true"
   MINIO_REGION: "us-east-1"
   MINIO_BUCKET: "smap-identity"
+  MINIO_ASYNC_UPLOAD_WORKERS: "4"
+  MINIO_ASYNC_UPLOAD_QUEUE_SIZE: "100"
   
   # SMTP Configuration (non-sensitive)
   SMTP_HOST: "smtp.gmail.com"
@@ -27,3 +29,10 @@ data:
   SMTP_FROM: "noreply@smap.com"
   SMTP_FROM_NAME: "SMAP"
 
+  # Cookie Configuration (for HttpOnly authentication)
+  COOKIE_DOMAIN: ".smap.tantai.dev"
+  COOKIE_SECURE: "true"
+  COOKIE_SAMESITE: "Lax"
+  COOKIE_MAX_AGE: "7200"
+  COOKIE_MAX_AGE_REMEMBER: "2592000"
+  COOKIE_NAME: "smap_auth_token"
