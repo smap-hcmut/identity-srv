@@ -112,28 +112,25 @@ type respObj struct {
 }
 
 type userObj struct {
-	ID    string  `json:"id"`
-	Email string  `json:"email"`
-	Name  string  `json:"name,omitempty"`
-	Role  respObj `json:"role"`
+	ID       string  `json:"id"`
+	Email    string  `json:"email"`
+	FullName *string `json:"full_name,omitempty"`
+	Role     string  `json:"role"`
 }
 
 type loginResp struct {
-	User      userObj `json:"user"`
-	Token     string  `json:"token"`
-	ExpiresAt string  `json:"expires_at"`
-	SessionID string  `json:"session_id"`
-	TokenType string  `json:"token_type"`
+	User  userObj `json:"user"`
+	Token string  `json:"token"`
 }
 
 func (h handler) newLoginResp(o authentication.LoginOutput) *loginResp {
 	return &loginResp{
 		User: userObj{
-			ID:    o.User.ID,
-			Email: o.User.Username,
-			Name:  *o.User.FullName,
+			ID:       o.User.ID,
+			Email:    o.User.Username,
+			FullName: o.User.FullName,
+			Role:     o.User.GetRole(),
 		},
-		Token:     o.Token.AccessToken,
-		TokenType: o.Token.TokenType,
+		Token: o.Token.AccessToken,
 	}
 }
