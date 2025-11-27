@@ -129,12 +129,13 @@ func (uc *implUsecase) SendOTP(ctx context.Context, sc model.Scope, ip authentic
 	}
 
 	// Step 3: Check if the user account is already verified (active).
+	// Only unverified users should request OTP for email verification.
 	if *u.IsActive {
 		uc.l.Warnf(ctx, "authentication.usecase.SendOTP: %v", authentication.ErrUserVerified)
 		return authentication.ErrUserVerified
 	}
 
-	// Step 4: If the OTP does not exist or has expired, generate a new OTP and update the user.
+	// Step 4: Generate or reuse OTP if it hasn't expired.
 	now := uc.clock()
 	if u.OTP == nil || u.OTPExpiredAt.Before(now) {
 		otp, otpExpiredAt := util.GenerateOTP()
