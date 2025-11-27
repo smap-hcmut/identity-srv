@@ -2,11 +2,6 @@
 
 > Authentication and subscription management service for the SMAP project
 
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
-[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.x-FF6600?style=flat&logo=rabbitmq)](https://www.rabbitmq.com/)
-[![Docker](https://img.shields.io/badge/Docker-Optimized-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-
 ---
 
 ## Table of Contents
@@ -256,6 +251,110 @@ open http://localhost:15672  # guest/guest
 http://localhost:8080/identity
 ```
 
+### Authentication (HttpOnly Cookie-Based)
+
+> **BREAKING CHANGE**: The authentication system now uses **HttpOnly cookies** instead of returning JWT tokens in the response body.
+
+#### Why Cookie-Based Authentication?
+
+The service has migrated from LocalStorage-based JWT tokens to HttpOnly cookies for enhanced security:
+
+- **XSS Protection**: HttpOnly cookies cannot be accessed by JavaScript, preventing token theft via XSS attacks
+- **Automatic Management**: Browsers handle cookie storage and transmission automatically
+- **CSRF Protection**: SameSite=Lax attribute provides built-in CSRF protection
+- **HTTPS-Only**: Secure flag ensures tokens are only transmitted over HTTPS
+
+#### How It Works
+
+1. **Login**: Call `/authentication/login` with credentials
+   - Server returns user information in JSON response
+   - JWT token is set as HttpOnly cookie in `Set-Cookie` header
+   - Cookie name: `smap_auth_token`
+
+2. **Authenticated Requests**: Include credentials in API calls
+   - Browser automatically sends cookie with each request
+   - No manual token management required
+
+3. **Logout**: Call `/authentication/logout`
+   - Server expires the authentication cookie
+   - User is logged out
+
+#### Frontend Integration
+
+**Axios Example**:
+```javascript
+import axios from 'axios';
+
+// Configure axios to send credentials (cookies)
+const api = axios.create({
+  baseURL: 'https://smap-api.tantai.dev/identity',
+  withCredentials: true  // REQUIRED for cookie authentication
+});
+
+// Login
+const response = await api.post('/authentication/login', {
+  email: 'user@example.com',
+  password: 'password123',
+  remember: true  // Optional: extends cookie lifetime to 30 days
+});
+
+// Cookie is automatically stored by browser
+console.log(response.data.user);
+
+// Make authenticated requests (cookie sent automatically)
+const currentUser = await api.get('/authentication/me');
+
+// Logout
+await api.post('/authentication/logout');
+```
+
+**Fetch API Example**:
+```javascript
+// Login
+const response = await fetch('https://smap-api.tantai.dev/identity/authentication/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',  // REQUIRED for cookie authentication
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'password123'
+  })
+});
+
+// Get current user
+const userResponse = await fetch('https://smap-api.tantai.dev/identity/authentication/me', {
+  credentials: 'include'
+});
+```
+
+#### Cookie Configuration
+
+Environment variables for cookie customization:
+
+```env
+# Cookie settings
+COOKIE_NAME=smap_auth_token          # Cookie name
+COOKIE_DOMAIN=.smap.com              # Domain (allows subdomain sharing)
+COOKIE_SECURE=true                   # HTTPS only (true for production)
+COOKIE_SAMESITE=Lax                  # CSRF protection (Lax|Strict|None)
+COOKIE_MAX_AGE=7200                  # Normal login: 2 hours
+COOKIE_MAX_AGE_REMEMBER=2592000      # Remember me: 30 days
+```
+
+#### Migration Guide
+
+**Changes Required**:
+1. Set `withCredentials: true` (axios) or `credentials: 'include'` (fetch)
+2. Remove manual token storage (localStorage, sessionStorage)
+3. Remove manual Authorization header injection
+4. Call `/authentication/logout` instead of clearing localStorage
+5. Use `/authentication/me` to get current user info
+
+**Backward Compatibility**:
+- Authorization header is still supported during migration period
+- Existing clients continue working while you update to cookie-based auth
+- Plan to remove header fallback after all clients migrate
+
 ### Authentication Endpoints
 
 | Method | Endpoint | Description | Auth Required |
@@ -263,7 +362,9 @@ http://localhost:8080/identity
 | POST | `/authentication/register` | Register new user | ❌ |
 | POST | `/authentication/send-otp` | Send OTP to email | ❌ |
 | POST | `/authentication/verify-otp` | Verify OTP and activate account | ❌ |
-| POST | `/authentication/login` | Login and get JWT token | ❌ |
+| POST | `/authentication/login` | Login (sets HttpOnly cookie) | ❌ |
+| POST | `/authentication/logout` | Logout (expires cookie) | ✅ |
+| GET | `/authentication/me` | Get current user info | ✅ |
 
 ### Plan Endpoints
 

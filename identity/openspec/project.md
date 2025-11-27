@@ -139,7 +139,7 @@ func TestFunctionName(t *testing.T) {
 **Authentication Domain** (`internal/authentication/`)
 - User registration with email and password
 - OTP-based email verification (6-digit code)
-- JWT-based login and token generation
+- **HttpOnly Cookie-based authentication** (stateless JWT)
 - Password hashing and verification
 - Account activation flow
 
@@ -191,8 +191,15 @@ func TestFunctionName(t *testing.T) {
 - **SMTP Credentials**: Use app passwords (not account passwords)
 - **Environment Variables**: Never commit `.env` file, use `template.env`
 - **SQL Injection**: Use parameterized queries via SQLBoiler (no raw SQL)
-- **CORS**: Configurable allowed origins
+- **CORS**: Must allow credentials (`Access-Control-Allow-Credentials: true`) and specific origins (no wildcards)
 - **Input Validation**: All requests must be validated
+
+### Cookie Configuration
+- **HttpOnly**: Always true (prevents XSS)
+- **Secure**: True in production (HTTPS only)
+- **SameSite**: Lax (CSRF protection)
+- **Domain**: Configurable (e.g., `.smap.com` for subdomain sharing)
+- **Max-Age**: 2 hours (default) or 30 days (Remember Me)
 
 ### Business Constraints
 - **Email Verification**: Required before account activation
