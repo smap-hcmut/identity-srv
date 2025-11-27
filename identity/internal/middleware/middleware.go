@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"strings"
-
 	"smap-api/pkg/response"
 	"smap-api/pkg/scope"
 
@@ -14,15 +12,8 @@ func (m Middleware) Auth() gin.HandlerFunc {
 		// First, attempt to read token from cookie (preferred method)
 		tokenString, err := c.Cookie(m.cookieConfig.Name)
 
-		// Fallback to Authorization header for backward compatibility
-		// This allows existing clients to continue working during migration
-		// TODO: Remove this fallback after all clients have migrated to cookie-based auth
+		// If no token found in cookie, return unauthorized
 		if err != nil || tokenString == "" {
-			tokenString = strings.ReplaceAll(c.GetHeader("Authorization"), "Bearer ", "")
-		}
-
-		// If no token found in either location, return unauthorized
-		if tokenString == "" {
 			response.Unauthorized(c)
 			c.Abort()
 			return
