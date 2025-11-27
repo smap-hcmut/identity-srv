@@ -9,8 +9,13 @@ import (
 
 // NewScope creates a new scope.
 func NewScope(payload Payload) model.Scope {
+	userID := payload.UserID
+	if userID == "" {
+		userID = payload.Subject
+	}
+
 	return model.Scope{
-		UserID:   payload.UserID,
+		UserID:   userID,
 		Username: payload.Username,
 		Role:     payload.Role,
 	}
