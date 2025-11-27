@@ -139,6 +139,36 @@ spec:
             secretKeyRef:
               name: smap-project-secrets
               key: JWT_SECRET
+        - name: COOKIE_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_DOMAIN
+        - name: COOKIE_SECURE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_SECURE
+        - name: COOKIE_SAMESITE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_SAMESITE
+        - name: COOKIE_MAX_AGE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_MAX_AGE
+        - name: COOKIE_MAX_AGE_REMEMBER
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_MAX_AGE_REMEMBER
+        - name: COOKIE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COOKIE_NAME
         - name: ENCRYPT_KEY
           valueFrom:
             secretKeyRef:

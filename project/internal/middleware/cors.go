@@ -32,7 +32,15 @@ type CORSConfig struct {
 // DefaultCORSConfig returns a default CORS configuration suitable for most APIs.
 func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{
+			"http://localhost",
+			"http://127.0.0.1",
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			"https://smap.tantai.dev",
+			"https://smap-api.tantai.dev",
+			"https://smap-api.tantai.dev/*",
+		},
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
 			"Origin",
@@ -46,7 +54,7 @@ func DefaultCORSConfig() CORSConfig {
 			"lang",
 		},
 		ExposedHeaders:   []string{"Content-Length"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours
 	}
 }

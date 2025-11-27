@@ -17,6 +17,12 @@ type FileInfo struct {
 	LastModified time.Time         `json:"last_modified"`
 	Metadata     map[string]string `json:"metadata"`
 	URL          string            `json:"url,omitempty"`
+
+	// Compression metadata
+	IsCompressed     bool    `json:"is_compressed"`
+	CompressedSize   int64   `json:"compressed_size,omitempty"`
+	UncompressedSize int64   `json:"uncompressed_size,omitempty"`
+	CompressionRatio float64 `json:"compression_ratio,omitempty"`
 }
 
 // UploadRequest contains the parameters for uploading a file to MinIO.
@@ -28,6 +34,10 @@ type UploadRequest struct {
 	Size         int64             `json:"size"`
 	ContentType  string            `json:"content_type"`
 	Metadata     map[string]string `json:"metadata"`
+
+	// Compression options
+	EnableCompression bool `json:"enable_compression"`
+	CompressionLevel  int  `json:"compression_level,omitempty"` // 0=none, 1=fastest, 2=default, 3=best
 }
 
 // DownloadRequest contains the parameters for downloading a file from MinIO.

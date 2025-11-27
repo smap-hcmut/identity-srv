@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"smap-project/pkg/compressor"
+
 	"github.com/minio/minio-go/v7"
 )
 
@@ -146,32 +148,80 @@ func (m *implMinIO) UploadFile(ctx context.Context, req *UploadRequest) (*FileIn
 		return nil, err
 	}
 
+	var reader io.Reader = req.Reader
+	var actualSize int64 = req.Size
+	var isCompressed bool
+	var uncompressedSize int64
+
+	// Apply compression if enabled
+	if req.EnableCompression {
+		// Map compression level
+		var compLevel compressor.CompressionLevel
+		switch req.CompressionLevel {
+		case 1:
+			compLevel = compressor.CompressionFastest
+		case 3:
+			compLevel = compressor.CompressionBest
+		default:
+			compLevel = compressor.CompressionDefault
+		}
+
+		// Compress using streaming compression
+		compressedReader, err := compressor.CompressStream(req.Reader, compLevel)
+		if err != nil {
+			return nil, fmt.Errorf("compression failed: %w", err)
+		}
+		defer compressedReader.Close()
+
+		reader = compressedReader
+		uncompressedSize = req.Size
+		// Size will be determined during upload (-1 means unknown)
+		actualSize = -1
+		isCompressed = true
+	}
+
 	opts := minio.PutObjectOptions{
 		ContentType: req.ContentType,
 	}
 
 	if req.Metadata != nil {
 		opts.UserMetadata = req.Metadata
-		// Preserve original name in metadata
-		if req.OriginalName != "" {
-			opts.UserMetadata["original-name"] = req.OriginalName
-		}
+	} else {
+		opts.UserMetadata = make(map[string]string)
 	}
 
-	info, err := m.minioClient.PutObject(ctx, req.BucketName, req.ObjectName, req.Reader, req.Size, opts)
+	// Preserve original name in metadata
+	if req.OriginalName != "" {
+		opts.UserMetadata["original-name"] = req.OriginalName
+	}
+
+	// Add compression metadata
+	if isCompressed {
+		opts.UserMetadata["compression"] = "zstd"
+		opts.UserMetadata["uncompressed-size"] = fmt.Sprintf("%d", uncompressedSize)
+	}
+
+	info, err := m.minioClient.PutObject(ctx, req.BucketName, req.ObjectName, reader, actualSize, opts)
 	if err != nil {
 		return nil, handleMinIOError(err, "upload_file")
 	}
 
 	fileInfo := &FileInfo{
-		BucketName:   req.BucketName,
-		ObjectName:   req.ObjectName,
-		OriginalName: req.OriginalName,
-		Size:         req.Size,
-		ContentType:  req.ContentType,
-		ETag:         info.ETag,
-		LastModified: time.Now(),
-		Metadata:     req.Metadata,
+		BucketName:       req.BucketName,
+		ObjectName:       req.ObjectName,
+		OriginalName:     req.OriginalName,
+		Size:             info.Size,
+		ContentType:      req.ContentType,
+		ETag:             info.ETag,
+		LastModified:     time.Now(),
+		Metadata:         req.Metadata,
+		IsCompressed:     isCompressed,
+		CompressedSize:   info.Size,
+		UncompressedSize: uncompressedSize,
+	}
+
+	if isCompressed && uncompressedSize > 0 {
+		fileInfo.CompressionRatio = float64(info.Size) / float64(uncompressedSize)
 	}
 
 	return fileInfo, nil
@@ -220,10 +270,21 @@ func (m *implMinIO) DownloadFile(ctx context.Context, req *DownloadRequest) (io.
 		return nil, nil, handleMinIOError(err, "download_file")
 	}
 
+	// Auto-decompress if file is compressed
+	var reader io.ReadCloser = object
+	if compression, exists := objInfo.UserMetadata["compression"]; exists && compression == "zstd" {
+		decompressedReader, err := compressor.DecompressStream(object)
+		if err != nil {
+			object.Close()
+			return nil, nil, fmt.Errorf("decompression failed: %w", err)
+		}
+		reader = decompressedReader
+	}
+
 	// Generate headers
 	headers := m.generateDownloadHeaders(objInfo, req)
 
-	return object, headers, nil
+	return reader, headers, nil
 }
 
 // StreamFile streams a file for web viewing (optimized for streaming).

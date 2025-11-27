@@ -92,14 +92,28 @@ type MinIO interface {
 
 	// GetMetadata retrieves the metadata of a file
 	GetMetadata(ctx context.Context, bucketName, objectName string) (map[string]string, error)
+
+	// Async Upload Operations
+	// UploadAsync queues an upload task and returns task ID
+	UploadAsync(ctx context.Context, req *UploadRequest) (taskID string, err error)
+
+	// GetUploadStatus retrieves upload status by task ID
+	GetUploadStatus(taskID string) (*UploadProgress, error)
+
+	// WaitForUpload waits for upload completion with timeout
+	WaitForUpload(taskID string, timeout time.Duration) (*AsyncUploadResult, error)
+
+	// CancelUpload cancels an upload task
+	CancelUpload(taskID string) error
 }
 
 // implMinIO is the implementation of the MinIO interface.
 type implMinIO struct {
-	minioClient *minio.Client
-	config      *config.MinIOConfig
-	mu          sync.RWMutex
-	connected   bool
+	minioClient    *minio.Client
+	config         *config.MinIOConfig
+	mu             sync.RWMutex
+	connected      bool
+	asyncUploadMgr *AsyncUploadManager
 }
 
 // NewMinIO creates a new MinIO client with the provided configuration.
@@ -132,11 +146,26 @@ func NewMinIO(config *config.MinIOConfig) (MinIO, error) {
 		return nil, err
 	}
 
-	return &implMinIO{
+	impl := &implMinIO{
 		minioClient: client,
 		config:      config,
 		connected:   false,
-	}, nil
+	}
+
+	// Initialize async upload manager
+	workerPoolSize := 4 // default
+	queueSize := 100    // default
+	if config.AsyncUploadWorkers > 0 {
+		workerPoolSize = config.AsyncUploadWorkers
+	}
+	if config.AsyncUploadQueueSize > 0 {
+		queueSize = config.AsyncUploadQueueSize
+	}
+
+	impl.asyncUploadMgr = NewAsyncUploadManager(impl, workerPoolSize, queueSize)
+	impl.asyncUploadMgr.Start()
+
+	return impl, nil
 }
 
 // NewMinIOWithRetry creates a new MinIO client and connects with retry logic.
