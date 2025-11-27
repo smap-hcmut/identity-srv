@@ -29,10 +29,28 @@ type CORSConfig struct {
 	MaxAge int
 }
 
-// DefaultCORSConfig returns a default CORS configuration suitable for most APIs.
+// DefaultCORSConfig returns a default CORS configuration with allowed origins for development and production.
+//
+// ALLOWED ORIGINS:
+// - Postman local: "http://localhost", "http://127.0.0.1"
+// - Frontend local development: "http://localhost:3000", "http://127.0.0.1:3000"
+// - Dev environments (incl. subdomains for smap-api): "https://smap.tantai.dev", "https://smap-api.tantai.dev", "https://smap-api.tantai.dev/*"
+//
+// IMPORTANT SECURITY NOTE:
+// - AllowCredentials is set to true to support HttpOnly cookie authentication
+// - When AllowCredentials is true, AllowedOrigins MUST NOT use wildcard "*"
+// - If you need to support other origins, add them explicitly.
 func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{
+			"http://localhost",
+			"http://127.0.0.1",
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			"https://smap.tantai.dev",
+			"https://smap-api.tantai.dev",
+			"https://smap-api.tantai.dev/*",
+		},
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
 			"Origin",
@@ -46,7 +64,7 @@ func DefaultCORSConfig() CORSConfig {
 			"lang",
 		},
 		ExposedHeaders:   []string{"Content-Length"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours
 	}
 }

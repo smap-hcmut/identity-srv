@@ -26,7 +26,7 @@ import (
 
 func (srv HTTPServer) mapHandlers() error {
 	scopeManager := scope.New(srv.jwtSecretKey)
-	mw := middleware.New(srv.l, scopeManager)
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()

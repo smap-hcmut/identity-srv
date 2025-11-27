@@ -60,18 +60,20 @@
 
 ## 3. Middleware Updates
 
-- [ ] 3.1 Update `internal/middleware/middleware.go` Auth function
+- [x] 3.1 Update `internal/middleware/middleware.go` Auth function
   - First, attempt to read token from cookie
   - Fallback to Authorization header for backward compatibility (optional, remove after full migration)
   - Extract cookie name from middleware configuration
   - Maintain existing JWT verification logic
-- [ ] 3.2 Update `internal/middleware/new.go`
+  - Added clear comments explaining cookie-first strategy and backward compatibility
+- [x] 3.2 Update `internal/middleware/new.go`
   - Accept cookie configuration in constructor
   - Store cookie config in Middleware struct
-- [ ] 3.3 Update `internal/middleware/cors.go`
+- [x] 3.3 Update `internal/middleware/cors.go`
   - Set `AllowCredentials: true` in DefaultCORSConfig
   - Update documentation to require specific origins (not wildcard "*")
   - Add warning comment about security implications
+  - Added comprehensive security documentation in function comments
 
 ## 4. HTTP Server Integration
 
