@@ -16,7 +16,8 @@ Authentication and subscription management service.
 
 **Key Features:**
 - User authentication (registration, email verification, login)
-- JWT-based access control
+- **HttpOnly Cookie-based authentication** (primary method)
+- JWT token validation and management
 - Subscription and plan management
 - Automatic 14-day free trial
 - Asynchronous email processing via RabbitMQ
@@ -27,6 +28,10 @@ Authentication and subscription management service.
 - RabbitMQ 3.x
 - Gin Web Framework
 - SQLBoiler ORM
+
+**Authentication:**
+- **Primary**: HttpOnly Cookies (`smap_auth_token`)
+- **Legacy**: Bearer Token (deprecated, for migration)
 
 **Documentation:** See [identity/README.md](identity/README.md)
 
@@ -41,7 +46,8 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
 **Location:** [`websocket/`](websocket/)
 
 **Key Features:**
-- Persistent WebSocket connections with JWT authentication
+- **HttpOnly Cookie authentication** (shared with Identity service)
+- Persistent WebSocket connections
 - Redis Pub/Sub integration for message routing
 - Multiple connections per user (multi-tab support)
 - Automatic reconnection with retry logic
@@ -53,6 +59,10 @@ Real-time notification hub using WebSocket and Redis Pub/Sub.
 - Redis 7.0+
 - Gorilla WebSocket
 - Gin Web Framework
+
+**Authentication:**
+- **Primary**: HttpOnly Cookies (automatic, no token in URL)
+- **Legacy**: Query parameter token (deprecated)
 
 **Documentation:** See [websocket/README.md](websocket/README.md)
 
@@ -72,6 +82,7 @@ Project and campaign management service for SMAP.
 - Competitor monitoring with keyword mapping
 - Date-range enforcement and soft-delete support
 - User isolation with JWT authentication
+- **HttpOnly Cookie authentication** (shared with Identity service)
 
 **Tech Stack:**
 - Go 1.23+
@@ -79,9 +90,36 @@ Project and campaign management service for SMAP.
 - Gin Web Framework
 - SQLBoiler ORM
 
+**Authentication:**
+- **Primary**: HttpOnly Cookies (`smap_auth_token`)
+- **Legacy**: Bearer Token (deprecated, for migration)
+
 **Documentation:** See [project/README.md](project/README.md)
 
 **API Base Path:** `http://localhost:8080/project`
+
+---
+
+### 4. Collector Service
+
+Data collection and task dispatching service for SMAP.
+
+**Location:** [`collector/`](collector/)
+
+**Key Features:**
+- Crawl request validation and dispatch
+- Platform-specific task routing (YouTube, TikTok)
+- RabbitMQ-based task distribution
+- Health check and monitoring endpoints
+- Clean Architecture with module-first approach
+
+**Tech Stack:**
+- Go 1.23+
+- RabbitMQ 3.x
+- MongoDB (for persistence)
+- Gin Web Framework
+
+**Documentation:** See [collector/README.md](collector/README.md)
 
 ---
 
@@ -137,17 +175,63 @@ Project and campaign management service for SMAP.
 **Project Service:**
 - Provides REST APIs for project lifecycle management
 - Stores project data, brand keywords, and competitor metadata in PostgreSQL
-- Validates JWT tokens issued by the Identity Service
+- Validates JWT tokens from HttpOnly cookies (shared with Identity Service)
 
 **WebSocket Service:**
-- Validates JWT tokens from Identity Service
+- Validates JWT tokens from HttpOnly cookies (shared with Identity Service)
 - Subscribes to Redis Pub/Sub channels (`user_noti:*`)
 - Delivers real-time messages to connected clients
 
+**Collector Service:**
+- Receives crawl requests and dispatches to platform-specific workers
+- Routes tasks via RabbitMQ to YouTube and TikTok workers
+- Validates and maps payloads for different platforms
+
 **Integration:**
-- Other services publish to Redis: `PUBLISH user_noti:user123 {...}`
-- WebSocket Service routes messages to connected users
-- JWT tokens enable secure cross-service authentication
+- **Authentication**: All services share HttpOnly cookie (`smap_auth_token`) from Identity Service
+- **Real-time**: Other services publish to Redis: `PUBLISH user_noti:user123 {...}`
+- **WebSocket**: Routes messages to connected users automatically
+- **Tasks**: Collector dispatches crawl tasks via RabbitMQ to workers
+
+---
+
+## Authentication
+
+All SMAP services use **HttpOnly Cookie-based authentication** for enhanced security.
+
+### How It Works
+
+1. **Login via Identity Service**: User authenticates and receives `smap_auth_token` cookie
+2. **Automatic Cookie Transmission**: Browser automatically sends cookie with all requests
+3. **Cross-Service Sharing**: Cookie is shared across all SMAP services (`.smap.com` domain)
+4. **Secure Attributes**: HttpOnly, Secure, SameSite=Lax for XSS and CSRF protection
+
+### Cookie Configuration
+
+- **Cookie Name**: `smap_auth_token`
+- **Domain**: `.smap.com` (shared across services)
+- **Session Duration**: 2 hours (normal) / 30 days (remember me)
+- **Attributes**: HttpOnly, Secure, SameSite=Lax
+
+### Frontend Integration
+
+```javascript
+// Axios example
+const api = axios.create({
+  baseURL: 'https://smap-api.tantai.dev',
+  withCredentials: true  // REQUIRED for cookie authentication
+});
+
+// Login
+await api.post('/identity/authentication/login', {
+  email: 'user@example.com',
+  password: 'password123'
+});
+
+// Cookie is automatically sent with all subsequent requests
+```
+
+**Legacy Support**: Bearer token authentication is still supported during migration but will be removed in future versions.
 
 ---
 
@@ -155,10 +239,11 @@ Project and campaign management service for SMAP.
 
 ### Prerequisites
 
-- **Go**: 1.23+ (Identity & Project), 1.25+ (WebSocket)
-- **PostgreSQL**: 15+
-- **Redis**: 7.0+
-- **RabbitMQ**: 3.x
+- **Go**: 1.23+ (Identity, Project, Collector), 1.25+ (WebSocket)
+- **PostgreSQL**: 15+ (Identity & Project services)
+- **Redis**: 7.0+ (WebSocket service)
+- **RabbitMQ**: 3.x (Identity & Collector services)
+- **MongoDB**: (Collector service, optional)
 - **Docker**: 20.10+ (optional)
 - **Make**: For build automation
 
@@ -191,6 +276,8 @@ Services will be available at:
 ### Individual Service Setup
 
 #### Identity Service
+
+> **Note**: Identity Service sets the authentication cookie that all other services use.
 
 ```bash
 cd identity
@@ -264,6 +351,9 @@ cp template.env .env
 # Edit configuration
 nano .env
 
+# Important: Set JWT_SECRET to match Identity service
+# Important: Configure cookie settings to match Identity service
+
 # Start PostgreSQL (or reuse existing instance)
 docker run -d --name postgres-project -p 5442:5432 \
   -e POSTGRES_DB=smap_project \
@@ -282,6 +372,36 @@ make run-api
 ```
 
 See [project/README.md](project/README.md) for detailed setup.
+
+#### Collector Service
+
+```bash
+cd collector
+
+# Copy environment template
+cp env.template .env
+
+# Edit configuration
+nano .env
+
+# Start RabbitMQ (or reuse existing instance)
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 \
+  rabbitmq:3-management-alpine
+
+# Start MongoDB (optional, for persistence)
+docker run -d --name mongodb -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=admin \
+  -e MONGO_INITDB_ROOT_PASSWORD=password \
+  mongo:7
+
+# Run consumer (dispatcher worker)
+go run cmd/consumer/main.go
+
+# Run API server (optional, for health checks)
+go run cmd/api/main.go
+```
+
+See [collector/README.md](collector/README.md) for detailed setup.
 
 ---
 
@@ -321,6 +441,12 @@ smap-api/
 │   ├── pkg/                # Shared packages
 │   ├── document/           # Service documentation
 │   └── README.md           # Service documentation
+│
+├── collector/               # Data collection and dispatch service
+│   ├── cmd/                # API and consumer entry points
+│   ├── internal/          # Dispatcher domain and business logic
+│   ├── pkg/               # Shared packages
+│   └── README.md          # Service documentation
 │
 ├── docker-compose.yml       # Full stack setup
 └── README.md                # This file
@@ -384,6 +510,14 @@ make test                 # Run tests
 make docker-build         # Build Docker image
 ```
 
+**Collector Service:**
+```bash
+cd collector
+go run cmd/consumer/main.go  # Run dispatcher worker
+go run cmd/api/main.go       # Run API server (optional)
+make test                    # Run tests
+```
+
 ### Code Standards
 
 Both services follow:
@@ -428,15 +562,34 @@ See [identity/README.md](identity/README.md#api-documentation) for complete API 
 - `PUT /projects/:id` - Update existing project
 - `DELETE /projects/:id` - Soft-delete project
 
+**Authentication:** HttpOnly Cookie (automatic) or Bearer Token (legacy)
+
 See [project/README.md](project/README.md#api-endpoints) for payload examples and additional documentation.
+
+### Collector Service API
+
+**Base URL:** `http://localhost:8080` (if API server enabled)
+
+**Key Endpoints:**
+- `GET /health` - Health check
+- `GET /ready` - Readiness check
+- `GET /live` - Liveness check
+
+**Task Dispatch:** Via RabbitMQ (not HTTP endpoints)
+
+See [collector/README.md](collector/README.md) for detailed documentation.
 
 ### WebSocket Service API
 
-**Connection:** `ws://localhost:8081/ws?token=JWT_TOKEN`
+**Connection:** `ws://localhost:8081/ws` (cookie authentication, automatic)
+
+**Legacy Connection:** `ws://localhost:8081/ws?token=JWT_TOKEN` (deprecated)
 
 **Health Check:** `GET http://localhost:8081/health`
 
 **Metrics:** `GET http://localhost:8081/metrics`
+
+**Authentication:** HttpOnly Cookie (automatic, recommended) or Query Parameter (legacy)
 
 **Message Format:**
 ```json
@@ -468,6 +621,10 @@ make docker-build-amd64
 # Project Service
 cd project
 make docker-build-amd64
+
+# Collector Service
+cd collector
+# Build commands (if available)
 ```
 
 **Run with Docker Compose:**
@@ -499,9 +656,16 @@ See service-specific documentation for detailed deployment guides:
 
 **Project Service:**
 - See [project/template.env](project/template.env)
-- Key vars: `APP_PORT`, `POSTGRES_*`, `JWT_SECRET`, `INTERNAL_KEY`, `LOGGER_*`
+- Key vars: `APP_PORT`, `POSTGRES_*`, `JWT_SECRET`, `COOKIE_*`, `LOGGER_*`
 
-**Important:** Use the same `JWT_SECRET_KEY` for both services to enable cross-service authentication.
+**Collector Service:**
+- See [collector/env.template](collector/env.template)
+- Key vars: `PORT`, `AMQP_URL`, `MONGO_*`, `LOGGER_*`
+
+**Important:** 
+- Use the same `JWT_SECRET_KEY` for Identity, Project, and WebSocket services
+- Configure cookie settings (`COOKIE_NAME`, `COOKIE_DOMAIN`, etc.) consistently across all services
+- Cookie domain should be `.smap.com` (with leading dot) for cross-subdomain sharing
 
 ---
 
@@ -627,6 +791,11 @@ Refer to [project/README.md](project/README.md#getting-started) for complete tes
 
 - **[README.md](project/README.md)** - Service overview and API usage
 - **[document/](project/document/)** - Architecture and implementation notes
+- **[openspec/project.md](project/openspec/project.md)** - Project context for AI assistants
+
+### Collector Service
+
+- **[README.md](collector/README.md)** - Service overview and architecture
 
 ---
 
@@ -636,6 +805,7 @@ Refer to [project/README.md](project/README.md#getting-started) for complete tes
 
 **Identity Service:**
 - Password hashing with bcrypt
+- HttpOnly Cookie-based authentication (primary method)
 - JWT token-based authentication
 - OTP email verification
 - SQL injection prevention (parameterized queries)
@@ -653,11 +823,27 @@ Refer to [project/README.md](project/README.md#getting-started) for complete tes
 - No secrets in code
 
 **Project Service:**
+- HttpOnly Cookie authentication (shared with Identity)
 - JWT validation for all endpoints
 - Soft delete for audit trails
 - Input validation and request sanitization
 - Structured logging with correlation IDs
 - Configurable Discord alerting
+
+**WebSocket Service:**
+- HttpOnly Cookie authentication (shared with Identity)
+- JWT token validation
+- Connection limits and rate limiting
+- TLS support for Redis
+- Distroless container
+- Non-root container user
+- No secrets in code
+
+**Collector Service:**
+- RabbitMQ authentication
+- Input validation for crawl requests
+- Task routing and validation
+- Health check endpoints
 
 ### Security Best Practices
 
@@ -686,6 +872,11 @@ curl http://localhost:8080/health
 **Project Service:**
 ```bash
 curl http://localhost:8080/project/health
+```
+
+**Collector Service:**
+```bash
+curl http://localhost:8080/health  # If API server enabled
 ```
 
 **WebSocket Service:**
@@ -832,6 +1023,10 @@ This project is part of the SMAP graduation project.
 **Project Service:**
 - Health Check: http://localhost:8080/project/health
 - Documentation: [project/README.md](project/README.md)
+
+**Collector Service:**
+- Health Check: http://localhost:8080/health (if API server enabled)
+- Documentation: [collector/README.md](collector/README.md)
 
 **WebSocket Service:**
 - Health Check: http://localhost:8081/health
