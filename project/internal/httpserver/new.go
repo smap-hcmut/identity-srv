@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"smap-project/config"
 	"smap-project/pkg/discord"
 	"smap-project/pkg/encrypter"
 	"smap-project/pkg/log"
@@ -41,6 +42,7 @@ type HTTPServer struct {
 
 	// Authentication & Security Configuration
 	jwtSecretKey string
+	cookieConfig config.CookieConfig
 	encrypter    encrypter.Encrypter
 	internalKey  string
 
@@ -66,6 +68,7 @@ type Config struct {
 
 	// Authentication & Security Configuration
 	JwtSecretKey string
+	CookieConfig config.CookieConfig
 	Encrypter    encrypter.Encrypter
 	InternalKey  string
 
@@ -96,6 +99,7 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,
+		cookieConfig: cfg.CookieConfig,
 		encrypter:    cfg.Encrypter,
 		internalKey:  cfg.InternalKey,
 

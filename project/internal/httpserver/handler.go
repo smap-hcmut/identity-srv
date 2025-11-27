@@ -21,7 +21,7 @@ func (srv HTTPServer) mapHandlers() error {
 	srv.registerSystemRoutes()
 
 	scopeManager := scope.New(srv.jwtSecretKey)
-	mw := middleware.New(srv.l, scopeManager)
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig)
 
 	i18n.Init()
 
