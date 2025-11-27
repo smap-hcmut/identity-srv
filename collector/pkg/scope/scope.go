@@ -5,17 +5,23 @@ import (
 	"encoding/json"
 
 	"smap-collector/internal/models"
+	model "smap-collector/internal/models"
 )
 
 // NewScope creates a new scope.
-func NewScope(payload Payload) models.Scope {
-	return models.Scope{
-		UserID:   payload.UserID,
+func NewScope(payload Payload) model.Scope {
+	userID := payload.UserID
+	if userID == "" {
+		userID = payload.Subject
+	}
+
+	return model.Scope{
+		UserID:   userID,
 		Username: payload.Username,
 	}
 }
 
-func CreateScopeHeader(scope models.Scope) (string, error) {
+func CreateScopeHeader(scope model.Scope) (string, error) {
 	// Marshal the scope data to JSON
 	jsonData, err := json.Marshal(scope)
 	if err != nil {
