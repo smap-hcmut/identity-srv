@@ -25,11 +25,23 @@ type Config struct {
 
 	// Authentication & Security Configuration
 	JWT            JWTConfig
+	Cookie         CookieConfig
 	Encrypter      EncrypterConfig
 	InternalConfig InternalConfig
 
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
+}
+
+// CookieConfig is the configuration for the cookie,
+// which is used to store the token.
+type CookieConfig struct {
+	Domain         string `env:"COOKIE_DOMAIN" envDefault:".smap.com"`
+	Secure         bool   `env:"COOKIE_SECURE" envDefault:"true"`
+	SameSite       string `env:"COOKIE_SAMESITE" envDefault:"Lax"`
+	MaxAge         int    `env:"COOKIE_MAX_AGE" envDefault:"7200"`
+	MaxAgeRemember int    `env:"COOKIE_MAX_AGE_REMEMBER" envDefault:"2592000"`
+	Name           string `env:"COOKIE_NAME" envDefault:"smap_auth_token"`
 }
 
 // JWTConfig is the configuration for the JWT,

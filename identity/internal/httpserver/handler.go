@@ -53,7 +53,7 @@ func (srv HTTPServer) mapHandlers() error {
 	authUC := authusecase.New(srv.l, authProd, scopeManager, srv.encrypter, userUC, planUC, subscriptionUC)
 
 	// Initialize HTTP handlers
-	authHandler := authhttp.New(srv.l, authUC, srv.discord)
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.cookieConfig)
 	planHandler := planhttp.New(srv.l, planUC, srv.discord)
 	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC, srv.discord)
 	userHandler := userhttp.New(srv.l, userUC, srv.discord)

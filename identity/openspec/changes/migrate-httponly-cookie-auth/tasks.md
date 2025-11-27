@@ -50,6 +50,13 @@
 - [x] 2.9 Update `internal/authentication/delivery/http/routes.go`
   - Add POST `/authentication/logout` route (requires Auth middleware)
   - Add GET `/authentication/me` route (requires Auth middleware)
+- [x] 2.10 Update Swagger annotations for authentication endpoints
+  - Update login endpoint: document Set-Cookie header response
+  - Update login endpoint: remove token from response schema documentation (already done via presenter)
+  - Update logout endpoint: document cookie-based authentication
+  - Update /me endpoint: document cookie-based authentication
+  - Add security scheme definition for cookie authentication in `cmd/api/main.go`
+  - Update all protected endpoints to use CookieAuth security scheme (user, plan, subscription handlers)
 
 ## 3. Middleware Updates
 

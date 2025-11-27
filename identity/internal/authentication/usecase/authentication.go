@@ -302,3 +302,41 @@ func (uc *implUsecase) createFreeTrialSubscription(ctx context.Context, sc model
 
 	return nil
 }
+
+// Logout implements authentication.UseCase.
+func (uc *implUsecase) Logout(ctx context.Context, sc model.Scope) error {
+	// In a stateless JWT architecture with cookies, logout is primarily handled
+	// by the delivery layer (expiring the cookie).
+	// The usecase layer can perform additional cleanup if needed (e.g., blacklisting tokens),
+	// but for now, we just acknowledge the request.
+	uc.l.Infof(ctx, "authentication.usecase.Logout: logout successful")
+	return nil
+}
+
+// GetCurrentUser implements authentication.UseCase.
+func (uc *implUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (authentication.GetCurrentUserOutput, error) {
+	// Step 1: Extract user ID from the scope (context).
+	userID := sc.UserID
+	if userID == "" {
+		uc.l.Warnf(ctx, "authentication.usecase.GetCurrentUser: user ID missing in scope")
+		return authentication.GetCurrentUserOutput{}, authentication.ErrUserNotFound
+	}
+
+	// Step 2: Retrieve user details from the repository.
+	u, err := uc.userUC.GetOne(ctx, sc, user.GetOneInput{
+		ID: userID,
+	})
+	if err != nil {
+		if err == user.ErrUserNotFound {
+			uc.l.Warnf(ctx, "authentication.usecase.GetCurrentUser.userUC.GetOne: %v", err)
+			return authentication.GetCurrentUserOutput{}, authentication.ErrUserNotFound
+		}
+		uc.l.Errorf(ctx, "authentication.usecase.GetCurrentUser.userUC.GetOne: %v", err)
+		return authentication.GetCurrentUserOutput{}, err
+	}
+
+	// Step 3: Return the user information.
+	return authentication.GetCurrentUserOutput{
+		User: u,
+	}, nil
+}

@@ -115,12 +115,10 @@ type userObj struct {
 	ID       string  `json:"id"`
 	Email    string  `json:"email"`
 	FullName *string `json:"full_name,omitempty"`
-	Role     string  `json:"role"`
 }
 
 type loginResp struct {
-	User  userObj `json:"user"`
-	Token string  `json:"token"`
+	User userObj `json:"user"`
 }
 
 func (h handler) newLoginResp(o authentication.LoginOutput) *loginResp {
@@ -129,8 +127,20 @@ func (h handler) newLoginResp(o authentication.LoginOutput) *loginResp {
 			ID:       o.User.ID,
 			Email:    o.User.Username,
 			FullName: o.User.FullName,
-			Role:     o.User.GetRole(),
 		},
-		Token: o.Token.AccessToken,
+	}
+}
+
+type getMeResp struct {
+	ID       string  `json:"id"`
+	Email    string  `json:"email"`
+	FullName *string `json:"full_name,omitempty"`
+}
+
+func (h handler) newGetMeResp(o authentication.GetCurrentUserOutput) *getMeResp {
+	return &getMeResp{
+		ID:       o.User.ID,
+		Email:    o.User.Username,
+		FullName: o.User.FullName,
 	}
 }

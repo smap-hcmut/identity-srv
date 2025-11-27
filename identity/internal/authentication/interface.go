@@ -13,6 +13,8 @@ type UseCase interface {
 	SendOTP(ctx context.Context, sc model.Scope, ip SendOTPInput) error
 	VerifyOTP(ctx context.Context, sc model.Scope, ip VerifyOTPInput) error
 	Login(ctx context.Context, sc model.Scope, ip LoginInput) (LoginOutput, error)
+	Logout(ctx context.Context, sc model.Scope) error
+	GetCurrentUser(ctx context.Context, sc model.Scope) (GetCurrentUserOutput, error)
 }
 
 type Producer interface {
