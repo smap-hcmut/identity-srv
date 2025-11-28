@@ -2,7 +2,10 @@ package websocket
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,25 +15,111 @@ import (
 	"smap-websocket/pkg/log"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	// Allow credentials from specific trusted origins (required for cookie authentication)
-	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		allowedOrigins := []string{
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-			"https://smap.tantai.dev",
-			"https://smap-api.tantai.dev",
+// Production origins allowed in all environments
+var productionOrigins = []string{
+	"https://smap.tantai.dev",
+	"https://smap-api.tantai.dev",
+}
+
+// Private subnets allowed in dev/staging environments
+var privateSubnets = []string{
+	"172.16.21.0/24", // K8s cluster subnet
+	"172.16.19.0/24", // Private network 1
+	"192.168.1.0/24", // Private network 2
+}
+
+// isPrivateOrigin checks if an origin URL's hostname is in a configured private subnet
+func isPrivateOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	hostname := u.Hostname()
+	// Remove port if present
+	if strings.Contains(hostname, ":") {
+		hostname = strings.Split(hostname, ":")[0]
+	}
+
+	ip := net.ParseIP(hostname)
+	if ip == nil {
+		return false
+	}
+
+	for _, cidr := range privateSubnets {
+		_, subnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
 		}
-		for _, allowed := range allowedOrigins {
-			if origin == allowed {
+		if subnet.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isLocalhostOrigin checks if an origin is localhost or 127.0.0.1
+func isLocalhostOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	hostname := u.Hostname()
+	return hostname == "localhost" || hostname == "127.0.0.1"
+}
+
+// createUpgrader creates a WebSocket upgrader with environment-aware CORS validation
+func createUpgrader(environment string) websocket.Upgrader {
+	// Default to production if environment is empty
+	if environment == "" {
+		environment = "production"
+	}
+
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	if environment == "production" {
+		// Production mode: static list only
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			for _, allowed := range productionOrigins {
+				if origin == allowed {
+					return true
+				}
+			}
+			return false
+		}
+	} else {
+		// Dev/Staging mode: dynamic validation
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+
+			// Check production domains
+			for _, allowed := range productionOrigins {
+				if origin == allowed {
+					return true
+				}
+			}
+
+			// Check localhost
+			if isLocalhostOrigin(origin) {
 				return true
 			}
+
+			// Check private subnets
+			if isPrivateOrigin(origin) {
+				return true
+			}
+
+			return false
 		}
-		return false
-	},
+	}
+
+	return upgrader
 }
 
 // Handler handles WebSocket connections
@@ -41,6 +130,8 @@ type Handler struct {
 	wsConfig      WSConfig
 	redisNotifier RedisNotifier
 	cookieConfig  CookieConfig
+	environment   string
+	upgrader      websocket.Upgrader
 }
 
 // WSConfig holds WebSocket configuration
@@ -75,7 +166,19 @@ func NewHandler(
 	wsConfig WSConfig,
 	redisNotifier RedisNotifier,
 	cookieConfig CookieConfig,
+	environment string,
 ) *Handler {
+	// Log CORS mode on startup
+	ctx := context.Background()
+	if environment == "" {
+		environment = "production"
+	}
+	if environment == "production" {
+		logger.Infof(ctx, "CORS mode: production (strict origins only)")
+	} else {
+		logger.Infof(ctx, "CORS mode: %s (permissive - allows localhost and private subnets)", environment)
+	}
+
 	return &Handler{
 		hub:           hub,
 		jwtValidator:  jwtValidator,
@@ -83,6 +186,8 @@ func NewHandler(
 		wsConfig:      wsConfig,
 		redisNotifier: redisNotifier,
 		cookieConfig:  cookieConfig,
+		environment:   environment,
+		upgrader:      createUpgrader(environment),
 	}
 }
 
@@ -120,7 +225,7 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 	}
 
 	// H-01: Upgrade HTTP connection to WebSocket
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.Errorf(context.Background(), "Failed to upgrade connection: %v", err)
 		return

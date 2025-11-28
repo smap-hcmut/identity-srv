@@ -12,6 +12,9 @@ type Config struct {
 	Server ServerConfig
 	Logger LoggerConfig
 
+	// Environment Configuration
+	Environment EnvironmentConfig
+
 	// Redis Configuration
 	Redis RedisConfig
 
@@ -81,6 +84,11 @@ type LoggerConfig struct {
 	Level    string `env:"LOGGER_LEVEL" envDefault:"info"`
 	Mode     string `env:"LOGGER_MODE" envDefault:"production"`
 	Encoding string `env:"LOGGER_ENCODING" envDefault:"json"`
+}
+
+// EnvironmentConfig is the configuration for environment-aware features
+type EnvironmentConfig struct {
+	Name string `env:"ENV" envDefault:"production"`
 }
 
 // DiscordConfig is the configuration for Discord webhook notifications

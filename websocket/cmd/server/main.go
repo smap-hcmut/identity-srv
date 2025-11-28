@@ -117,6 +117,7 @@ func main() {
 			MaxAgeRemember: cfg.Cookie.MaxAgeRemember,
 			Name:           cfg.Cookie.Name,
 		},
+		cfg.Environment.Name, // Pass environment for CORS configuration
 	)
 
 	// Setup Gin router

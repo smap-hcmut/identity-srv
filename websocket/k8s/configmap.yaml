@@ -11,6 +11,9 @@ data:
   WS_PORT: "8081"
   WS_MODE: "release"
   
+  # Environment Configuration
+  ENV: "production"  # Values: production | staging | dev
+  
   # Logger Configuration
   LOGGER_LEVEL: "info"
   LOGGER_MODE: "production"
