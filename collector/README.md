@@ -17,17 +17,13 @@ graph LR
     E --> G[TikTok Worker]
 ```
 
-### Core Components
+### Core Component
 
-1.  **API Server (`cmd/api`)**:
-    -   Currently provides health/readiness checks (`/health`, `/ready`, `/live`).
-    -   Serves as the entry point for HTTP-based interactions (future expansion).
-    -   Built with **Gin Framework**.
-
-2.  **Dispatcher Consumer (`cmd/consumer`)**:
-    -   The core worker process.
-    -   Consumes `CrawlRequest` messages from the input queue.
-    -   Executes the **Dispatch UseCase** to route tasks.
+**Dispatcher Consumer (`cmd/consumer`)**:
+-   The core worker process that consumes `CrawlRequest` messages from RabbitMQ.
+-   Validates incoming requests and executes the **Dispatch UseCase** to route tasks.
+-   Distributes platform-specific tasks to YouTube and TikTok workers.
+-   Built with **Go** and **RabbitMQ client**.
 
 ## Business Logic & Rules
 
@@ -72,23 +68,22 @@ The project strictly follows **Clean Architecture** and **SOLID** principles:
 
 ## 📂 Project Structure
 
+
 ```
 smap-api/
 ├── cmd/
-│   ├── api/          # HTTP Server entry point
-│   └── consumer/     # RabbitMQ Worker entry point
-├── config/           # Configuration loading (Viper/Env)
-├── docs/             # Documentation & Design specs
+│   └── consumer/     # RabbitMQ Consumer entry point
+├── config/           # Configuration loading (Env)
 ├── internal/
 │   ├── dispatcher/   # CORE DOMAIN: Dispatch logic
 │   │   ├── delivery/ # RabbitMQ consumers/producers
 │   │   └── usecase/  # Business logic (Dispatch, Map)
-│   ├── httpserver/   # Gin server setup
-│   ├── models/       # Shared data structures (CrawlRequest, CollectorTask)
-│   └── middleware/   # Gin middlewares (Auth, Logging)
+│   ├── consumer/     # Consumer server implementation
+│   └── models/       # Shared data structures (CrawlRequest, CollectorTask)
 ├── pkg/              # Shared utilities (Logger, RabbitMQ, Mongo, etc.)
 └── ...
 ```
+
 
 ## 🚀 Getting Started
 
@@ -111,16 +106,15 @@ MODE=debug
 
 ### Running the Service
 
-**1. Start the Dispatcher Worker:**
-This process listens for incoming requests and dispatches them.
+**Start the Dispatcher Consumer:**
+This process listens for incoming requests from RabbitMQ and dispatches them to platform workers.
 ```bash
 go run cmd/consumer/main.go
 ```
 
-**2. Start the API Server:**
-(Optional, for health checks)
+**Or use the Makefile:**
 ```bash
-go run cmd/api/main.go
+make run-consumer
 ```
 
 ## 🔌 Integration Guide
