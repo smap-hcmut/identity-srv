@@ -207,6 +207,9 @@ PUBLISH user_noti:user123 '{"type":"notification","payload":{"title":"Hello"}}'
 Key environment variables (see `template.env` for full list):
 
 ```bash
+# Environment (controls CORS behavior)
+ENV=production  # Values: production | staging | dev
+
 # Server
 WS_PORT=8081
 
@@ -225,6 +228,30 @@ WS_MAX_CONNECTIONS=10000
 ```
 
 **Important**: Cookie configuration must match Identity service for authentication to work.
+
+### Environment Configuration (`ENV`)
+
+The `ENV` variable controls CORS (Cross-Origin Resource Sharing) behavior:
+
+| Value | CORS Mode | Allowed Origins |
+|-------|-----------|----------------|
+| `production` | Strict | Production domains only (`https://smap.tantai.dev`, `https://smap-api.tantai.dev`) |
+| `staging` | Permissive | Production domains + localhost + private subnets (VPN access) |
+| `dev` | Permissive | Production domains + localhost + private subnets (VPN access) |
+| *(empty)* | Defaults to `production` | Production domains only (fail-safe) |
+
+**Security Notes**:
+- ⚠️ **Never** set `ENV=dev` or `ENV=staging` in production deployments
+- Production mode blocks localhost and private subnet access for security
+- Dev/staging modes allow VPN access from private subnets (172.16.x.x, 192.168.x.x)
+- Default behavior is production mode if `ENV` is not set (fail-safe)
+
+**Private Subnets** (allowed in dev/staging only):
+- `172.16.21.0/24` - K8s cluster subnet
+- `172.16.19.0/24` - Private network 1
+- `192.168.1.0/24` - Private network 2
+
+These can be customized by modifying `privateSubnets` in `internal/websocket/handler.go`.
 
 ---
 
@@ -257,13 +284,27 @@ make help               # Show all commands
 - ✅ **CSRF Protection**: SameSite=Lax policy
 - ✅ **Automatic Handling**: Browser manages cookie lifecycle
 
-### Allowed Origins
+### CORS Configuration
 
-For security, WebSocket connections with credentials are only allowed from:
-- `http://localhost:3000` (development)
-- `http://127.0.0.1:3000` (development)
-- `https://smap.tantai.dev` (production)
-- `https://smap-api.tantai.dev` (production)
+CORS behavior is controlled by the `ENV` environment variable (see [Configuration](#environment-configuration-env) above).
+
+**Production Mode** (`ENV=production`):
+- Only production domains allowed: `https://smap.tantai.dev`, `https://smap-api.tantai.dev`
+- Localhost and private subnets are blocked
+
+**Dev/Staging Mode** (`ENV=dev` or `ENV=staging`):
+- Production domains allowed
+- Localhost allowed (any port): `http://localhost:*`, `http://127.0.0.1:*`
+- Private subnets allowed (VPN access): `172.16.21.0/24`, `172.16.19.0/24`, `192.168.1.0/24`
+
+**Startup Logging**: The service logs the active CORS mode on startup:
+```
+CORS mode: production (strict origins only)
+```
+or
+```
+CORS mode: dev (permissive - allows localhost and private subnets)
+```
 
 ---
 
