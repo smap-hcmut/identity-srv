@@ -6,5 +6,5 @@ import (
 
 // Consume start consume inbound queue.
 func (c Consumer) Consume() {
-	go c.consume(rabbitmq.InboundExchange, rabbitmq.InboundQueueName, rabbitmq.InboundRoutingPattern, c.dispatchWorker)
+	go c.consume(rabbitmq.InboundExchangeArgs, rabbitmq.QueueInbound, rabbitmq.RoutingKeyInbound, c.dispatchWorker)
 }

@@ -2,7 +2,7 @@
 
 This repository houses the **Dispatcher Service** for the SMAP data collection system. It serves as the central coordinator that receives high-level crawl requests, validates them, and distributes granular tasks to platform-specific workers via RabbitMQ.
 
-## System Architecture
+## 🏗 System Architecture
 
 The service follows a **Producer-Consumer** and **Fan-out** architecture pattern. It acts as an intermediary between the request initiator (e.g., a frontend or scheduler) and the actual scraping workers.
 
@@ -17,17 +17,13 @@ graph LR
     E --> G[TikTok Worker]
 ```
 
-### Core Components
+### Core Component
 
-1.  **API Server (`cmd/api`)**:
-    -   Currently provides health/readiness checks (`/health`, `/ready`, `/live`).
-    -   Serves as the entry point for HTTP-based interactions (future expansion).
-    -   Built with **Gin Framework**.
-
-2.  **Dispatcher Consumer (`cmd/consumer`)**:
-    -   The core worker process.
-    -   Consumes `CrawlRequest` messages from the input queue.
-    -   Executes the **Dispatch UseCase** to route tasks.
+**Dispatcher Consumer (`cmd/consumer`)**:
+-   The core worker process that consumes `CrawlRequest` messages from RabbitMQ.
+-   Validates incoming requests and executes the **Dispatch UseCase** to route tasks.
+-   Distributes platform-specific tasks to YouTube and TikTok workers.
+-   Built with **Go** and **RabbitMQ client**.
 
 ## Business Logic & Rules
 
@@ -53,7 +49,7 @@ The system supports three primary task types (`internal/models/task.go`):
 -   **YouTube** (`PlatformYouTube`)
 -   **TikTok** (`PlatformTikTok`)
 
-## Design Patterns
+## 📐 Design Patterns
 
 The project strictly follows **Clean Architecture** and **SOLID** principles:
 
@@ -70,27 +66,26 @@ The project strictly follows **Clean Architecture** and **SOLID** principles:
 -   **Strategy/Factory Pattern**:
     -   The `mapPayload` function (`internal/dispatcher/usecase/mapper.go`) acts as a factory, selecting the correct payload structure and validation strategy based on the `Platform` and `TaskType`.
 
-## Project Structure
+## 📂 Project Structure
+
 
 ```
-smap-collector/
+smap-api/
 ├── cmd/
-│   ├── api/          # HTTP Server entry point
-│   └── consumer/     # RabbitMQ Worker entry point
-├── config/           # Configuration loading (Viper/Env)
-├── docs/             # Documentation & Design specs
+│   └── consumer/     # RabbitMQ Consumer entry point
+├── config/           # Configuration loading (Env)
 ├── internal/
 │   ├── dispatcher/   # CORE DOMAIN: Dispatch logic
 │   │   ├── delivery/ # RabbitMQ consumers/producers
 │   │   └── usecase/  # Business logic (Dispatch, Map)
-│   ├── httpserver/   # Gin server setup
-│   ├── models/       # Shared data structures (CrawlRequest, CollectorTask)
-│   └── middleware/   # Gin middlewares (Auth, Logging)
+│   ├── consumer/     # Consumer server implementation
+│   └── models/       # Shared data structures (CrawlRequest, CollectorTask)
 ├── pkg/              # Shared utilities (Logger, RabbitMQ, Mongo, etc.)
 └── ...
 ```
 
-## Getting Started
+
+## 🚀 Getting Started
 
 ### Prerequisites
 -   Go 1.23+
@@ -111,14 +106,43 @@ MODE=debug
 
 ### Running the Service
 
-**1. Start the Dispatcher Worker:**
-This process listens for incoming requests and dispatches them.
+**Start the Dispatcher Consumer:**
+This process listens for incoming requests from RabbitMQ and dispatches them to platform workers.
 ```bash
 go run cmd/consumer/main.go
 ```
 
-**2. Start the API Server:**
-(Optional, for health checks)
+**Or use the Makefile:**
 ```bash
-go run cmd/api/main.go
+make run-consumer
+```
+
+## 🔌 Integration Guide
+
+### RabbitMQ Connection (Inbound)
+
+External services (e.g., API Gateway, Scheduler) should publish `CrawlRequest` messages to the **Inbound** exchange.
+
+-   **Exchange**: `collector.inbound` (Type: `topic`)
+-   **Routing Key**: `crawler.#` (e.g., `crawler.request`)
+-   **Queue**: `collector.inbound.queue`
+
+> [!NOTE]
+> The `collector.tiktok` and `collector.youtube` exchanges are **internal** and managed by the dispatcher. Do not publish to them directly.
+
+#### Payload Example (`CrawlRequest`)
+
+```json
+{
+  "job_id": "job_12345",
+  "task_type": "research_keyword",
+  "payload": {
+    "keyword": "golang tutorial",
+    "limit": 10
+  },
+  "time_range": 7,
+  "attempt": 1,
+  "max_attempts": 3,
+  "emitted_at": "2023-10-27T10:00:00Z"
+}
 ```

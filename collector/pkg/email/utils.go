@@ -4,11 +4,7 @@ import (
 	"fmt"
 	"html/template"
 
-<<<<<<<< HEAD:identity/pkg/email/util.go
-	i18nPkg "smap-api/pkg/i18n"
-========
 	i18nPkg "smap-collector/pkg/i18n"
->>>>>>>> 9c65a15b02994a6cc9940a129c9a3c4f61fd0697:collector/pkg/email/utils.go
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )

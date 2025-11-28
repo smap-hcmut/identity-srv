@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	"smap-collector/internal/dispatcher"
+	rabb "smap-collector/internal/dispatcher/delivery/rabbitmq"
 	"smap-collector/internal/models"
 )
 
 func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]models.CollectorTask, error) {
-	if req.TaskType == "" {
-		return nil, dispatcher.ErrInvalidInput
+	// Validate request upfront
+	if err := uc.validateRequest(&req, uc.defaultOptions); err != nil {
+		return nil, err
 	}
 
 	targetPlatforms := uc.selectPlatforms()
@@ -20,7 +22,7 @@ func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]
 
 	tasks := make([]models.CollectorTask, 0, len(targetPlatforms))
 	for _, platform := range targetPlatforms {
-		task := models.CollectorTask{
+		baseTask := models.BaseCollectorTask{
 			JobID:         req.JobID,
 			Platform:      platform,
 			TaskType:      req.TaskType,
@@ -29,26 +31,43 @@ func (uc implUseCase) Dispatch(ctx context.Context, req models.CrawlRequest) ([]
 			MaxAttempts:   req.MaxAttempts,
 			SchemaVersion: uc.defaultOptions.SchemaVersion,
 			EmittedAt:     req.EmittedAt,
+			Headers: map[string]any{
+				"x-schema-version": uc.defaultOptions.SchemaVersion,
+			},
 		}
-		validateTask(&task, uc.defaultOptions)
 
-		payload, err := mapPayload(platform, req.TaskType, req.Payload)
+		payload, err := uc.mapPayload(platform, req.TaskType, req.Payload)
 		if err != nil {
 			return nil, err
 		}
-		task.Payload = payload
 
-		queue, err := uc.queueRoutingKey(platform)
-		if err != nil {
-			return nil, err
-		}
-		task.RoutingKey = queue
-		task.Headers = map[string]any{
-			"x-schema-version": uc.defaultOptions.SchemaVersion,
+		var errPublish error
+		var task models.CollectorTask
+
+		switch platform {
+		case models.PlatformTikTok:
+			tkTask := models.TikTokCollectorTask{
+				BaseCollectorTask: baseTask,
+				Payload:           payload,
+			}
+			tkTask.RoutingKey = rabb.RoutingKeyTikTok
+			task = tkTask
+			errPublish = uc.PublishTikTokTask(ctx, tkTask)
+		case models.PlatformYouTube:
+			ytTask := models.YouTubeCollectorTask{
+				BaseCollectorTask: baseTask,
+				Payload:           payload,
+			}
+			ytTask.RoutingKey = rabb.RoutingKeyYouTube
+			task = ytTask
+			errPublish = uc.PublishYouTubeTask(ctx, ytTask)
+		default:
+			// Skip unknown platforms or handle error
+			continue
 		}
 
-		if err := uc.PublishTask(ctx, task); err != nil {
-			return nil, fmt.Errorf("%w: %v", dispatcher.ErrPublish, err)
+		if errPublish != nil {
+			return nil, fmt.Errorf("%w: %v", dispatcher.ErrPublish, errPublish)
 		}
 
 		tasks = append(tasks, task)

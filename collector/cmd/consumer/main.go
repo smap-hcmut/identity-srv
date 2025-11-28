@@ -9,6 +9,7 @@ import (
 
 	"smap-collector/config"
 	"smap-collector/internal/consumer"
+	"smap-collector/pkg/discord"
 	pkgLog "smap-collector/pkg/log"
 	"smap-collector/pkg/rabbitmq"
 )
@@ -22,11 +23,17 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	l := pkgLog.InitializeZapLogger(pkgLog.ZapConfig{
+	l := pkgLog.Init(pkgLog.ZapConfig{
 		Level:    cfg.Logger.Level,
 		Mode:     cfg.Logger.Mode,
 		Encoding: cfg.Logger.Encoding,
 	})
+
+	// Initialize Discord webhook for error reporting
+	discordWebhook, err := discord.NewDiscordWebhook(cfg.Discord.ReportBugID, cfg.Discord.ReportBugToken)
+	if err != nil {
+		l.Warnf(ctx, "failed to initialize Discord webhook: %v", err)
+	}
 
 	conn, err := rabbitmq.Dial(cfg.RabbitMQConfig.URL, true)
 	if err != nil {
@@ -37,6 +44,7 @@ func main() {
 	srv, err := consumer.New(consumer.Config{
 		Logger:   l,
 		AMQPConn: conn,
+		Discord:  discordWebhook,
 	})
 	if err != nil {
 		l.Fatalf(ctx, "failed to init consumer: %v", err)

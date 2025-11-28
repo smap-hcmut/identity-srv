@@ -3,11 +3,7 @@ package scope
 import (
 	"context"
 
-<<<<<<<< HEAD:identity/pkg/scope/utils.go
-	"smap-api/internal/model"
-========
 	"smap-collector/internal/models"
->>>>>>>> 9c65a15b02994a6cc9940a129c9a3c4f61fd0697:collector/pkg/scope/utils.go
 )
 
 type PayloadCtxKey struct{}
@@ -44,12 +40,12 @@ func GetUsernameFromContext(ctx context.Context) (string, bool) {
 	return payload.Username, true
 }
 
-func SetScopeToContext(ctx context.Context, scope model.Scope) context.Context {
+func SetScopeToContext(ctx context.Context, scope models.Scope) context.Context {
 	return context.WithValue(ctx, ScopeCtxKey{}, scope)
 }
 
 // GetScopeFromContext gets the scope from context
-func GetScopeFromContext(ctx context.Context) (model.Scope, bool) {
-	scope, ok := ctx.Value(ScopeCtxKey{}).(model.Scope)
+func GetScopeFromContext(ctx context.Context) (models.Scope, bool) {
+	scope, ok := ctx.Value(ScopeCtxKey{}).(models.Scope)
 	return scope, ok
 }

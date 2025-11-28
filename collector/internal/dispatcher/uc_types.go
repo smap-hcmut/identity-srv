@@ -6,6 +6,5 @@ import "smap-collector/internal/models"
 type Options struct {
 	DefaultMaxAttempts int
 	SchemaVersion      int
-	// PlatformQueues map platform -> queue name để fan-out (khi platform trống sẽ gửi tất cả).
-	PlatformQueues map[models.Platform]string
+	PlatformQueues     map[models.Platform]string
 }

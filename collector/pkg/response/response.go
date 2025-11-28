@@ -5,13 +5,8 @@ import (
 	"net/http"
 	"runtime"
 
-<<<<<<<< HEAD:identity/pkg/response/response.go
-	"smap-api/pkg/discord"
-	"smap-api/pkg/errors"
-========
 	"smap-collector/pkg/discord"
-	pkgErrors "smap-collector/pkg/errors"
->>>>>>>> 9c65a15b02994a6cc9940a129c9a3c4f61fd0697:collector/pkg/response/response.go
+	"smap-collector/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )

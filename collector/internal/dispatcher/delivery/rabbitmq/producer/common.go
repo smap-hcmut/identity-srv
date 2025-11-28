@@ -9,11 +9,23 @@ import (
 
 // Run prepares writer channel.
 func (p *implProducer) Run() (err error) {
-	p.writer, err = p.getWriter(rabb.TaskExchange)
+	// Initialize writer channel
+	p.writer, err = p.conn.Channel()
 	if err != nil {
-		return
+		return err
 	}
-	return
+
+	// Declare TikTok Exchange
+	if err = p.writer.ExchangeDeclare(rabb.TikTokExchangeArgs); err != nil {
+		return err
+	}
+
+	// Declare YouTube Exchange
+	if err = p.writer.ExchangeDeclare(rabb.YouTubeExchangeArgs); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close closes the producer.

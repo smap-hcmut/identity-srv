@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"context"
 
-<<<<<<<< HEAD:identity/pkg/email/new.go
-	"smap-api/pkg/locale"
-========
 	"smap-collector/pkg/locale"
->>>>>>>> 9c65a15b02994a6cc9940a129c9a3c4f61fd0697:collector/pkg/email/new.go
 )
 
 func NewEmail(ctx context.Context, e EmailMeta, data interface{}) (Email, error) {

@@ -10,7 +10,7 @@ import (
 	pkgRabbit "smap-collector/pkg/rabbitmq"
 )
 
-func (p implProducer) PublishTask(ctx context.Context, task models.CollectorTask) error {
+func (p implProducer) PublishTikTokTask(ctx context.Context, task models.TikTokCollectorTask) error {
 	if p.writer == nil {
 		return errors.New("producer not started")
 	}
@@ -21,8 +21,28 @@ func (p implProducer) PublishTask(ctx context.Context, task models.CollectorTask
 	}
 
 	return p.writer.Publish(ctx, pkgRabbit.PublishArgs{
-		Exchange:   rabb.TaskExchange.Name,
-		RoutingKey: task.RoutingKey,
+		Exchange:   rabb.ExchangeTikTok,
+		RoutingKey: rabb.RoutingKeyTikTok,
+		Msg: pkgRabbit.Publishing{
+			Body:        body,
+			ContentType: pkgRabbit.ContentTypeJSON,
+		},
+	})
+}
+
+func (p implProducer) PublishYouTubeTask(ctx context.Context, task models.YouTubeCollectorTask) error {
+	if p.writer == nil {
+		return errors.New("producer not started")
+	}
+
+	body, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	return p.writer.Publish(ctx, pkgRabbit.PublishArgs{
+		Exchange:   rabb.ExchangeYouTube,
+		RoutingKey: rabb.RoutingKeyYouTube,
 		Msg: pkgRabbit.Publishing{
 			Body:        body,
 			ContentType: pkgRabbit.ContentTypeJSON,

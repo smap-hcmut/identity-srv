@@ -15,5 +15,6 @@ type UseCase interface {
 
 // Producer để usecase gọi publish task (implemented ở delivery layer).
 type Producer interface {
-	PublishTask(ctx context.Context, task models.CollectorTask) error
+	PublishTikTokTask(ctx context.Context, task models.TikTokCollectorTask) error
+	PublishYouTubeTask(ctx context.Context, task models.YouTubeCollectorTask) error
 }

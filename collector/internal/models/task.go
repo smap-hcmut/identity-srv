@@ -19,13 +19,11 @@ const (
 	PlatformTikTok  Platform = "tiktok"
 )
 
-// CollectorTask là hợp đồng chuẩn hóa mà collector publish tới từng worker.
-// Payload sẽ được map sang struct riêng theo platform + task_type.
-type CollectorTask struct {
+// BaseCollectorTask chứa các trường chung cho mọi task.
+type BaseCollectorTask struct {
 	JobID         string         `json:"job_id"`
 	Platform      Platform       `json:"platform"`
 	TaskType      TaskType       `json:"task_type"`
-	Payload       any            `json:"payload"`
 	TimeRange     int            `json:"time_range,omitempty"`
 	Attempt       int            `json:"attempt,omitempty"`
 	MaxAttempts   int            `json:"max_attempts,omitempty"`
@@ -35,6 +33,27 @@ type CollectorTask struct {
 	RoutingKey    string         `json:"routing_key,omitempty"`
 	EmittedAt     time.Time      `json:"emitted_at"`
 	Headers       map[string]any `json:"headers,omitempty"`
+}
+
+// CollectorTask là interface đánh dấu (marker interface) cho các task.
+type CollectorTask interface {
+	GetPlatform() Platform
+}
+
+func (b BaseCollectorTask) GetPlatform() Platform {
+	return b.Platform
+}
+
+// TikTokCollectorTask dành riêng cho TikTok.
+type TikTokCollectorTask struct {
+	BaseCollectorTask
+	Payload any `json:"payload"` // Payload cụ thể của TikTok (TikTokResearchKeywordPayload, etc.)
+}
+
+// YouTubeCollectorTask dành riêng cho YouTube.
+type YouTubeCollectorTask struct {
+	BaseCollectorTask
+	Payload any `json:"payload"` // Payload cụ thể của YouTube
 }
 
 // --- YouTube payloads ---

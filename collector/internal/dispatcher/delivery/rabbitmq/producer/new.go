@@ -12,7 +12,8 @@ import (
 //
 //go:generate mockery --name=Producer
 type Producer interface {
-	PublishTask(ctx context.Context, task models.CollectorTask) error
+	PublishTikTokTask(ctx context.Context, task models.TikTokCollectorTask) error
+	PublishYouTubeTask(ctx context.Context, task models.YouTubeCollectorTask) error
 	// Run chuẩn bị writer/publisher.
 	Run() error
 	// Close đóng tài nguyên MQ.

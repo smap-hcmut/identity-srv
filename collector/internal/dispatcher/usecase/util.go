@@ -8,13 +8,6 @@ import (
 	"smap-collector/internal/models"
 )
 
-func (uc implUseCase) queueRoutingKey(p models.Platform) (string, error) {
-	if queue, ok := uc.defaultOptions.PlatformQueues[p]; ok && queue != "" {
-		return queue, nil
-	}
-	return "", dispatcher.ErrUnknownRoute
-}
-
 func (uc implUseCase) selectPlatforms() []models.Platform {
 	platforms := make([]models.Platform, 0, len(uc.defaultOptions.PlatformQueues))
 	for p := range uc.defaultOptions.PlatformQueues {
@@ -23,54 +16,54 @@ func (uc implUseCase) selectPlatforms() []models.Platform {
 	return platforms
 }
 
-func mapPayload(platform models.Platform, taskType models.TaskType, raw map[string]any) (any, error) {
+func (uc implUseCase) mapPayload(platform models.Platform, taskType models.TaskType, raw map[string]any) (any, error) {
 	if raw == nil {
-		return nil, nil
+		return nil, dispatcher.ErrInvalidInput
 	}
 
 	switch platform {
 	case models.PlatformYouTube:
-		return mapYouTubePayload(taskType, raw)
+		return uc.mapYouTubePayload(taskType, raw)
 	case models.PlatformTikTok:
-		return mapTikTokPayload(taskType, raw)
+		return uc.mapTikTokPayload(taskType, raw)
 	default:
 		return nil, dispatcher.ErrUnknownRoute
 	}
 }
 
-func mapYouTubePayload(taskType models.TaskType, raw map[string]any) (any, error) {
+func (uc implUseCase) mapYouTubePayload(taskType models.TaskType, raw map[string]any) (any, error) {
 	switch taskType {
 	case models.TaskTypeResearchKeyword:
 		var payload models.YouTubeResearchKeywordPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	case models.TaskTypeCrawlLinks:
 		var payload models.YouTubeCrawlLinksPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	case models.TaskTypeResearchAndCrawl:
 		var payload models.YouTubeResearchAndCrawlPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	default:
 		return nil, dispatcher.ErrUnknownRoute
 	}
 }
 
-func mapTikTokPayload(taskType models.TaskType, raw map[string]any) (any, error) {
+func (uc implUseCase) mapTikTokPayload(taskType models.TaskType, raw map[string]any) (any, error) {
 	switch taskType {
 	case models.TaskTypeResearchKeyword:
 		var payload models.TikTokResearchKeywordPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	case models.TaskTypeCrawlLinks:
 		var payload models.TikTokCrawlLinksPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	case models.TaskTypeResearchAndCrawl:
 		var payload models.TikTokResearchAndCrawlPayload
-		return decodePayload(raw, &payload)
+		return uc.decodePayload(raw, &payload)
 	default:
 		return nil, dispatcher.ErrUnknownRoute
 	}
 }
 
-func decodePayload(raw map[string]any, dest any) (any, error) {
+func (uc implUseCase) decodePayload(raw map[string]any, dest any) (any, error) {
 	b, err := json.Marshal(raw)
 	if err != nil {
 		return nil, dispatcher.ErrInvalidInput
@@ -81,15 +74,19 @@ func decodePayload(raw map[string]any, dest any) (any, error) {
 	return dest, nil
 }
 
-// validateTask sets defaults for attempt/max/timestamps.
-func validateTask(task *models.CollectorTask, opts dispatcher.Options) {
-	if task.Attempt <= 0 {
-		task.Attempt = 1
+// validateRequest sets defaults for attempt/max/timestamps.
+func (uc implUseCase) validateRequest(req *models.CrawlRequest, opts dispatcher.Options) error {
+	if req.TaskType == "" {
+		return dispatcher.ErrInvalidInput
 	}
-	if task.MaxAttempts <= 0 {
-		task.MaxAttempts = opts.DefaultMaxAttempts
+	if req.Attempt <= 0 {
+		req.Attempt = 1
 	}
-	if task.EmittedAt.IsZero() {
-		task.EmittedAt = time.Now().UTC()
+	if req.MaxAttempts <= 0 {
+		req.MaxAttempts = opts.DefaultMaxAttempts
 	}
+	if req.EmittedAt.IsZero() {
+		req.EmittedAt = time.Now().UTC()
+	}
+	return nil
 }
