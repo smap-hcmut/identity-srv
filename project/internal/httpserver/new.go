@@ -25,11 +25,12 @@ var (
 
 type HTTPServer struct {
 	// Server Configuration
-	gin  *gin.Engine
-	l    log.Logger
-	host string
-	port int
-	mode string
+	gin         *gin.Engine
+	l           log.Logger
+	host        string
+	port        int
+	mode        string
+	environment string
 
 	// Database Configuration
 	postgresDB *sql.DB
@@ -52,10 +53,11 @@ type HTTPServer struct {
 
 type Config struct {
 	// Server Configuration
-	Logger log.Logger
-	Host   string
-	Port   int
-	Mode   string
+	Logger      log.Logger
+	Host        string
+	Port        int
+	Mode        string
+	Environment string
 
 	// Database Configuration
 	PostgresDB *sql.DB
@@ -82,11 +84,12 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 	srv := &HTTPServer{
 		// Server Configuration
-		l:    logger,
-		gin:  gin.Default(),
-		host: cfg.Host,
-		port: cfg.Port,
-		mode: cfg.Mode,
+		l:           logger,
+		gin:         gin.Default(),
+		host:        cfg.Host,
+		port:        cfg.Port,
+		mode:        cfg.Mode,
+		environment: cfg.Environment,
 
 		// Database Configuration
 		postgresDB: cfg.PostgresDB,
