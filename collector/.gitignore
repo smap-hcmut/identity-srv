@@ -61,3 +61,7 @@ Thumbs.db
 # Mock files
 mock_*.go
 build-image.sh
+
+# OpenSpec
+AGENTS.md
+.agent/
