@@ -93,10 +93,11 @@ func main() {
 	// Initialize HTTP server
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
-		Logger: logger,
-		Host:   cfg.HTTPServer.Host,
-		Port:   cfg.HTTPServer.Port,
-		Mode:   cfg.HTTPServer.Mode,
+		Logger:      logger,
+		Host:        cfg.HTTPServer.Host,
+		Port:        cfg.HTTPServer.Port,
+		Mode:        cfg.HTTPServer.Mode,
+		Environment: cfg.Environment.Name,
 
 		// Database Configuration
 		PostgresDB: postgresDB,
