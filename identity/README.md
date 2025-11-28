@@ -556,6 +556,11 @@ make help                 # Show all available commands
 Key environment variables (see `template.env` for complete list):
 
 ```bash
+# Environment Configuration (NEW)
+ENV=production              # Values: production | staging | dev
+                           # Controls CORS behavior and security settings
+                           # Default: production (strict origins)
+
 # Server
 API_PORT=8080
 JWT_SECRET_KEY=your-secret-key
@@ -582,6 +587,29 @@ LOGGER_LEVEL=info
 LOGGER_MODE=production
 LOGGER_ENCODING=json
 ```
+
+#### ENV Configuration
+
+The `ENV` variable controls environment-specific behavior, particularly **CORS validation** for HttpOnly cookie authentication:
+
+| Environment | CORS Behavior | Use Case |
+|-------------|---------------|----------|
+| **production** | Strict origin list (production domains only) | Production deployments |
+| **staging** | Permissive (production + localhost + private subnets) | Staging/QA environments |
+| **dev** | Permissive (production + localhost + private subnets) | Local development |
+| *(empty)* | Defaults to `production` (fail-safe) | Security default |
+
+**Private Subnets** (allowed in dev/staging only):
+- `172.16.21.0/24` - K8s cluster subnet
+- `172.16.19.0/24` - Private network 1
+- `192.168.1.0/24` - Private network 2
+
+**Security Notes:**
+- **Always** set `ENV=production` in production environments
+- HttpOnly cookies require specific origins (no wildcards)
+- Private subnets are automatically allowed in non-production modes
+- Localhost (any port) is allowed in non-production modes
+- Production origins (`https://smap.tantai.dev`, `https://smap-api.tantai.dev`) are allowed in all modes
 
 ### Code Generation
 
