@@ -28,3 +28,6 @@ data:
   MINIO_USE_SSL: "true"
   MINIO_REGION: "us-east-1"
   MINIO_BUCKET: "smap-project"
+
+  # Environment Configuration
+  ENV: "dev"

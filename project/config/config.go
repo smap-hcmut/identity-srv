@@ -7,6 +7,12 @@ import (
 )
 
 type Config struct {
+	// Environment Configuration
+	// Determines CORS behavior and other environment-specific settings
+	// Values: "production" (strict), "staging" (permissive), "dev" (permissive)
+	// Default: "production" (fail-safe for security)
+	Environment EnvironmentConfig
+
 	// Server Configuration
 	HTTPServer HTTPServerConfig
 	Logger     LoggerConfig
@@ -34,6 +40,14 @@ type Config struct {
 // which is used to generate and verify the JWT.
 type JWTConfig struct {
 	SecretKey string `env:"JWT_SECRET"`
+}
+
+// EnvironmentConfig is the configuration for the deployment environment.
+// It controls environment-specific behavior such as CORS validation.
+type EnvironmentConfig struct {
+	// Name is the environment name: "production", "staging", or "dev"
+	// Production uses strict CORS origins, non-production allows private subnets and localhost
+	Name string `env:"ENV" envDefault:"production"`
 }
 
 // CookieConfig is the configuration for HttpOnly cookies,
