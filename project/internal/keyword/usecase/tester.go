@@ -1,24 +1,11 @@
-package keyword
+package usecase
 
 import (
 	"context"
 )
 
-// KeywordTester defines the interface for testing keywords (dry run)
-type KeywordTester interface {
-	Test(ctx context.Context, keywords []string) ([]interface{}, error)
-}
-
-// MockKeywordTester is a mock implementation of KeywordTester
-type MockKeywordTester struct{}
-
-// NewMockKeywordTester creates a new MockKeywordTester
-func NewMockKeywordTester() *MockKeywordTester {
-	return &MockKeywordTester{}
-}
-
-// Test returns mock posts
-func (m *MockKeywordTester) Test(ctx context.Context, keywords []string) ([]interface{}, error) {
+// test returns mock posts for keyword testing
+func (t *usecase) test(ctx context.Context, keywords []string) ([]interface{}, error) {
 	// Mock logic: return some dummy posts
 	posts := []interface{}{
 		map[string]interface{}{

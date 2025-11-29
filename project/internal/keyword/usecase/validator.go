@@ -1,4 +1,4 @@
-package keyword
+package usecase
 
 import (
 	"context"
@@ -7,28 +7,14 @@ import (
 	"strings"
 )
 
-// KeywordValidator defines the interface for validating keywords
-type KeywordValidator interface {
-	Validate(ctx context.Context, keywords []string) ([]string, error)
-	ValidateOne(ctx context.Context, keyword string) (string, error)
-}
-
-// SimpleKeywordValidator is a simple implementation of KeywordValidator
-type SimpleKeywordValidator struct{}
-
-// NewSimpleKeywordValidator creates a new SimpleKeywordValidator
-func NewSimpleKeywordValidator() *SimpleKeywordValidator {
-	return &SimpleKeywordValidator{}
-}
-
-// Validate validates a list of keywords
-func (v *SimpleKeywordValidator) Validate(ctx context.Context, keywords []string) ([]string, error) {
+func (uc *usecase) validate(ctx context.Context, keywords []string) ([]string, error) {
 	validKeywords := make([]string, 0, len(keywords))
 	seen := make(map[string]bool)
 
 	for _, kw := range keywords {
-		normalized, err := v.ValidateOne(ctx, kw)
+		normalized, err := uc.validateOne(ctx, kw)
 		if err != nil {
+			uc.l.Errorf(ctx, "internal.keyword.usecase.validator.validate: %v", err)
 			return nil, err
 		}
 		if !seen[normalized] {
@@ -40,16 +26,17 @@ func (v *SimpleKeywordValidator) Validate(ctx context.Context, keywords []string
 	return validKeywords, nil
 }
 
-// ValidateOne validates a single keyword
-func (v *SimpleKeywordValidator) ValidateOne(ctx context.Context, keyword string) (string, error) {
+func (uc *usecase) validateOne(ctx context.Context, keyword string) (string, error) {
 	// Normalize: trim spaces, lowercase
 	normalized := strings.TrimSpace(strings.ToLower(keyword))
 
 	// Check length
 	if len(normalized) < 2 {
+		uc.l.Warnf(ctx, "internal.keyword.usecase.validator.validateOne: '%s' is too short (min 2 characters)", keyword)
 		return "", errors.New("keyword '" + keyword + "' is too short (min 2 characters)")
 	}
 	if len(normalized) > 50 {
+		uc.l.Warnf(ctx, "internal.keyword.usecase.validator.validateOne: '%s' is too long (max 50 characters)", keyword)
 		return "", errors.New("keyword '" + keyword + "' is too long (max 50 characters)")
 	}
 
@@ -61,6 +48,7 @@ func (v *SimpleKeywordValidator) ValidateOne(ctx context.Context, keyword string
 	// Let's use a slightly more permissive regex but block special chars like @, #, $, etc.
 	matched, _ := regexp.MatchString(`^[\p{L}\p{N}\s\-_]+$`, normalized)
 	if !matched {
+		uc.l.Warnf(ctx, "internal.keyword.usecase.validator.validateOne: '%s' contains invalid characters", keyword)
 		return "", errors.New("keyword '" + keyword + "' contains invalid characters")
 	}
 
@@ -70,6 +58,7 @@ func (v *SimpleKeywordValidator) ValidateOne(ctx context.Context, keyword string
 		"buy": true, "sell": true, "car": true, "house": true,
 	}
 	if stopwords[normalized] {
+		uc.l.Warnf(ctx, "internal.keyword.usecase.validator.validateOne: '%s' is too generic", keyword)
 		return "", errors.New("keyword '" + keyword + "' is too generic")
 	}
 
