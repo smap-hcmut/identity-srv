@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"smap-project/internal/keyword"
 	"smap-project/internal/middleware"
 	projecthttp "smap-project/internal/project/delivery/http"
@@ -11,18 +12,18 @@ import (
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
 	// Uncomment after running: make swagger
-	// _ "smap-project/docs"
+	_ "smap-project/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (srv HTTPServer) mapHandlers() error {
-	srv.registerMiddlewares()
-	srv.registerSystemRoutes()
-
 	scopeManager := scope.New(srv.jwtSecretKey)
-	mw := middleware.New(srv.l, scopeManager)
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig)
+
+	srv.registerMiddlewares(mw)
+	srv.registerSystemRoutes()
 
 	i18n.Init()
 
@@ -47,11 +48,22 @@ func (srv HTTPServer) mapHandlers() error {
 	return nil
 }
 
-func (srv HTTPServer) registerMiddlewares() {
+func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
 	srv.gin.Use(middleware.Recovery(srv.l, srv.discord))
 
-	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig := middleware.DefaultCORSConfig(srv.environment)
 	srv.gin.Use(middleware.CORS(corsConfig))
+
+	// Log CORS mode for visibility
+	ctx := context.Background()
+	if srv.environment == "production" {
+		srv.l.Infof(ctx, "CORS mode: production (strict origins only)")
+	} else {
+		srv.l.Infof(ctx, "CORS mode: %s (permissive - allows localhost and private subnets)", srv.environment)
+	}
+
+	// Add locale middleware to extract and set locale from request header
+	srv.gin.Use(mw.Locale())
 }
 
 func (srv HTTPServer) registerSystemRoutes() {

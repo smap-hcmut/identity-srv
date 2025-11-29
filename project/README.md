@@ -24,23 +24,58 @@
 
 ---
 
+## Authentication
+
+The Project service uses **HttpOnly cookie authentication** for secure, stateless authentication.
+
+### Authentication Methods
+
+**Primary: HttpOnly Cookies** (Recommended)
+- Cookie name: `smap_auth_token`
+- Set automatically by Identity service `/login` endpoint
+- Sent automatically by browser with each request
+- Secure attributes: HttpOnly, Secure, SameSite=Lax
+
+**Legacy: Bearer Token** (Deprecated)
+- Supported for backward compatibility during migration
+- Format: `Authorization: Bearer {token}`
+- Will be removed in future versions
+
+### Getting Authenticated
+
+```bash
+# Login via Identity service to get cookie
+curl -i -X POST https://smap-api.tantai.dev/identity/authentication/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your_password",
+    "remember": false
+  }' \
+  -c cookies.txt
+
+# Cookie is now stored and will be sent automatically
+```
+
+---
+
 ## API Endpoints
 
 ### Base URL
 ```
-http://localhost:8080/project
+https://smap-api.tantai.dev/project
 ```
 
 ### Project Endpoints
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| GET | `/projects` | List all user's projects | Yes |
-| GET | `/projects/page` | Get projects with pagination | Yes |
-| GET | `/projects/:id` | Get project details | Yes |
-| POST | `/projects` | Create new project | Yes |
-| PUT | `/projects/:id` | Update project | Yes |
-| DELETE | `/projects/:id` | Delete project (soft delete) | Yes |
+| GET | `/projects` | List all user's projects | Yes (Cookie/Bearer) |
+| GET | `/projects/page` | Get projects with pagination | Yes (Cookie/Bearer) |
+| GET | `/projects/:id` | Get project details | Yes (Cookie/Bearer) |
+| POST | `/projects` | Create new project | Yes (Cookie/Bearer) |
+| PUT | `/projects/:id` | Update project | Yes (Cookie/Bearer) |
+| DELETE | `/projects/:id` | Delete project (soft delete) | Yes (Cookie/Bearer) |
 
 ---
 
@@ -70,9 +105,37 @@ make run-api
 
 ### API Examples
 
-**Create Project:**
+**Using Cookie Authentication (Recommended):**
 ```bash
-curl -X POST http://localhost:8080/project/projects \
+# After logging in via Identity service, cookie is stored
+# Use -b flag to send cookies with request
+curl -X GET https://smap-api.tantai.dev/project/projects \
+  -b cookies.txt
+```
+
+**Create Project with Cookie:**
+```bash
+curl -X POST https://smap-api.tantai.dev/project/projects \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Q1 2025 Campaign",
+    "status": "draft",
+    "from_date": "2025-01-01T00:00:00Z",
+    "to_date": "2025-03-31T23:59:59Z",
+    "brand_name": "MyBrand",
+    "brand_keywords": ["mybrand", "my brand"],
+    "competitor_names": ["Competitor A"],
+    "competitor_keywords_map": {
+      "Competitor A": ["competitor-a", "comp-a"]
+    }
+  }'
+```
+
+**Using Bearer Token (Legacy):**
+```bash
+# For backward compatibility during migration
+curl -X POST https://smap-api.tantai.dev/project/projects \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

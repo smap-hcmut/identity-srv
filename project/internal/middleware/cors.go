@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,10 @@ type CORSConfig struct {
 	// AllowedOrigins is a list of origins that are allowed to make requests.
 	// Use "*" to allow all origins (not recommended for production).
 	AllowedOrigins []string
+
+	// AllowOriginFunc is a custom function to validate origins dynamically.
+	// If set, this takes precedence over AllowedOrigins for origin validation.
+	AllowOriginFunc func(origin string) bool
 
 	// AllowedMethods is a list of HTTP methods that are allowed.
 	AllowedMethods []string
@@ -29,10 +35,79 @@ type CORSConfig struct {
 	MaxAge int
 }
 
-// DefaultCORSConfig returns a default CORS configuration suitable for most APIs.
-func DefaultCORSConfig() CORSConfig {
-	return CORSConfig{
-		AllowedOrigins: []string{"*"},
+// Private subnet CIDR ranges for development/staging environments
+var privateSubnets = []string{
+	"172.16.21.0/24", // K8s cluster subnet
+	"172.16.19.0/24", // Private network 1
+	"192.168.1.0/24", // Private network 2
+}
+
+// Production allowed origins
+var productionOrigins = []string{
+	"https://smap.tantai.dev",
+	"https://smap-api.tantai.dev",
+}
+
+// isPrivateOrigin checks if origin is from an allowed private subnet
+func isPrivateOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	// Extract IP from host
+	host := u.Hostname()
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+
+	// Check if IP is in allowed subnets
+	for _, cidr := range privateSubnets {
+		_, subnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		if subnet.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isLocalhostOrigin checks if origin is localhost or 127.0.0.1
+func isLocalhostOrigin(origin string) bool {
+	return strings.HasPrefix(origin, "http://localhost") ||
+		strings.HasPrefix(origin, "http://127.0.0.1") ||
+		strings.HasPrefix(origin, "https://localhost") ||
+		strings.HasPrefix(origin, "https://127.0.0.1")
+}
+
+// DefaultCORSConfig returns environment-aware CORS configuration.
+//
+// ENVIRONMENT MODES:
+// - "production": Strict origin list (production domains only)
+// - "staging", "dev": Dynamic validation (production domains + localhost + private subnets)
+// - empty/invalid: Defaults to "production" for security (fail-safe)
+//
+// SECURITY NOTES:
+// - AllowCredentials is always true (required for HttpOnly cookies)
+// - When AllowCredentials is true, wildcard "*" origins are NOT allowed (browser security)
+// - Production mode uses static origin list for maximum security
+// - Non-production modes use dynamic validation for developer flexibility
+//
+// PRIVATE SUBNETS (dev/staging only):
+// - 172.16.21.0/24 (K8s cluster)
+// - 172.16.19.0/24 (Private network 1)
+// - 192.168.1.0/24 (Private network 2)
+func DefaultCORSConfig(environment string) CORSConfig {
+	// Default to production mode if empty or invalid
+	if environment == "" {
+		environment = "production"
+	}
+
+	config := CORSConfig{
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
 			"Origin",
@@ -46,9 +121,39 @@ func DefaultCORSConfig() CORSConfig {
 			"lang",
 		},
 		ExposedHeaders:   []string{"Content-Length"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           86400, // 24 hours
 	}
+
+	// Production: strict origin list only
+	if environment == "production" {
+		config.AllowedOrigins = productionOrigins
+		return config
+	}
+
+	// Development/Staging: dynamic origin validation
+	config.AllowOriginFunc = func(origin string) bool {
+		// Allow production domains
+		for _, allowed := range productionOrigins {
+			if origin == allowed {
+				return true
+			}
+		}
+
+		// Allow localhost (any port)
+		if isLocalhostOrigin(origin) {
+			return true
+		}
+
+		// Allow private subnets
+		if isPrivateOrigin(origin) {
+			return true
+		}
+
+		return false
+	}
+
+	return config
 }
 
 // CORS returns a middleware that handles Cross-Origin Resource Sharing (CORS).
@@ -57,8 +162,13 @@ func CORS(config CORSConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 
-		// Check if origin is allowed
-		if isOriginAllowed(origin, config.AllowedOrigins) {
+		// Check if origin is allowed using dynamic validation function (if set)
+		if config.AllowOriginFunc != nil {
+			if config.AllowOriginFunc(origin) {
+				c.Header("Access-Control-Allow-Origin", origin)
+			}
+		} else if isOriginAllowed(origin, config.AllowedOrigins) {
+			// Fall back to static origin list
 			c.Header("Access-Control-Allow-Origin", origin)
 		} else if len(config.AllowedOrigins) > 0 && config.AllowedOrigins[0] == "*" {
 			c.Header("Access-Control-Allow-Origin", "*")

@@ -11,6 +11,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
+	github.com/klauspost/compress v1.18.1
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
 	github.com/rabbitmq/amqp091-go v1.10.0
@@ -51,7 +52,6 @@ require (
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

@@ -11,7 +11,16 @@ import (
 
 func (m Middleware) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := strings.ReplaceAll(c.GetHeader("Authorization"), "Bearer ", "")
+		// Cookie-first authentication strategy
+		// First, attempt to read token from cookie (preferred method)
+		tokenString, err := c.Cookie(m.cookieConfig.Name)
+
+		// Fallback to Authorization header for backward compatibility
+		// TODO: Remove this fallback after all clients have migrated to cookie authentication
+		if err != nil || tokenString == "" {
+			tokenString = strings.ReplaceAll(c.GetHeader("Authorization"), "Bearer ", "")
+		}
+
 		if tokenString == "" {
 			response.Unauthorized(c)
 			c.Abort()
@@ -27,6 +36,8 @@ func (m Middleware) Auth() gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 		ctx = scope.SetPayloadToContext(ctx, payload)
+		sc := scope.NewScope(payload)
+		ctx = scope.SetScopeToContext(ctx, sc)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()

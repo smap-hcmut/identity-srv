@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"smap-project/config"
 	"smap-project/pkg/discord"
 	"smap-project/pkg/encrypter"
 	"smap-project/pkg/log"
@@ -24,11 +25,12 @@ var (
 
 type HTTPServer struct {
 	// Server Configuration
-	gin  *gin.Engine
-	l    log.Logger
-	host string
-	port int
-	mode string
+	gin         *gin.Engine
+	l           log.Logger
+	host        string
+	port        int
+	mode        string
+	environment string
 
 	// Database Configuration
 	postgresDB *sql.DB
@@ -41,6 +43,7 @@ type HTTPServer struct {
 
 	// Authentication & Security Configuration
 	jwtSecretKey string
+	cookieConfig config.CookieConfig
 	encrypter    encrypter.Encrypter
 	internalKey  string
 
@@ -50,10 +53,11 @@ type HTTPServer struct {
 
 type Config struct {
 	// Server Configuration
-	Logger log.Logger
-	Host   string
-	Port   int
-	Mode   string
+	Logger      log.Logger
+	Host        string
+	Port        int
+	Mode        string
+	Environment string
 
 	// Database Configuration
 	PostgresDB *sql.DB
@@ -66,6 +70,7 @@ type Config struct {
 
 	// Authentication & Security Configuration
 	JwtSecretKey string
+	CookieConfig config.CookieConfig
 	Encrypter    encrypter.Encrypter
 	InternalKey  string
 
@@ -79,11 +84,12 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 	srv := &HTTPServer{
 		// Server Configuration
-		l:    logger,
-		gin:  gin.Default(),
-		host: cfg.Host,
-		port: cfg.Port,
-		mode: cfg.Mode,
+		l:           logger,
+		gin:         gin.Default(),
+		host:        cfg.Host,
+		port:        cfg.Port,
+		mode:        cfg.Mode,
+		environment: cfg.Environment,
 
 		// Database Configuration
 		postgresDB: cfg.PostgresDB,
@@ -96,6 +102,7 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,
+		cookieConfig: cfg.CookieConfig,
 		encrypter:    cfg.Encrypter,
 		internalKey:  cfg.InternalKey,
 

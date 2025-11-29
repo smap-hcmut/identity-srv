@@ -20,6 +20,16 @@ import (
 // @host        smap-api.tantai.dev
 // @schemes     https
 // @BasePath    /project
+//
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name smap_auth_token
+// @description Authentication token stored in HttpOnly cookie. Set automatically by Identity service /login endpoint.
+//
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Legacy Bearer token authentication (deprecated - use cookie authentication instead). Format: "Bearer {token}"
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
@@ -81,10 +91,11 @@ func main() {
 	// Initialize HTTP server
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
-		Logger: logger,
-		Host:   cfg.HTTPServer.Host,
-		Port:   cfg.HTTPServer.Port,
-		Mode:   cfg.HTTPServer.Mode,
+		Logger:      logger,
+		Host:        cfg.HTTPServer.Host,
+		Port:        cfg.HTTPServer.Port,
+		Mode:        cfg.HTTPServer.Mode,
+		Environment: cfg.Environment.Name,
 
 		// Database Configuration
 		PostgresDB: postgresDB,
@@ -97,6 +108,7 @@ func main() {
 
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,
+		CookieConfig: cfg.Cookie,
 		Encrypter:    encrypterInstance,
 		InternalKey:  cfg.InternalConfig.InternalKey,
 
