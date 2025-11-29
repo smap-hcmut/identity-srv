@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"smap-project/internal/keyword"
 	"smap-project/internal/middleware"
 	projecthttp "smap-project/internal/project/delivery/http"
 	projectrepository "smap-project/internal/project/repository/postgre"
@@ -29,8 +30,14 @@ func (srv HTTPServer) mapHandlers() error {
 	// Initialize project repository
 	projectRepo := projectrepository.New(srv.postgresDB, srv.l)
 
+	// Initialize keyword service
+	keywordSuggester := keyword.NewMockKeywordSuggester()
+	keywordValidator := keyword.NewSimpleKeywordValidator()
+	keywordTester := keyword.NewMockKeywordTester()
+	keywordSvc := keyword.New(keywordSuggester, keywordValidator, keywordTester)
+
 	// Initialize project usecase
-	projectUC := projectusecase.New(srv.l, projectRepo)
+	projectUC := projectusecase.New(srv.l, projectRepo, keywordSvc)
 
 	// Initialize project HTTP handler
 	projectHandler := projecthttp.New(srv.l, projectUC, srv.discord)

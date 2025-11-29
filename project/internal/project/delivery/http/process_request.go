@@ -22,6 +22,7 @@ type CreateProjectRequest struct {
 	CompetitorNames       []string            `json:"competitor_names"`
 	BrandKeywords         []string            `json:"brand_keywords" binding:"required"`
 	CompetitorKeywordsMap map[string][]string `json:"competitor_keywords_map"`
+	ExcludeKeywords       []string            `json:"exclude_keywords"`
 }
 
 func (r CreateProjectRequest) toInput() project.CreateInput {
@@ -35,6 +36,7 @@ func (r CreateProjectRequest) toInput() project.CreateInput {
 		CompetitorNames:       r.CompetitorNames,
 		BrandKeywords:         r.BrandKeywords,
 		CompetitorKeywordsMap: r.CompetitorKeywordsMap,
+		ExcludeKeywords:       r.ExcludeKeywords,
 	}
 }
 
@@ -49,6 +51,7 @@ type UpdateProjectRequest struct {
 	CompetitorNames       []string            `json:"competitor_names"`
 	BrandKeywords         []string            `json:"brand_keywords"`
 	CompetitorKeywordsMap map[string][]string `json:"competitor_keywords_map"`
+	ExcludeKeywords       []string            `json:"exclude_keywords"`
 }
 
 func (r UpdateProjectRequest) toInput(id string) project.UpdateInput {
@@ -63,6 +66,7 @@ func (r UpdateProjectRequest) toInput(id string) project.UpdateInput {
 		CompetitorNames:       r.CompetitorNames,
 		BrandKeywords:         r.BrandKeywords,
 		CompetitorKeywordsMap: r.CompetitorKeywordsMap,
+		ExcludeKeywords:       r.ExcludeKeywords,
 	}
 }
 
@@ -208,4 +212,50 @@ func (h handler) processDeleteRequest(c *gin.Context) (string, model.Scope, erro
 	}
 
 	return id, sc, nil
+}
+
+// SuggestKeywordsRequest represents the HTTP request for suggesting keywords
+type SuggestKeywordsRequest struct {
+	BrandName string `json:"brand_name" binding:"required"`
+}
+
+func (h handler) processSuggestKeywordsRequest(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	sc, ok := scope.GetScopeFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "project.http.processSuggestKeywordsRequest: unauthorized")
+		return "", model.Scope{}, errUnauthorized
+	}
+
+	var req SuggestKeywordsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.l.Errorf(ctx, "project.http.processSuggestKeywordsRequest.ShouldBindJSON: %v", err)
+		return "", model.Scope{}, errWrongBody
+	}
+
+	return req.BrandName, sc, nil
+}
+
+// DryRunKeywordsRequest represents the HTTP request for dry running keywords
+type DryRunKeywordsRequest struct {
+	Keywords []string `json:"keywords" binding:"required"`
+}
+
+func (h handler) processDryRunKeywordsRequest(c *gin.Context) ([]string, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	sc, ok := scope.GetScopeFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "project.http.processDryRunKeywordsRequest: unauthorized")
+		return nil, model.Scope{}, errUnauthorized
+	}
+
+	var req DryRunKeywordsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.l.Errorf(ctx, "project.http.processDryRunKeywordsRequest.ShouldBindJSON: %v", err)
+		return nil, model.Scope{}, errWrongBody
+	}
+
+	return req.Keywords, sc, nil
 }

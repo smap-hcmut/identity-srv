@@ -91,9 +91,28 @@ func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip project.Create
 		CompetitorNames:       ip.CompetitorNames,
 		BrandKeywords:         ip.BrandKeywords,
 		CompetitorKeywordsMap: ip.CompetitorKeywordsMap,
+		ExcludeKeywords:       ip.ExcludeKeywords,
 		CreatedBy:             sc.UserID,
 		CreatedAt:             uc.clock(),
 		UpdatedAt:             uc.clock(),
+	}
+
+	// Validate keywords
+	var err error
+	p.BrandKeywords, err = uc.keywordService.Validate(ctx, p.BrandKeywords)
+	if err != nil {
+		return project.ProjectOutput{}, err
+	}
+	p.ExcludeKeywords, err = uc.keywordService.Validate(ctx, p.ExcludeKeywords)
+	if err != nil {
+		return project.ProjectOutput{}, err
+	}
+	for k, v := range p.CompetitorKeywordsMap {
+		valid, err := uc.keywordService.Validate(ctx, v)
+		if err != nil {
+			return project.ProjectOutput{}, err
+		}
+		p.CompetitorKeywordsMap[k] = valid
 	}
 
 	created, err := uc.repo.Create(ctx, sc, repository.CreateOptions{Project: p})
@@ -177,6 +196,32 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 	if ip.CompetitorKeywordsMap != nil {
 		p.CompetitorKeywordsMap = ip.CompetitorKeywordsMap
 	}
+	if ip.ExcludeKeywords != nil {
+		p.ExcludeKeywords = ip.ExcludeKeywords
+	}
+
+	// Validate keywords if updated
+	if ip.BrandKeywords != nil {
+		p.BrandKeywords, err = uc.keywordService.Validate(ctx, p.BrandKeywords)
+		if err != nil {
+			return project.ProjectOutput{}, err
+		}
+	}
+	if ip.ExcludeKeywords != nil {
+		p.ExcludeKeywords, err = uc.keywordService.Validate(ctx, p.ExcludeKeywords)
+		if err != nil {
+			return project.ProjectOutput{}, err
+		}
+	}
+	if ip.CompetitorKeywordsMap != nil {
+		for k, v := range p.CompetitorKeywordsMap {
+			valid, err := uc.keywordService.Validate(ctx, v)
+			if err != nil {
+				return project.ProjectOutput{}, err
+			}
+			p.CompetitorKeywordsMap[k] = valid
+		}
+	}
 
 	p.UpdatedAt = uc.clock()
 
@@ -214,4 +259,12 @@ func (uc *usecase) Delete(ctx context.Context, sc model.Scope, id string) error 
 	}
 
 	return nil
+}
+
+func (uc *usecase) SuggestKeywords(ctx context.Context, sc model.Scope, brandName string) ([]string, []string, error) {
+	return uc.keywordService.Suggest(ctx, brandName)
+}
+
+func (uc *usecase) DryRunKeywords(ctx context.Context, sc model.Scope, keywords []string) ([]interface{}, error) {
+	return uc.keywordService.Test(ctx, keywords)
 }

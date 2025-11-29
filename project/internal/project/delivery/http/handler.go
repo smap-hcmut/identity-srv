@@ -236,3 +236,70 @@ func (h handler) Delete(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+// @Summary Suggest keywords
+// @Description Suggest niche and negative keywords based on brand name
+// @Tags Projects
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body SuggestKeywordsRequest true "Suggestion request"
+// @Success 200 {object} SuggestKeywordsResponse
+// @Failure 400 {object} errors.HTTPError
+// @Failure 500 {object} errors.HTTPError
+// @Router /projects/keywords/suggest [post]
+func (h handler) SuggestKeywords(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	brandName, sc, err := h.processSuggestKeywordsRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.SuggestKeywords.processSuggestKeywordsRequest: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	niche, negative, err := h.uc.SuggestKeywords(ctx, sc, brandName)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.SuggestKeywords.SuggestKeywords: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"niche_keywords":    niche,
+		"negative_keywords": negative,
+	})
+}
+
+// @Summary Dry run keywords
+// @Description Fetch sample data for keywords
+// @Tags Projects
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body DryRunKeywordsRequest true "Dry run request"
+// @Success 200 {object} DryRunKeywordsResponse
+// @Failure 400 {object} errors.HTTPError
+// @Failure 500 {object} errors.HTTPError
+// @Router /projects/keywords/dry-run [post]
+func (h handler) DryRunKeywords(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	keywords, sc, err := h.processDryRunKeywordsRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.DryRunKeywords.processDryRunKeywordsRequest: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	posts, err := h.uc.DryRunKeywords(ctx, sc, keywords)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.DryRunKeywords.DryRunKeywords: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"posts": posts,
+	})
+}
