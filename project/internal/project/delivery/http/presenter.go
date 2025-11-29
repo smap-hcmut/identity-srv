@@ -7,8 +7,8 @@ import (
 	"smap-project/pkg/paginator"
 )
 
-// ProjectResponse represents the HTTP response for a single project
-type ProjectResponse struct {
+// ProjectResp represents the HTTP response for a single project
+type ProjectResp struct {
 	ID                    string              `json:"id"`
 	Name                  string              `json:"name"`
 	Description           *string             `json:"description,omitempty"`
@@ -24,14 +24,14 @@ type ProjectResponse struct {
 	UpdatedAt             time.Time           `json:"updated_at"`
 }
 
-// ProjectListResponse represents the HTTP response for multiple projects with pagination
-type ProjectListResponse struct {
-	Projects  []ProjectResponse   `json:"projects"`
+// ProjectListResp represents the HTTP response for multiple projects with pagination
+type ProjectListResp struct {
+	Projects  []ProjectResp       `json:"projects"`
 	Paginator paginator.Paginator `json:"paginator"`
 }
 
-func (h handler) newProjectResp(p model.Project) ProjectResponse {
-	return ProjectResponse{
+func (h handler) newProjectResp(p model.Project) ProjectResp {
+	return ProjectResp{
 		ID:                    p.ID,
 		Name:                  p.Name,
 		Description:           p.Description,
@@ -48,17 +48,39 @@ func (h handler) newProjectResp(p model.Project) ProjectResponse {
 	}
 }
 
-func (h handler) newProjectListResp(projects []model.Project) []ProjectResponse {
-	resp := make([]ProjectResponse, len(projects))
+func (h handler) newProjectListResp(projects []model.Project) []ProjectResp {
+	resp := make([]ProjectResp, len(projects))
 	for i, p := range projects {
 		resp[i] = h.newProjectResp(p)
 	}
 	return resp
 }
 
-func (h handler) newProjectPageResp(projects []model.Project, pag paginator.Paginator) ProjectListResponse {
-	return ProjectListResponse{
+func (h handler) newProjectPageResp(projects []model.Project, pag paginator.Paginator) ProjectListResp {
+	return ProjectListResp{
 		Projects:  h.newProjectListResp(projects),
 		Paginator: pag,
+	}
+}
+
+type SuggestKeywordsResp struct {
+	NicheKeywords    []string `json:"niche_keywords"`
+	NegativeKeywords []string `json:"negative_keywords"`
+}
+
+func (h handler) newSuggestKeywordsResp(niche []string, negative []string) SuggestKeywordsResp {
+	return SuggestKeywordsResp{
+		NicheKeywords:    niche,
+		NegativeKeywords: negative,
+	}
+}
+
+type DryRunKeywordsResp struct {
+	Posts []interface{} `json:"posts"`
+}
+
+func (h handler) newDryRunKeywordsResp(p []interface{}) DryRunKeywordsResp {
+	return DryRunKeywordsResp{
+		Posts: p,
 	}
 }

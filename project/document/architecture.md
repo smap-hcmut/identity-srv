@@ -166,8 +166,8 @@ internal/project/
 ├── delivery/http/
 │   ├── handler.go          # List, Get, Detail, Create, Update, Delete
 │   ├── routes.go           # MapProjectRoutes()
-│   ├── presenter.go        # ToProjectResponse(), ToProjectListResponse()
-│   ├── process_request.go  # CreateProjectRequest, UpdateProjectRequest
+│   ├── presenter.go        # ToProjectResp(), ToProjectListResp()
+│   ├── process_request.go  # CreateReq, UpdateReq
 │   └── new.go              # New() - create Handler
 │
 ├── repository/
@@ -219,8 +219,8 @@ HTTP Response
 // 2. Middleware authenticates JWT token
 // 3. Handler receives request
 func (h handler) Create(c *gin.Context) {
-    // 4. Parse request body into CreateProjectRequest
-    var req CreateProjectRequest
+    // 4. Parse request body into CreateReq
+    var req CreateReq
     c.ShouldBindJSON(&req)
     
     // 5. Convert request DTO to UseCase Input
@@ -230,7 +230,7 @@ func (h handler) Create(c *gin.Context) {
     output, err := h.uc.Create(ctx, sc, input)
     
     // 7. Convert UseCase Output to HTTP Response
-    resp := ToProjectResponse(output.Project)
+    resp := ToProjectResp(output.Project)
     response.OK(c, resp)
 }
 

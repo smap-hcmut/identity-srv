@@ -14,9 +14,9 @@ import (
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Project ID"
-// @Success 200 {object} ProjectResponse
+// @Success 200 {object} ProjectResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
@@ -24,9 +24,9 @@ import (
 func (h handler) Detail(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	id, sc, err := h.processDetailRequest(c)
+	id, sc, err := h.processDetailReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.Detail.processDetailRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.Detail.processDetailReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -51,20 +51,20 @@ func (h handler) Detail(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param ids query []string false "Filter by project IDs"
 // @Param statuses query []string false "Filter by statuses"
 // @Param search_name query string false "Search by project name"
-// @Success 200 {array} ProjectResponse
+// @Success 200 {array} ProjectResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /projects [get]
 func (h handler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	input, sc, err := h.processListRequest(c)
+	input, sc, err := h.processListReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.List.processListRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.List.processListReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -89,22 +89,22 @@ func (h handler) List(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param ids query []string false "Filter by project IDs"
 // @Param statuses query []string false "Filter by statuses"
 // @Param search_name query string false "Search by project name"
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
-// @Success 200 {object} ProjectListResponse
+// @Success 200 {object} ProjectListResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /projects/page [get]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	input, sc, err := h.processGetRequest(c)
+	input, sc, err := h.processGetReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.Get.processGetRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.Get.processGetReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -129,18 +129,18 @@ func (h handler) Get(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
-// @Param request body CreateProjectRequest true "Project creation request"
-// @Success 201 {object} ProjectResponse
+// @Security CookieAuth
+// @Param request body CreateReq true "Project creation request"
+// @Success 201 {object} ProjectResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /projects [post]
 func (h handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	input, sc, err := h.processCreateRequest(c)
+	input, sc, err := h.processCreateReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.Create.processCreateRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.Create.processCreateReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -165,10 +165,10 @@ func (h handler) Create(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Project ID"
-// @Param request body UpdateProjectRequest true "Project update request"
-// @Success 200 {object} ProjectResponse
+// @Param request body UpdateReq true "Project update request"
+// @Success 200 {object} ProjectResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 404 {object} errors.HTTPError
 // @Failure 403 {object} errors.HTTPError
@@ -177,9 +177,9 @@ func (h handler) Create(c *gin.Context) {
 func (h handler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	input, _, sc, err := h.processUpdateRequest(c)
+	input, _, sc, err := h.processUpdateReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.Update.processUpdateRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.Update.processUpdateReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -204,7 +204,7 @@ func (h handler) Update(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security CookieAuth
 // @Param id path string true "Project ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} errors.HTTPError
@@ -215,9 +215,9 @@ func (h handler) Update(c *gin.Context) {
 func (h handler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	id, sc, err := h.processDeleteRequest(c)
+	id, sc, err := h.processDeleteReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.Delete.processDeleteRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.Delete.processDeleteReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -242,18 +242,18 @@ func (h handler) Delete(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
-// @Param request body SuggestKeywordsRequest true "Suggestion request"
-// @Success 200 {object} SuggestKeywordsResponse
+// @Security CookieAuth
+// @Param request body SuggestKeywordsReq true "Suggestion request"
+// @Success 200 {object} SuggestKeywordsResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /projects/keywords/suggest [post]
 func (h handler) SuggestKeywords(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	brandName, sc, err := h.processSuggestKeywordsRequest(c)
+	brandName, sc, err := h.processSuggestKeywordsReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.SuggestKeywords.processSuggestKeywordsRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.SuggestKeywords.processSuggestKeywordsReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -265,10 +265,7 @@ func (h handler) SuggestKeywords(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, gin.H{
-		"niche_keywords":    niche,
-		"negative_keywords": negative,
-	})
+	response.OK(c, h.newSuggestKeywordsResp(niche, negative))
 }
 
 // @Summary Dry run keywords
@@ -276,18 +273,18 @@ func (h handler) SuggestKeywords(c *gin.Context) {
 // @Tags Projects
 // @Accept json
 // @Produce json
-// @Security BearerAuth
-// @Param request body DryRunKeywordsRequest true "Dry run request"
-// @Success 200 {object} DryRunKeywordsResponse
+// @Security CookieAuth
+// @Param request body DryRunKeywordsReq true "Dry run request"
+// @Success 200 {object} DryRunKeywordsResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /projects/keywords/dry-run [post]
 func (h handler) DryRunKeywords(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	keywords, sc, err := h.processDryRunKeywordsRequest(c)
+	keywords, sc, err := h.processDryRunKeywordsReq(c)
 	if err != nil {
-		h.l.Errorf(ctx, "project.http.DryRunKeywords.processDryRunKeywordsRequest: %v", err)
+		h.l.Errorf(ctx, "project.http.DryRunKeywords.processDryRunKeywordsReq: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -299,7 +296,5 @@ func (h handler) DryRunKeywords(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, gin.H{
-		"posts": posts,
-	})
+	response.OK(c, h.newDryRunKeywordsResp(posts))
 }

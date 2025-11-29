@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateProjectRequest represents the HTTP request for creating a project
-type CreateProjectRequest struct {
+// CreateReq represents the HTTP request for creating a project
+type CreateReq struct {
 	Name                  string              `json:"name" binding:"required"`
 	Description           *string             `json:"description"`
 	Status                string              `json:"status" binding:"required"`
@@ -25,7 +25,7 @@ type CreateProjectRequest struct {
 	ExcludeKeywords       []string            `json:"exclude_keywords"`
 }
 
-func (r CreateProjectRequest) toInput() project.CreateInput {
+func (r CreateReq) toInput() project.CreateInput {
 	return project.CreateInput{
 		Name:                  r.Name,
 		Description:           r.Description,
@@ -40,8 +40,8 @@ func (r CreateProjectRequest) toInput() project.CreateInput {
 	}
 }
 
-// UpdateProjectRequest represents the HTTP request for updating a project
-type UpdateProjectRequest struct {
+// UpdateReq represents the HTTP request for updating a project
+type UpdateReq struct {
 	Name                  *string             `json:"name"`
 	Description           *string             `json:"description"`
 	Status                *string             `json:"status"`
@@ -54,7 +54,7 @@ type UpdateProjectRequest struct {
 	ExcludeKeywords       []string            `json:"exclude_keywords"`
 }
 
-func (r UpdateProjectRequest) toInput(id string) project.UpdateInput {
+func (r UpdateReq) toInput(id string) project.UpdateInput {
 	return project.UpdateInput{
 		ID:                    id,
 		Name:                  r.Name,
@@ -70,8 +70,8 @@ func (r UpdateProjectRequest) toInput(id string) project.UpdateInput {
 	}
 }
 
-// GetProjectsRequest represents the HTTP request for listing projects with filters
-type GetProjectsRequest struct {
+// GetReq represents the HTTP request for listing projects with filters
+type GetReq struct {
 	IDs        []string `form:"ids"`
 	Statuses   []string `form:"statuses"`
 	SearchName *string  `form:"search_name"`
@@ -79,7 +79,7 @@ type GetProjectsRequest struct {
 	Limit      int      `form:"limit"`
 }
 
-func (r GetProjectsRequest) toInput() project.GetInput {
+func (r GetReq) toInput() project.GetInput {
 	pq := paginator.NewPaginateQuery(r.Page, r.Limit)
 
 	return project.GetInput{
@@ -92,7 +92,7 @@ func (r GetProjectsRequest) toInput() project.GetInput {
 	}
 }
 
-func (r GetProjectsRequest) toListInput() project.ListInput {
+func (r GetReq) toListInput() project.ListInput {
 	return project.ListInput{
 		Filter: project.Filter{
 			IDs:        r.IDs,
@@ -103,48 +103,48 @@ func (r GetProjectsRequest) toListInput() project.ListInput {
 }
 
 // Process functions
-func (h handler) processListRequest(c *gin.Context) (project.ListInput, model.Scope, error) {
+func (h handler) processListReq(c *gin.Context) (project.ListInput, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processListRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processListReq: unauthorized")
 		return project.ListInput{}, model.Scope{}, errUnauthorized
 	}
 
-	var req GetProjectsRequest
+	var req GetReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processListRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "project.http.processListReq.ShouldBindQuery: %v", err)
 		return project.ListInput{}, model.Scope{}, errWrongQuery
 	}
 
 	return req.toListInput(), sc, nil
 }
 
-func (h handler) processGetRequest(c *gin.Context) (project.GetInput, model.Scope, error) {
+func (h handler) processGetReq(c *gin.Context) (project.GetInput, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processGetRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processGetReq: unauthorized")
 		return project.GetInput{}, model.Scope{}, errUnauthorized
 	}
 
-	var req GetProjectsRequest
+	var req GetReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processGetRequest.ShouldBindQuery: %v", err)
+		h.l.Errorf(ctx, "project.http.processGetReq.ShouldBindQuery: %v", err)
 		return project.GetInput{}, model.Scope{}, errWrongQuery
 	}
 
 	return req.toInput(), sc, nil
 }
 
-func (h handler) processDetailRequest(c *gin.Context) (string, model.Scope, error) {
+func (h handler) processDetailReq(c *gin.Context) (string, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processDetailRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processDetailReq: unauthorized")
 		return "", model.Scope{}, errUnauthorized
 	}
 
@@ -156,30 +156,30 @@ func (h handler) processDetailRequest(c *gin.Context) (string, model.Scope, erro
 	return id, sc, nil
 }
 
-func (h handler) processCreateRequest(c *gin.Context) (project.CreateInput, model.Scope, error) {
+func (h handler) processCreateReq(c *gin.Context) (project.CreateInput, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processCreateRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processCreateReq: unauthorized")
 		return project.CreateInput{}, model.Scope{}, errUnauthorized
 	}
 
-	var req CreateProjectRequest
+	var req CreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processCreateRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "project.http.processCreateReq.ShouldBindJSON: %v", err)
 		return project.CreateInput{}, model.Scope{}, errWrongBody
 	}
 
 	return req.toInput(), sc, nil
 }
 
-func (h handler) processUpdateRequest(c *gin.Context) (project.UpdateInput, string, model.Scope, error) {
+func (h handler) processUpdateReq(c *gin.Context) (project.UpdateInput, string, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processUpdateRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processUpdateReq: unauthorized")
 		return project.UpdateInput{}, "", model.Scope{}, errUnauthorized
 	}
 
@@ -188,16 +188,16 @@ func (h handler) processUpdateRequest(c *gin.Context) (project.UpdateInput, stri
 		return project.UpdateInput{}, "", model.Scope{}, errInvalidID
 	}
 
-	var req UpdateProjectRequest
+	var req UpdateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processUpdateRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "project.http.processUpdateReq.ShouldBindJSON: %v", err)
 		return project.UpdateInput{}, "", model.Scope{}, errWrongBody
 	}
 
 	return req.toInput(id), id, sc, nil
 }
 
-func (h handler) processDeleteRequest(c *gin.Context) (string, model.Scope, error) {
+func (h handler) processDeleteReq(c *gin.Context) (string, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
@@ -214,46 +214,46 @@ func (h handler) processDeleteRequest(c *gin.Context) (string, model.Scope, erro
 	return id, sc, nil
 }
 
-// SuggestKeywordsRequest represents the HTTP request for suggesting keywords
-type SuggestKeywordsRequest struct {
+// SuggestKeywordsReq represents the HTTP request for suggesting keywords
+type SuggestKeywordsReq struct {
 	BrandName string `json:"brand_name" binding:"required"`
 }
 
-func (h handler) processSuggestKeywordsRequest(c *gin.Context) (string, model.Scope, error) {
+func (h handler) processSuggestKeywordsReq(c *gin.Context) (string, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processSuggestKeywordsRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processSuggestKeywordsReq: unauthorized")
 		return "", model.Scope{}, errUnauthorized
 	}
 
-	var req SuggestKeywordsRequest
+	var req SuggestKeywordsReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processSuggestKeywordsRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "project.http.processSuggestKeywordsReq.ShouldBindJSON: %v", err)
 		return "", model.Scope{}, errWrongBody
 	}
 
 	return req.BrandName, sc, nil
 }
 
-// DryRunKeywordsRequest represents the HTTP request for dry running keywords
-type DryRunKeywordsRequest struct {
+// DryRunKeywordsReq represents the HTTP request for dry running keywords
+type DryRunKeywordsReq struct {
 	Keywords []string `json:"keywords" binding:"required"`
 }
 
-func (h handler) processDryRunKeywordsRequest(c *gin.Context) ([]string, model.Scope, error) {
+func (h handler) processDryRunKeywordsReq(c *gin.Context) ([]string, model.Scope, error) {
 	ctx := c.Request.Context()
 
 	sc, ok := scope.GetScopeFromContext(ctx)
 	if !ok {
-		h.l.Errorf(ctx, "project.http.processDryRunKeywordsRequest: unauthorized")
+		h.l.Errorf(ctx, "project.http.processDryRunKeywordsReq: unauthorized")
 		return nil, model.Scope{}, errUnauthorized
 	}
 
-	var req DryRunKeywordsRequest
+	var req DryRunKeywordsReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processDryRunKeywordsRequest.ShouldBindJSON: %v", err)
+		h.l.Errorf(ctx, "project.http.processDryRunKeywordsReq.ShouldBindJSON: %v", err)
 		return nil, model.Scope{}, errWrongBody
 	}
 
