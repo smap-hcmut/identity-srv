@@ -10,17 +10,17 @@ import (
 )
 
 type usecase struct {
-	l              pkgLog.Logger
-	repo           repository.Repository
-	clock          func() time.Time
-	keywordService keyword.Service
+	l         pkgLog.Logger
+	repo      repository.Repository
+	clock     func() time.Time
+	keywordUC keyword.UseCase
 }
 
-func New(l pkgLog.Logger, repo repository.Repository, keywordSvc keyword.Service) project.UseCase {
+func New(l pkgLog.Logger, repo repository.Repository, keywordUC keyword.UseCase) project.UseCase {
 	return &usecase{
-		l:              l,
-		repo:           repo,
-		clock:          time.Now,
-		keywordService: keywordSvc,
+		l:         l,
+		repo:      repo,
+		clock:     time.Now,
+		keywordUC: keywordUC,
 	}
 }

@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 
+	"smap-project/internal/keyword"
 	"smap-project/internal/model"
 	"smap-project/internal/project"
 	"smap-project/internal/project/repository"
@@ -12,6 +13,7 @@ func (uc *usecase) Detail(ctx context.Context, sc model.Scope, id string) (proje
 	p, err := uc.repo.Detail(ctx, sc, id)
 	if err != nil {
 		if err == repository.ErrNotFound {
+			uc.l.Warnf(ctx, "internal.project.usecase.Detail: %v", err)
 			return project.ProjectOutput{}, project.ErrProjectNotFound
 		}
 		uc.l.Errorf(ctx, "internal.project.usecase.Detail: %v", err)
@@ -20,6 +22,7 @@ func (uc *usecase) Detail(ctx context.Context, sc model.Scope, id string) (proje
 
 	// Check if user owns this project
 	if p.CreatedBy != sc.UserID {
+		uc.l.Warnf(ctx, "internal.project.usecase.Detail: user %s does not own project %s", sc.UserID, id)
 		return project.ProjectOutput{}, project.ErrUnauthorized
 	}
 
@@ -73,11 +76,13 @@ func (uc *usecase) Get(ctx context.Context, sc model.Scope, ip project.GetInput)
 func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip project.CreateInput) (project.ProjectOutput, error) {
 	// Validate status
 	if !model.IsValidProjectStatus(ip.Status) {
+		uc.l.Warnf(ctx, "internal.project.usecase.Create: invalid status %s", ip.Status)
 		return project.ProjectOutput{}, project.ErrInvalidStatus
 	}
 
 	// Validate date range
 	if ip.ToDate.Before(ip.FromDate) || ip.ToDate.Equal(ip.FromDate) {
+		uc.l.Warnf(ctx, "internal.project.usecase.Create: invalid date range %s - %s", ip.FromDate, ip.ToDate)
 		return project.ProjectOutput{}, project.ErrInvalidDateRange
 	}
 
@@ -99,20 +104,31 @@ func (uc *usecase) Create(ctx context.Context, sc model.Scope, ip project.Create
 
 	// Validate keywords
 	var err error
-	p.BrandKeywords, err = uc.keywordService.Validate(ctx, p.BrandKeywords)
-	if err != nil {
-		return project.ProjectOutput{}, err
-	}
-	p.ExcludeKeywords, err = uc.keywordService.Validate(ctx, p.ExcludeKeywords)
-	if err != nil {
-		return project.ProjectOutput{}, err
-	}
-	for k, v := range p.CompetitorKeywordsMap {
-		valid, err := uc.keywordService.Validate(ctx, v)
+	if len(p.BrandKeywords) > 0 {
+		validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: p.BrandKeywords})
 		if err != nil {
+			uc.l.Errorf(ctx, "internal.project.usecase.Create: %v", err)
 			return project.ProjectOutput{}, err
 		}
-		p.CompetitorKeywordsMap[k] = valid
+		p.BrandKeywords = validateOut.ValidKeywords
+	}
+	if len(p.ExcludeKeywords) > 0 {
+		validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: p.ExcludeKeywords})
+		if err != nil {
+			uc.l.Errorf(ctx, "internal.project.usecase.Create: %v", err)
+			return project.ProjectOutput{}, err
+		}
+		p.ExcludeKeywords = validateOut.ValidKeywords
+	}
+	for k, v := range p.CompetitorKeywordsMap {
+		if len(v) > 0 {
+			validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: v})
+			if err != nil {
+				uc.l.Errorf(ctx, "internal.project.usecase.Create: %v", err)
+				return project.ProjectOutput{}, err
+			}
+			p.CompetitorKeywordsMap[k] = validateOut.ValidKeywords
+		}
 	}
 
 	created, err := uc.repo.Create(ctx, sc, repository.CreateOptions{Project: p})
@@ -130,6 +146,7 @@ func (uc *usecase) GetOne(ctx context.Context, sc model.Scope, ip project.GetOne
 	})
 	if err != nil {
 		if err == repository.ErrNotFound {
+			uc.l.Warnf(ctx, "internal.project.usecase.GetOne: project %s not found", ip.ID)
 			return model.Project{}, project.ErrProjectNotFound
 		}
 		uc.l.Errorf(ctx, "internal.project.usecase.GetOne: %v", err)
@@ -138,6 +155,7 @@ func (uc *usecase) GetOne(ctx context.Context, sc model.Scope, ip project.GetOne
 
 	// Check if user owns this project
 	if p.CreatedBy != sc.UserID {
+		uc.l.Warnf(ctx, "internal.project.usecase.GetOne: user %s does not own project %s", sc.UserID, ip.ID)
 		return model.Project{}, project.ErrUnauthorized
 	}
 
@@ -148,6 +166,7 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 	p, err := uc.repo.Detail(ctx, sc, ip.ID)
 	if err != nil {
 		if err == repository.ErrNotFound {
+			uc.l.Warnf(ctx, "internal.project.usecase.Update.Detail: project %s not found", ip.ID)
 			return project.ProjectOutput{}, project.ErrProjectNotFound
 		}
 		uc.l.Errorf(ctx, "internal.project.usecase.Update.Detail: %v", err)
@@ -156,6 +175,7 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 
 	// Check if user owns this project
 	if p.CreatedBy != sc.UserID {
+		uc.l.Warnf(ctx, "internal.project.usecase.Update: user %s does not own project %s", sc.UserID, ip.ID)
 		return project.ProjectOutput{}, project.ErrUnauthorized
 	}
 
@@ -168,6 +188,7 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 	}
 	if ip.Status != nil {
 		if !model.IsValidProjectStatus(*ip.Status) {
+			uc.l.Warnf(ctx, "internal.project.usecase.Update: invalid status %s", *ip.Status)
 			return project.ProjectOutput{}, project.ErrInvalidStatus
 		}
 		p.Status = *ip.Status
@@ -181,6 +202,7 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 
 	// Validate date range after updates
 	if p.ToDate.Before(p.FromDate) || p.ToDate.Equal(p.FromDate) {
+		uc.l.Warnf(ctx, "internal.project.usecase.Update: invalid date range %s - %s", p.FromDate, p.ToDate)
 		return project.ProjectOutput{}, project.ErrInvalidDateRange
 	}
 
@@ -201,25 +223,32 @@ func (uc *usecase) Update(ctx context.Context, sc model.Scope, ip project.Update
 	}
 
 	// Validate keywords if updated
-	if ip.BrandKeywords != nil {
-		p.BrandKeywords, err = uc.keywordService.Validate(ctx, p.BrandKeywords)
+	if len(p.BrandKeywords) > 0 {
+		validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: p.BrandKeywords})
 		if err != nil {
+			uc.l.Errorf(ctx, "internal.project.usecase.Update: %v", err)
 			return project.ProjectOutput{}, err
 		}
+		p.BrandKeywords = validateOut.ValidKeywords
 	}
-	if ip.ExcludeKeywords != nil {
-		p.ExcludeKeywords, err = uc.keywordService.Validate(ctx, p.ExcludeKeywords)
+	if len(p.ExcludeKeywords) > 0 {
+		validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: p.ExcludeKeywords})
 		if err != nil {
+			uc.l.Errorf(ctx, "internal.project.usecase.Update: %v", err)
 			return project.ProjectOutput{}, err
 		}
+		p.ExcludeKeywords = validateOut.ValidKeywords
 	}
 	if ip.CompetitorKeywordsMap != nil {
 		for k, v := range p.CompetitorKeywordsMap {
-			valid, err := uc.keywordService.Validate(ctx, v)
-			if err != nil {
-				return project.ProjectOutput{}, err
+			if len(v) > 0 {
+				validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: v})
+				if err != nil {
+					uc.l.Errorf(ctx, "internal.project.usecase.Update: %v", err)
+					return project.ProjectOutput{}, err
+				}
+				p.CompetitorKeywordsMap[k] = validateOut.ValidKeywords
 			}
-			p.CompetitorKeywordsMap[k] = valid
 		}
 	}
 
@@ -262,9 +291,19 @@ func (uc *usecase) Delete(ctx context.Context, sc model.Scope, id string) error 
 }
 
 func (uc *usecase) SuggestKeywords(ctx context.Context, sc model.Scope, brandName string) ([]string, []string, error) {
-	return uc.keywordService.Suggest(ctx, brandName)
+	output, err := uc.keywordUC.Suggest(ctx, brandName)
+	if err != nil {
+		uc.l.Errorf(ctx, "internal.project.usecase.SuggestKeywords: %v", err)
+		return nil, nil, err
+	}
+	return output.Niche, output.Negative, nil
 }
 
 func (uc *usecase) DryRunKeywords(ctx context.Context, sc model.Scope, keywords []string) ([]interface{}, error) {
-	return uc.keywordService.Test(ctx, keywords)
+	output, err := uc.keywordUC.Test(ctx, keyword.TestInput{Keywords: keywords})
+	if err != nil {
+		uc.l.Errorf(ctx, "internal.project.usecase.DryRunKeywords: %v", err)
+		return nil, err
+	}
+	return output.Results, nil
 }
