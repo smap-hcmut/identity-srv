@@ -10,12 +10,6 @@ var (
 	ErrInvalidRole = errors.New("invalid role")
 )
 
-// User role constants
-const (
-	RoleUser  = "USER"
-	RoleAdmin = "ADMIN"
-)
-
 // EncryptRole encrypts a role string using SHA256 and base64 encoding
 // This prevents direct string comparison and obfuscates the role value
 func EncryptRole(role string) (string, error) {

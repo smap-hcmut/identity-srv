@@ -15,5 +15,5 @@ type Repository interface {
 	Create(ctx context.Context, sc model.Scope, opts CreateOptions) (model.Project, error)
 	Update(ctx context.Context, sc model.Scope, opts UpdateOptions) (model.Project, error)
 	GetOne(ctx context.Context, sc model.Scope, opts GetOneOptions) (model.Project, error)
-	Delete(ctx context.Context, sc model.Scope, id string) error
+	Delete(ctx context.Context, sc model.Scope, ids []string) error
 }

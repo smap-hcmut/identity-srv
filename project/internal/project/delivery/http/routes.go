@@ -8,12 +8,9 @@ import (
 
 func MapProjectRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	// All routes require authentication
-	r.GET("", mw.Auth(), h.List)
-	r.GET("/page", mw.Auth(), h.Get)
+	r.GET("", mw.Auth(), h.Get)
 	r.GET("/:id", mw.Auth(), h.Detail)
 	r.POST("", mw.Auth(), h.Create)
-	r.PUT("/:id", mw.Auth(), h.Update)
-	r.DELETE("/:id", mw.Auth(), h.Delete)
-	r.POST("/keywords/suggest", mw.Auth(), h.SuggestKeywords)
-	r.POST("/keywords/dry-run", mw.Auth(), h.DryRunKeywords)
+	r.PATCH("/:id", mw.Auth(), h.Patch)
+	r.DELETE("", mw.Auth(), h.Delete)
 }

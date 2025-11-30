@@ -8,37 +8,36 @@ import (
 )
 
 // CreateInput represents input for creating a new project
+type CompetitorKeywordOpts struct {
+	Name     string
+	Keywords []string
+}
+
 type CreateInput struct {
-	Name                  string
-	Description           *string
-	Status                string
-	FromDate              time.Time
-	ToDate                time.Time
-	BrandName             string
-	CompetitorNames       []string
-	BrandKeywords         []string
-	CompetitorKeywordsMap map[string][]string // Map competitor name to their keywords
-	ExcludeKeywords       []string
+	Name               string
+	Description        *string
+	FromDate           time.Time
+	ToDate             time.Time
+	BrandName          string
+	BrandKeywords      []string
+	CompetitorKeywords []CompetitorKeywordOpts
 }
 
 // UpdateInput represents input for updating a project
-type UpdateInput struct {
-	ID                    string
-	Name                  *string
-	Description           *string
-	Status                *string
-	FromDate              *time.Time
-	ToDate                *time.Time
-	BrandName             *string
-	CompetitorNames       []string
-	BrandKeywords         []string
-	CompetitorKeywordsMap map[string][]string
-	ExcludeKeywords       []string
+type PatchInput struct {
+	ID                 string
+	Description        *string
+	Status             *string
+	FromDate           *time.Time
+	ToDate             *time.Time
+	BrandKeywords      []string
+	CompetitorKeywords []CompetitorKeywordOpts
 }
 
 // ProjectOutput represents output for a single project
 type ProjectOutput struct {
-	Project model.Project
+	Project   model.Project
+	CreatedBy model.User
 }
 
 // GetProjectOutput represents output for multiple projects with pagination
@@ -69,4 +68,9 @@ type Filter struct {
 	Statuses   []string
 	CreatedBy  *string // User ID who created the projects
 	SearchName *string // Search by project name
+}
+
+// DeleteInput represents input for deleting projects
+type DeleteInput struct {
+	IDs []string
 }
