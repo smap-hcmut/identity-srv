@@ -3,21 +3,24 @@ package usecase
 import (
 	"time"
 
+	"smap-project/internal/keyword"
 	"smap-project/internal/project"
 	"smap-project/internal/project/repository"
 	pkgLog "smap-project/pkg/log"
 )
 
 type usecase struct {
-	l     pkgLog.Logger
-	repo  repository.Repository
-	clock func() time.Time
+	l         pkgLog.Logger
+	repo      repository.Repository
+	clock     func() time.Time
+	keywordUC keyword.UseCase
 }
 
-func New(l pkgLog.Logger, repo repository.Repository) project.UseCase {
+func New(l pkgLog.Logger, repo repository.Repository, keywordUC keyword.UseCase) project.UseCase {
 	return &usecase{
-		l:     l,
-		repo:  repo,
-		clock: time.Now,
+		l:         l,
+		repo:      repo,
+		clock:     time.Now,
+		keywordUC: keywordUC,
 	}
 }

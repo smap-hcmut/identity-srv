@@ -10,22 +10,28 @@ import (
 	"github.com/aarondl/sqlboiler/v4/types"
 )
 
+// CompetitorKeyword represents a competitor with its keywords
+type CompetitorKeyword struct {
+	CompetitorName string   `json:"competitor_name"`
+	Keywords       []string `json:"keywords"`
+}
+
 // Project represents a project entity in the domain model
 type Project struct {
-	ID                    string
-	Name                  string
-	Description           *string
-	Status                string
-	FromDate              time.Time
-	ToDate                time.Time
-	BrandName             string
-	CompetitorNames       []string
-	BrandKeywords         []string
-	CompetitorKeywordsMap map[string][]string // JSON map of competitor -> keywords
-	CreatedBy             string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-	DeletedAt             *time.Time
+	ID                 string
+	Name               string
+	Description        *string
+	Status             string
+	FromDate           time.Time
+	ToDate             time.Time
+	BrandName          string
+	CompetitorNames    []string
+	BrandKeywords      []string
+	CompetitorKeywords []CompetitorKeyword // Array of competitor keywords
+	CreatedBy          string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time
 }
 
 // NewProjectFromDB converts SQLBoiler Project to domain Project
@@ -52,9 +58,23 @@ func NewProjectFromDB(p *sqlboiler.Project) *Project {
 	}
 
 	if p.CompetitorKeywordsMap.Valid {
-		var kwMap map[string][]string
-		if err := json.Unmarshal(p.CompetitorKeywordsMap.JSON, &kwMap); err == nil {
-			project.CompetitorKeywordsMap = kwMap
+		// Try to unmarshal as array first (new format)
+		var kwArray []CompetitorKeyword
+		if err := json.Unmarshal(p.CompetitorKeywordsMap.JSON, &kwArray); err == nil {
+			project.CompetitorKeywords = kwArray
+		} else {
+			// Fallback: try to unmarshal as map (old format) and convert to array
+			var kwMap map[string][]string
+			if err := json.Unmarshal(p.CompetitorKeywordsMap.JSON, &kwMap); err == nil {
+				kwArray = make([]CompetitorKeyword, 0, len(kwMap))
+				for name, keywords := range kwMap {
+					kwArray = append(kwArray, CompetitorKeyword{
+						CompetitorName: name,
+						Keywords:       keywords,
+					})
+				}
+				project.CompetitorKeywords = kwArray
+			}
 		}
 	}
 
@@ -92,9 +112,9 @@ func (p *Project) ToDBProject() *sqlboiler.Project {
 		dbProject.Description = null.StringFrom(*p.Description)
 	}
 
-	if p.CompetitorKeywordsMap != nil {
-		if kwMapJSON, err := json.Marshal(p.CompetitorKeywordsMap); err == nil {
-			dbProject.CompetitorKeywordsMap = null.JSONFrom(kwMapJSON)
+	if len(p.CompetitorKeywords) > 0 {
+		if kwArrayJSON, err := json.Marshal(p.CompetitorKeywords); err == nil {
+			dbProject.CompetitorKeywordsMap = null.JSONFrom(kwArrayJSON)
 		}
 	}
 

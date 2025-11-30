@@ -3,14 +3,30 @@ package repository
 import (
 	"smap-project/internal/model"
 	"smap-project/pkg/paginator"
+	"time"
 )
 
 type CreateOptions struct {
-	Project model.Project
+	Name               string
+	Description        *string
+	Status             string
+	FromDate           time.Time
+	ToDate             time.Time
+	BrandName          string
+	CompetitorNames    []string
+	BrandKeywords      []string
+	CompetitorKeywords []model.CompetitorKeyword // Array of competitor keywords
+	CreatedBy          string
 }
 
 type UpdateOptions struct {
-	Project model.Project
+	ID                 string
+	Description        *string
+	Status             *string
+	FromDate           *time.Time
+	ToDate             *time.Time
+	BrandKeywords      []string
+	CompetitorKeywords []model.CompetitorKeyword // Array of competitor keywords
 }
 
 type GetOptions struct {
