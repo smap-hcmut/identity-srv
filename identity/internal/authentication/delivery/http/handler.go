@@ -127,7 +127,7 @@ func (h handler) VerifyOTP(c *gin.Context) {
 // @Produce json
 // @Param loginReq body loginReq true "Login credentials"
 // @Success 200 {object} response.Resp{data=loginResp} "Success - Authentication cookie set in Set-Cookie header (smap_auth_token)"
-// @Header 200 {string} Set-Cookie "smap_auth_token=<JWT>; Path=/identity; Domain=.smap.com; HttpOnly; Secure; SameSite=Lax; Max-Age=7200"
+// @Header 200 {string} Set-Cookie "smap_auth_token=<JWT>; Path=/; Domain=.tantai.dev; HttpOnly; Secure; SameSite=Lax; Max-Age=7200"
 // @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
 // @Failure 500 {object} response.Resp "Internal Server Error"
 // @Router /authentication/login [POST]
@@ -166,7 +166,7 @@ func (h handler) Login(c *gin.Context) {
 		h.cookieConfig.Name,
 		o.Token.AccessToken,
 		maxAge,
-		"/identity",
+		"/",
 		h.cookieConfig.Domain,
 		h.cookieConfig.Secure,
 		true, // HttpOnly - always true for security
@@ -184,7 +184,7 @@ func (h handler) Login(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Resp "Success - Authentication cookie expired"
-// @Header 200 {string} Set-Cookie "smap_auth_token=; Path=/identity; Domain=.smap.com; HttpOnly; Secure; Max-Age=-1"
+// @Header 200 {string} Set-Cookie "smap_auth_token=; Path=/; Domain=.tantai.dev; HttpOnly; Secure; Max-Age=-1"
 // @Failure 401 {object} response.Resp "Unauthorized - Missing or invalid authentication cookie"
 // @Failure 500 {object} response.Resp "Internal Server Error"
 // @Router /authentication/logout [POST]
@@ -213,7 +213,7 @@ func (h handler) Logout(c *gin.Context) {
 		h.cookieConfig.Name,
 		"",
 		-1, // MaxAge: -1 expires the cookie immediately
-		"/identity",
+		"/",
 		h.cookieConfig.Domain,
 		h.cookieConfig.Secure,
 		true, // HttpOnly
