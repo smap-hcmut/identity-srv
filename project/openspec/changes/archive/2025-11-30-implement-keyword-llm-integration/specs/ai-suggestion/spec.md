@@ -63,6 +63,8 @@ And the LLM service is unavailable
 Then the system falls back to basic negative keywords (e.g., "job", "hiring", "second hand", "used")
 And the API returns the fallback negative keywords successfully
 
+## ADDED Requirements
+
 ### Requirement: LLM Integration Configuration
 
 The system SHALL support configuration of LLM provider through environment variables. The system MUST support at least one LLM provider (Google Gemini) and MAY support additional providers in the future.

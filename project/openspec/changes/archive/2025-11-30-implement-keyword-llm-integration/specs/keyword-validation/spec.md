@@ -110,6 +110,8 @@ Then the system logs a warning that LLM check failed
 And the keyword is validated using standard rules only
 And the keyword is accepted if it passes standard validation
 
+## ADDED Requirements
+
 ### Requirement: LLM-Based Ambiguity Detection
 
 The system SHALL use LLM service to detect ambiguous single-word keywords. The system MUST only perform LLM checks on single-word keywords to optimize performance and cost. The system SHALL log warnings for ambiguous keywords but SHALL NOT reject them automatically.

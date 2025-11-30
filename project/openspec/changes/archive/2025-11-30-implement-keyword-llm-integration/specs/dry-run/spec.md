@@ -90,6 +90,8 @@ Then each post is a structured object with fields:
 - `date` (string): ISO 8601 formatted date/time
 - Additional fields as provided by Collector Service
 
+## ADDED Requirements
+
 ### Requirement: Collector Service Integration
 
 The system SHALL integrate with Collector Service (external microservice) via HTTP API to fetch dry run data. The system MUST support configuration of Collector Service URL and timeout. The system SHALL use a default mock URL for development when URL is not configured.
