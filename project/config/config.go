@@ -44,7 +44,7 @@ type Config struct {
 type LLMConfig struct {
 	Provider   string `env:"LLM_PROVIDER" envDefault:"gemini"`
 	APIKey     string `env:"LLM_API_KEY"`
-	Model      string `env:"LLM_MODEL" envDefault:"gemini-1.5-flash"`
+	Model      string `env:"LLM_MODEL" envDefault:"gemini-2.0-flash"`
 	Timeout    int    `env:"LLM_TIMEOUT" envDefault:"30"`
 	MaxRetries int    `env:"LLM_MAX_RETRIES" envDefault:"3"`
 }

@@ -28,6 +28,15 @@ type geminiProvider struct {
 }
 
 func newGeminiProvider(cfg config.LLMConfig, l log.Logger) *geminiProvider {
+	if cfg.Model == "" {
+		cfg.Model = "gemini-1.5-flash"
+	}
+	// Sanitize model name: remove "models/" prefix if present
+	if len(cfg.Model) > 7 && cfg.Model[:7] == "models/" {
+		cfg.Model = cfg.Model[7:]
+	}
+	l.Infof(context.Background(), "Initializing Gemini provider with model: %s", cfg.Model)
+
 	return &geminiProvider{
 		client: &http.Client{
 			Timeout: time.Duration(cfg.Timeout) * time.Second,
@@ -42,7 +51,7 @@ func newGeminiProvider(cfg config.LLMConfig, l log.Logger) *geminiProvider {
 }
 
 type GeminiRequest struct {
-	Contents         []GeminiContent `json:"contents"`
+	Contents         []GeminiContent  `json:"contents"`
 	GenerationConfig GenerationConfig `json:"generationConfig"`
 }
 

@@ -28,6 +28,19 @@ data:
   MINIO_USE_SSL: "true"
   MINIO_REGION: "us-east-1"
   MINIO_BUCKET: "smap-project"
+  MINIO_ASYNC_UPLOAD_WORKERS: "4"
+  MINIO_ASYNC_UPLOAD_QUEUE_SIZE: "100"
 
   # Environment Configuration
   ENV: "dev"
+  APP_VERSION: "1.0.0"
+
+  # LLM Configuration
+  LLM_PROVIDER: "gemini"
+  LLM_MODEL: "gemini-2.0-flash"
+  LLM_TIMEOUT: "30"
+  LLM_MAX_RETRIES: "3"
+
+  # Collector Service Configuration
+  COLLECTOR_SERVICE_URL: "http://collector-service.smap.svc.cluster.local:8081"
+  COLLECTOR_TIMEOUT: "30"
