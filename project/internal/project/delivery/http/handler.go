@@ -59,7 +59,7 @@ func (h handler) Detail(c *gin.Context) {
 // @Success 200 {object} ProjectListResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
-// @Router /projects/page [get]
+// @Router /projects [get]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 
