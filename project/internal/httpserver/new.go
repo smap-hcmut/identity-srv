@@ -38,6 +38,10 @@ type HTTPServer struct {
 
 	// Monitoring & Notification Configuration
 	discord *discord.Discord
+
+	// External Services
+	llmConfig       config.LLMConfig
+	collectorConfig config.CollectorConfig
 }
 
 type Config struct {
@@ -65,6 +69,10 @@ type Config struct {
 
 	// Monitoring & Notification Configuration
 	Discord *discord.Discord
+
+	// External Services
+	LLMConfig       config.LLMConfig
+	CollectorConfig config.CollectorConfig
 }
 
 // New creates a new HTTPServer instance with the provided configuration.
@@ -97,6 +105,10 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 		// Monitoring & Notification Configuration
 		discord: cfg.Discord,
+
+		// External Services
+		llmConfig:       cfg.LLMConfig,
+		collectorConfig: cfg.CollectorConfig,
 	}
 
 	if err := srv.validate(); err != nil {
@@ -151,6 +163,14 @@ func (srv HTTPServer) validate() error {
 	// Monitoring & Notification Configuration
 	if srv.discord == nil {
 		return errors.New("discord is required")
+	}
+
+	// External Services
+	if srv.llmConfig.APIKey == "" {
+		return errors.New("LLM API key is required")
+	}
+	if srv.collectorConfig.BaseURL == "" {
+		return errors.New("collector service URL is required")
 	}
 
 	return nil

@@ -141,8 +141,12 @@ type CompetitorKeywordResp struct {
 }
 
 type RespObj struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Status      *string           `json:"status,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	FromDate    response.DateTime `json:"from_date,omitempty"`
+	ToDate      response.DateTime `json:"to_date,omitempty"`
 }
 
 // ProjectResp represents the HTTP response for a single project
@@ -162,8 +166,8 @@ type ProjectResp struct {
 	UpdatedAt          response.DateTime       `json:"updated_at"`
 }
 
-// ProjectListResp represents the HTTP response for multiple projects with pagination
-type ProjectListResp struct {
+// GetResp represents the HTTP response for multiple projects with pagination
+type GetResp struct {
 	Projects  []RespObj           `json:"projects"`
 	Paginator paginator.Paginator `json:"paginator"`
 }
@@ -197,16 +201,23 @@ func (h handler) newProjectResp(o project.ProjectOutput) ProjectResp {
 	}
 }
 
-func (h handler) newProjectPageResp(o project.GetProjectOutput) ProjectListResp {
+func (h handler) newGetResp(o project.GetProjectOutput) GetResp {
 	resp := make([]RespObj, len(o.Projects))
 	for i, p := range o.Projects {
 		resp[i] = RespObj{
-			ID:   p.ID,
-			Name: p.Name,
+			ID:       p.ID,
+			Name:     p.Name,
+			Status:   &p.Status,
+			FromDate: response.DateTime(p.FromDate),
+			ToDate:   response.DateTime(p.ToDate),
+		}
+
+		if p.Description != nil {
+			resp[i].Description = p.Description
 		}
 	}
 
-	return ProjectListResp{
+	return GetResp{
 		Projects:  resp,
 		Paginator: o.Paginator,
 	}
@@ -215,21 +226,4 @@ func (h handler) newProjectPageResp(o project.GetProjectOutput) ProjectListResp 
 type SuggestKeywordsResp struct {
 	NicheKeywords    []string `json:"niche_keywords"`
 	NegativeKeywords []string `json:"negative_keywords"`
-}
-
-func (h handler) newSuggestKeywordsResp(niche []string, negative []string) SuggestKeywordsResp {
-	return SuggestKeywordsResp{
-		NicheKeywords:    niche,
-		NegativeKeywords: negative,
-	}
-}
-
-type DryRunKeywordsResp struct {
-	Posts []interface{} `json:"posts"`
-}
-
-func (h handler) newDryRunKeywordsResp(p []interface{}) DryRunKeywordsResp {
-	return DryRunKeywordsResp{
-		Posts: p,
-	}
 }

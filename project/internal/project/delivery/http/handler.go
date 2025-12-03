@@ -56,10 +56,10 @@ func (h handler) Detail(c *gin.Context) {
 // @Param search_name query string false "Search by project name"
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
-// @Success 200 {object} ProjectListResp
+// @Success 200 {object} GetResp
 // @Failure 400 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
-// @Router /projects/page [get]
+// @Router /projects [get]
 func (h handler) Get(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -83,7 +83,7 @@ func (h handler) Get(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, h.newProjectPageResp(o))
+	response.OK(c, h.newGetResp(o))
 }
 
 // @Summary Create a new project

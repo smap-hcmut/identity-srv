@@ -62,5 +62,21 @@ func (uc *usecase) validateOne(ctx context.Context, keyword string) (string, err
 		return "", errors.New("keyword '" + keyword + "' is too generic")
 	}
 
+	// Check for ambiguity in single words using LLM
+	if isSingleWord(normalized) {
+		isAmbiguous, context, err := uc.llmProvider.CheckAmbiguity(ctx, normalized)
+		if err != nil {
+			// Log the error but don't fail validation, as this is a non-critical check
+			uc.l.Warnf(ctx, "LLM ambiguity check failed for '%s': %v", normalized, err)
+		} else if isAmbiguous {
+			uc.l.Warnf(ctx, "Keyword '%s' might be ambiguous. Context: %s", normalized, context)
+		}
+	}
+
 	return normalized, nil
+}
+
+// isSingleWord checks if the string is a single word (no spaces).
+func isSingleWord(s string) bool {
+	return !strings.Contains(s, " ")
 }

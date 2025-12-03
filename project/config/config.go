@@ -34,6 +34,25 @@ type Config struct {
 
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
+
+	// External Services
+	LLM       LLMConfig
+	Collector CollectorConfig
+}
+
+// LLMConfig is the configuration for the LLM provider.
+type LLMConfig struct {
+	Provider   string `env:"LLM_PROVIDER" envDefault:"gemini"`
+	APIKey     string `env:"LLM_API_KEY"`
+	Model      string `env:"LLM_MODEL" envDefault:"gemini-2.0-flash"`
+	Timeout    int    `env:"LLM_TIMEOUT" envDefault:"30"`
+	MaxRetries int    `env:"LLM_MAX_RETRIES" envDefault:"3"`
+}
+
+// CollectorConfig is the configuration for the Collector service.
+type CollectorConfig struct {
+	BaseURL string `env:"COLLECTOR_SERVICE_URL" envDefault:"http://localhost:8081"`
+	Timeout int    `env:"COLLECTOR_TIMEOUT" envDefault:"30"`
 }
 
 // JWTConfig is the configuration for the JWT,

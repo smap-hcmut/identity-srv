@@ -154,4 +154,20 @@ curl -X POST https://smap-api.tantai.dev/project/projects \
 
 ---
 
+## Configuration
+
+The service is configured using environment variables. The following variables are available:
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `LLM_PROVIDER` | The LLM provider to use for keyword suggestions. | `gemini` |
+| `LLM_API_KEY` | The API key for the LLM provider. | |
+| `LLM_MODEL` | The LLM model to use. | `gemini-1.5-flash` |
+| `LLM_TIMEOUT` | The timeout in seconds for LLM API calls. | `30` |
+| `LLM_MAX_RETRIES`| The maximum number of retries for failed LLM API calls. | `3` |
+| `COLLECTOR_SERVICE_URL` | The base URL of the Collector Service for dry runs. | `http://localhost:8081` |
+| `COLLECTOR_TIMEOUT` | The timeout in seconds for Collector Service API calls. | `30` |
+
+---
+
 **Built for SMAP Graduation Project**

@@ -105,8 +105,8 @@ func (h handler) processDeleteReq(c *gin.Context) (DeleteReq, model.Scope, error
 	}
 
 	var req DeleteReq
-	if err := c.ShouldBindUri(&req); err != nil {
-		h.l.Errorf(ctx, "project.http.processDeleteReq.ShouldBindUri: %v", err)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.l.Errorf(ctx, "project.http.processDeleteReq.ShouldBindJSON: %v", err)
 		return DeleteReq{}, model.Scope{}, errWrongBody
 	}
 

@@ -189,6 +189,61 @@ spec:
             secretKeyRef:
               name: smap-project-secrets
               key: DISCORD_WEBHOOK_TOKEN
+        - name: ENV
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: ENV
+        - name: APP_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: APP_VERSION
+        - name: MINIO_ASYNC_UPLOAD_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: MINIO_ASYNC_UPLOAD_WORKERS
+        - name: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
+        - name: LLM_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: LLM_PROVIDER
+        - name: LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: LLM_MODEL
+        - name: LLM_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: LLM_TIMEOUT
+        - name: LLM_MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: LLM_MAX_RETRIES
+        - name: LLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: smap-project-secrets
+              key: LLM_API_KEY
+        - name: COLLECTOR_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COLLECTOR_SERVICE_URL
+        - name: COLLECTOR_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: smap-project-config
+              key: COLLECTOR_TIMEOUT
         - name: CONTAINER_NAME
           value: "smap-project-api"
         - name: KUBERNETES_NAMESPACE

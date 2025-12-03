@@ -2,12 +2,14 @@ package httpserver
 
 import (
 	"context"
-	keywordusecase "smap-project/internal/keyword/usecase"
+	"smap-project/internal/keyword/usecase"
 	"smap-project/internal/middleware"
 	projecthttp "smap-project/internal/project/delivery/http"
 	projectrepository "smap-project/internal/project/repository/postgre"
 	projectusecase "smap-project/internal/project/usecase"
+	"smap-project/pkg/collector"
 	"smap-project/pkg/i18n"
+	"smap-project/pkg/llm"
 	"smap-project/pkg/scope"
 
 	// Import this to execute the init function in docs.go which setups the Swagger docs.
@@ -27,11 +29,20 @@ func (srv HTTPServer) mapHandlers() error {
 
 	i18n.Init()
 
+	// Initialize LLM provider
+	llmProvider, err := llm.NewProvider(srv.llmConfig, srv.l)
+	if err != nil {
+		return err
+	}
+
+	// Initialize Collector client
+	collectorClient := collector.NewClient(srv.collectorConfig, srv.l)
+
 	// Initialize project repository
 	projectRepo := projectrepository.New(srv.postgresDB, srv.l)
 
 	// Initialize keyword usecase
-	keywordUC := keywordusecase.New(srv.l)
+	keywordUC := usecase.New(srv.l, llmProvider, collectorClient)
 
 	// Initialize project usecase
 	projectUC := projectusecase.New(srv.l, projectRepo, keywordUC)

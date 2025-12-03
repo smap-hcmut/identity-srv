@@ -114,6 +114,10 @@ func main() {
 
 		// Monitoring & Notification Configuration
 		Discord: discordClient,
+
+		// External Services
+		LLMConfig:       cfg.LLM,
+		CollectorConfig: cfg.Collector,
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize HTTP server: ", err)
