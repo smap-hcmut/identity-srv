@@ -8,7 +8,6 @@ import (
 var (
 	errWrongQuery       = pkgErrors.NewHTTPError(30001, "Wrong query")
 	errWrongBody        = pkgErrors.NewHTTPError(30002, "Wrong body")
-	errInvalidID        = pkgErrors.NewHTTPError(30003, "Invalid project ID")
 	errNotFound         = pkgErrors.NewHTTPError(30004, "Project not found")
 	errUnauthorized     = pkgErrors.NewHTTPError(30005, "Unauthorized")
 	errInvalidStatus    = pkgErrors.NewHTTPError(30006, "Invalid project status")
