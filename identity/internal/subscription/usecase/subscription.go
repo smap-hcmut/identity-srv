@@ -232,3 +232,15 @@ func (uc *usecase) Cancel(ctx context.Context, sc model.Scope, id string) (subsc
 	return subscription.SubscriptionOutput{Subscription: updated}, nil
 }
 
+func (uc *usecase) GetUserSubscription(ctx context.Context, sc model.Scope, userID string) (model.Subscription, error) {
+	sub, err := uc.repo.GetUserSubscription(ctx, sc, userID)
+	if err != nil {
+		if err == repository.ErrNotFound {
+			return model.Subscription{}, subscription.ErrSubscriptionNotFound
+		}
+		uc.l.Errorf(ctx, "internal.subscription.usecase.GetUserSubscription: %v", err)
+		return model.Subscription{}, err
+	}
+
+	return sub, nil
+}

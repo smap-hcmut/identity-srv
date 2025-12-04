@@ -15,4 +15,6 @@ func MapSubscriptionRoutes(r *gin.RouterGroup, h handler, mw middleware.Middlewa
 	r.PUT("/:id", mw.Auth(), h.Update)
 	r.DELETE("/:id", mw.Auth(), h.Delete)
 	r.POST("/:id/cancel", mw.Auth(), h.Cancel)
+
+	r.GET("/internal/users/:id", mw.InternalAuth(), h.GetUserSubscription)
 }

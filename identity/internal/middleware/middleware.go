@@ -37,3 +37,25 @@ func (m Middleware) Auth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func (m Middleware) InternalAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// First, attempt to read token from cookie (preferred method)
+		tokenString := c.GetHeader("Authorization")
+
+		// If no token found in cookie, return unauthorized
+		if tokenString == "" {
+			response.Unauthorized(c)
+			c.Abort()
+			return
+		}
+
+		if tokenString != m.InternalKey {
+			response.Unauthorized(c)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

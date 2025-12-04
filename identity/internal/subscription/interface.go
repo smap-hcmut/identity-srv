@@ -17,5 +17,5 @@ type UseCase interface {
 	Delete(ctx context.Context, sc model.Scope, id string) error
 	GetActiveSubscription(ctx context.Context, sc model.Scope, userID string) (model.Subscription, error)
 	Cancel(ctx context.Context, sc model.Scope, id string) (SubscriptionOutput, error)
+	GetUserSubscription(ctx context.Context, sc model.Scope, userID string) (model.Subscription, error)
 }
-

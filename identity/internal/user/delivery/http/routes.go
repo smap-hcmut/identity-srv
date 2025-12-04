@@ -25,4 +25,10 @@ func MapUserRoutes(group *gin.RouterGroup, h handler, mw middleware.Middleware) 
 		adminGroup.GET("/page", h.Get)
 		adminGroup.GET("/:id", h.GetDetail)
 	}
+
+	internalGroup := group.Group("internal")
+	internalGroup.Use(mw.InternalAuth())
+	{
+		internalGroup.GET("/:id", h.GetDetail)
+	}
 }

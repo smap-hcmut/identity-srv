@@ -226,3 +226,26 @@ func (r *implRepository) Delete(ctx context.Context, sc model.Scope, id string) 
 	return nil
 }
 
+func (r *implRepository) GetUserSubscription(ctx context.Context, sc model.Scope, userID string) (model.Subscription, error) {
+	activeStatuses := []sqlboiler.SubscriptionStatus{
+		sqlboiler.SubscriptionStatus(model.SubscriptionStatusActive),
+		sqlboiler.SubscriptionStatus(model.SubscriptionStatusTrialing),
+	}
+
+	sub, err := sqlboiler.Subscriptions(
+		sqlboiler.SubscriptionWhere.UserID.EQ(userID),
+		sqlboiler.SubscriptionWhere.Status.IN(activeStatuses),
+		sqlboiler.SubscriptionWhere.DeletedAt.IsNull(),
+		qm.OrderBy(sqlboiler.SubscriptionColumns.CreatedAt+" DESC"),
+	).One(ctx, r.db)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return model.Subscription{}, repository.ErrNotFound
+		}
+		r.l.Errorf(ctx, "internal.subscription.repository.postgres.GetUserSubscription.One: %v", err)
+		return model.Subscription{}, err
+	}
+
+	return *model.NewSubscriptionFromDB(sub), nil
+}

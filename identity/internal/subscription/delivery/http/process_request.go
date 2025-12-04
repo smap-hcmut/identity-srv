@@ -110,3 +110,14 @@ func (h handler) processGetMySubscriptionRequest(c *gin.Context) (model.Scope, e
 	sc := c.MustGet("scope").(model.Scope)
 	return sc, nil
 }
+
+func (h handler) processGetUserSubscriptionRequest(c *gin.Context) (string, model.Scope, error) {
+	sc := c.MustGet("scope").(model.Scope)
+	id := c.Param("id")
+
+	if id == "" {
+		return "", model.Scope{}, errInvalidID
+	}
+
+	return id, sc, nil
+}
