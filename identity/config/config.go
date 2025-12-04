@@ -37,9 +37,6 @@ type Config struct {
 
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
-
-	// External Services
-	Collector CollectorConfig
 }
 
 // EnvironmentConfig is the configuration for the deployment environment.
@@ -139,11 +136,6 @@ type EncrypterConfig struct {
 // which is used to check the internal request.
 type InternalConfig struct {
 	InternalKey string `env:"INTERNAL_KEY"`
-}
-
-type CollectorConfig struct {
-	BaseURL string `env:"COLLECTOR_SERVICE_URL" envDefault:"http://localhost:8081"`
-	Timeout int    `env:"COLLECTOR_TIMEOUT" envDefault:"30"`
 }
 
 // Load is the function to load the configuration from the environment variables.
