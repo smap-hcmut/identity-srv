@@ -136,12 +136,12 @@ func (h handler) ChangePassword(c *gin.Context) {
 // @Failure 404 {object} errors.HTTPError
 // @Failure 500 {object} errors.HTTPError
 // @Router /users/{id} [get]
-func (h handler) GetDetail(c *gin.Context) {
+func (h handler) Detail(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	id, sc, err := h.processIDParam(c)
 	if err != nil {
-		h.l.Errorf(ctx, "user.delivery.http.GetDetail.processIDParam: %v", err)
+		h.l.Errorf(ctx, "user.delivery.http.Detail.processIDParam: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
@@ -150,9 +150,9 @@ func (h handler) GetDetail(c *gin.Context) {
 	if err != nil {
 		err = h.mapErrorCode(err)
 		if !slices.Contains(NotFound, err) {
-			h.l.Errorf(ctx, "user.delivery.http.GetDetail.Detail: %v", err)
+			h.l.Errorf(ctx, "user.delivery.http.Detail.Detail: %v", err)
 		} else {
-			h.l.Warnf(ctx, "user.delivery.http.GetDetail.Detail: %v", err)
+			h.l.Warnf(ctx, "user.delivery.http.Detail.Detail: %v", err)
 		}
 		response.Error(c, err, h.discord)
 		return
