@@ -8,19 +8,10 @@ import (
 	"smap-project/pkg/discord"
 	"smap-project/pkg/encrypter"
 	"smap-project/pkg/log"
+	pkgRabbitMQ "smap-project/pkg/rabbitmq"
+	pkgRedis "smap-project/pkg/redis"
 
 	"github.com/gin-gonic/gin"
-)
-
-const (
-	productionMode = "production"
-	debugMode      = "debug"
-)
-
-var (
-	ginDebugMode   = gin.DebugMode
-	ginReleaseMode = gin.ReleaseMode
-	ginTestMode    = gin.TestMode
 )
 
 type HTTPServer struct {
@@ -39,7 +30,10 @@ type HTTPServer struct {
 	// minio miniopkg.MinIO
 
 	// // Message Queue Configuration
-	// amqpConn *pkgRabbitMQ.Connection
+	amqpConn *pkgRabbitMQ.Connection
+
+	// Cache Configuration
+	redisClient pkgRedis.Client
 
 	// Authentication & Security Configuration
 	jwtSecretKey string
@@ -70,7 +64,10 @@ type Config struct {
 	// MinIO miniopkg.MinIO
 
 	// // Message Queue Configuration
-	// AmqpConn *pkgRabbitMQ.Connection
+	AmqpConn *pkgRabbitMQ.Connection
+
+	// Cache Configuration
+	RedisClient pkgRedis.Client
 
 	// Authentication & Security Configuration
 	JwtSecretKey string
@@ -106,7 +103,10 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		// minio: cfg.MinIO,
 
 		// // Message Queue Configuration
-		// amqpConn: cfg.AmqpConn,
+		amqpConn: cfg.AmqpConn,
+
+		// Cache Configuration
+		redisClient: cfg.RedisClient,
 
 		// Authentication & Security Configuration
 		jwtSecretKey: cfg.JwtSecretKey,

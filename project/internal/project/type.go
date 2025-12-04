@@ -74,3 +74,14 @@ type Filter struct {
 type DeleteInput struct {
 	IDs []string
 }
+
+// DryRunKeywordsInput represents input for dry-run keywords request
+type DryRunKeywordsInput struct {
+	Keywords []string `json:"keywords" binding:"required,min=1,max=10"`
+}
+
+// DryRunKeywordsOutput represents output for dry-run keywords request
+type DryRunKeywordsOutput struct {
+	JobID  string `json:"job_id"`
+	Status string `json:"status"` // "processing"
+}

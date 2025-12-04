@@ -1,0 +1,22 @@
+package rabbitmq
+
+import "time"
+
+// DryRunCrawlRequest represents the message sent to collector for dry-run keyword crawling
+type DryRunCrawlRequest struct {
+	JobID       string         `json:"job_id"`
+	TaskType    string         `json:"task_type"` // "dryrun_keyword"
+	Payload     map[string]any `json:"payload"`
+	TimeRange   int            `json:"time_range,omitempty"`
+	Attempt     int            `json:"attempt,omitempty"`
+	MaxAttempts int            `json:"max_attempts,omitempty"`
+	EmittedAt   time.Time      `json:"emitted_at"`
+}
+
+// DryRunPayload represents the payload for dry-run keyword crawling
+type DryRunPayload struct {
+	Keywords        []string `json:"keywords"`
+	LimitPerKeyword int      `json:"limit_per_keyword"`
+	IncludeComments bool     `json:"include_comments"`
+	MaxComments     int      `json:"max_comments"`
+}

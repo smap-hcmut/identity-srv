@@ -11,6 +11,8 @@ import (
 	"smap-project/pkg/discord"
 	"smap-project/pkg/encrypter"
 	"smap-project/pkg/log"
+	"smap-project/pkg/rabbitmq"
+	pkgRedis "smap-project/pkg/redis"
 	"syscall"
 )
 
@@ -70,13 +72,23 @@ func main() {
 	// defer minio.Disconnect(ctx)
 	// logger.Infof(ctx, "MinIO connected successfully to %s", cfg.MinIO.Endpoint)
 
-	// // Initialize RabbitMQ
-	// amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
-	// if err != nil {
-	// 	logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
-	// 	return
-	// }
-	// defer amqpConn.Close()
+	// Initialize RabbitMQ
+	amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
+	if err != nil {
+		logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
+		return
+	}
+	defer amqpConn.Close()
+
+	// Initialize Redis
+	redisOpts := pkgRedis.NewClientOptions().SetOptions(cfg.Redis)
+	redisClient, err := pkgRedis.Connect(redisOpts)
+	if err != nil {
+		logger.Error(ctx, "Failed to connect to Redis: ", err)
+		return
+	}
+	defer redisClient.Disconnect()
+	logger.Infof(ctx, "Redis connected successfully")
 
 	// Initialize Discord
 	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
@@ -104,7 +116,10 @@ func main() {
 		// MinIO: minioClient,
 
 		// // Message Queue Configuration
-		// AmqpConn: amqpConn,
+		AmqpConn: amqpConn,
+
+		// Cache Configuration
+		RedisClient: redisClient,
 
 		// Authentication & Security Configuration
 		JwtSecretKey: cfg.JWT.SecretKey,

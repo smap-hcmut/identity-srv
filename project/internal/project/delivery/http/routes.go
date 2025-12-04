@@ -13,4 +13,5 @@ func MapProjectRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	r.POST("", mw.Auth(), h.Create)
 	r.PATCH("/:id", mw.Auth(), h.Patch)
 	r.DELETE("", mw.Auth(), h.Delete)
+	r.POST("/dryrun", mw.Auth(), h.DryRunKeywords)
 }

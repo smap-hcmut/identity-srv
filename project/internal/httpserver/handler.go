@@ -5,8 +5,11 @@ import (
 	"smap-project/internal/keyword/usecase"
 	"smap-project/internal/middleware"
 	projecthttp "smap-project/internal/project/delivery/http"
+	projectProd "smap-project/internal/project/delivery/rabbitmq/producer"
 	projectrepository "smap-project/internal/project/repository/postgre"
 	projectusecase "smap-project/internal/project/usecase"
+	webhookhttp "smap-project/internal/webhook/delivery/http"
+	webhookusecase "smap-project/internal/webhook/usecase"
 	"smap-project/pkg/collector"
 	"smap-project/pkg/i18n"
 	"smap-project/pkg/llm"
@@ -22,7 +25,7 @@ import (
 
 func (srv HTTPServer) mapHandlers() error {
 	scopeManager := scope.New(srv.jwtSecretKey)
-	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig)
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, srv.internalKey)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
@@ -44,12 +47,20 @@ func (srv HTTPServer) mapHandlers() error {
 	// Initialize keyword usecase
 	keywordUC := usecase.New(srv.l, llmProvider, collectorClient)
 
-	// Initialize project usecase
-	projectUC := projectusecase.New(srv.l, projectRepo, keywordUC)
+	projectProd := projectProd.New(srv.l, *srv.amqpConn)
+	if err := projectProd.Run(); err != nil {
+		return err
+	}
 
+	// Initialize webhook usecase first (needed by project usecase)
+	webhookUC := webhookusecase.New(srv.l, srv.redisClient)
+	webhookHandler := webhookhttp.New(srv.l, webhookUC, srv.discord, srv.internalKey)
+	webhookhttp.MapWebhookRoutes(srv.gin.Group("/internal"), webhookHandler, mw)
+
+	// Initialize project usecase (pass webhookUC)
+	projectUC := projectusecase.New(srv.l, projectRepo, keywordUC, projectProd, webhookUC)
 	// Initialize project HTTP handler
 	projectHandler := projecthttp.New(srv.l, projectUC, srv.discord)
-
 	// Map routes (no prefix)
 	projecthttp.MapProjectRoutes(srv.gin.Group("/projects"), projectHandler, mw)
 

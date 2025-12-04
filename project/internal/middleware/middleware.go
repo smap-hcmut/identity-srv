@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"strings"
-
 	"smap-project/pkg/response"
 	"smap-project/pkg/scope"
 
@@ -16,12 +14,8 @@ func (m Middleware) Auth() gin.HandlerFunc {
 		tokenString, err := c.Cookie(m.cookieConfig.Name)
 
 		// Fallback to Authorization header for backward compatibility
-		// TODO: Remove this fallback after all clients have migrated to cookie authentication
+		// If no token found in cookie, return unauthorized
 		if err != nil || tokenString == "" {
-			tokenString = strings.ReplaceAll(c.GetHeader("Authorization"), "Bearer ", "")
-		}
-
-		if tokenString == "" {
 			response.Unauthorized(c)
 			c.Abort()
 			return
@@ -39,6 +33,28 @@ func (m Middleware) Auth() gin.HandlerFunc {
 		sc := scope.NewScope(payload)
 		ctx = scope.SetScopeToContext(ctx, sc)
 		c.Request = c.Request.WithContext(ctx)
+
+		c.Next()
+	}
+}
+
+func (m Middleware) InternalAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// First, attempt to read token from cookie (preferred method)
+		tokenString := c.GetHeader("Authorization")
+
+		// If no token found in cookie, return unauthorized
+		if tokenString == "" {
+			response.Unauthorized(c)
+			c.Abort()
+			return
+		}
+
+		if tokenString != m.InternalKey {
+			response.Unauthorized(c)
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}

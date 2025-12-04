@@ -23,14 +23,18 @@ type Config struct {
 	// // Storage Configuration
 	// MinIO MinIOConfig
 
-	// // Message Queue Configuration
-	// RabbitMQ RabbitMQConfig
+	// Message Queue Configuration
+	RabbitMQ RabbitMQConfig
+
+	// Cache Configuration
+	Redis RedisConfig
 
 	// Authentication & Security Configuration
 	JWT            JWTConfig
 	Cookie         CookieConfig
 	Encrypter      EncrypterConfig
 	InternalConfig InternalConfig
+	IdentityConfig IdentityConfig
 
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
@@ -94,6 +98,20 @@ type RabbitMQConfig struct {
 	URL string `env:"RABBITMQ_URL"`
 }
 
+// RedisConfig is the configuration for Redis,
+// which is used for pub/sub and caching.
+type RedisConfig struct {
+	RedisAddr       []string `env:"REDIS_HOST"`
+	RedisStandAlone bool     `env:"REDIS_STANDALONE"`
+	RedisPassword   string   `env:"REDIS_PASSWORD"`
+	RedisDB         string   `env:"REDIS_DATABASE"`
+	MinIdleConns    int      `env:"REDIS_MIN_IDLE_CONNS"`
+	PoolSize        int      `env:"REDIS_POOL_SIZE"`
+	PoolTimeout     int      `env:"REDIS_POOL_TIMEOUT"`
+	Password        string   `env:"REDIS_PASSWORD"`
+	DB              int      `env:"REDIS_DATABASE"`
+}
+
 // LoggerConfig is the configuration for the logger,
 // which is used to log the application.
 type LoggerConfig struct {
@@ -141,6 +159,12 @@ type EncrypterConfig struct {
 // which is used to check the internal request.
 type InternalConfig struct {
 	InternalKey string `env:"INTERNAL_KEY"`
+}
+
+type IdentityConfig struct {
+	BaseURL        string `env:"IDENTITY_SERVICE_URL" envDefault:"http://localhost:8080"`
+	Timeout        int    `env:"IDENTITY_TIMEOUT" envDefault:"30"`
+	InternalAPIKey string `env:"IDENTITY_INTERNAL_KEY"`
 }
 
 // Load is the function to load the configuration from the environment variables.

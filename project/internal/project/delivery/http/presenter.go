@@ -227,3 +227,31 @@ type SuggestKeywordsResp struct {
 	NicheKeywords    []string `json:"niche_keywords"`
 	NegativeKeywords []string `json:"negative_keywords"`
 }
+
+func (h handler) newSuggestKeywordsResp(niche []string, negative []string) SuggestKeywordsResp {
+	return SuggestKeywordsResp{
+		NicheKeywords:    niche,
+		NegativeKeywords: negative,
+	}
+}
+
+// DryRunJobResp represents the HTTP response for a dry-run job creation
+type DryRunJobResp struct {
+	JobID  string `json:"job_id"`
+	Status string `json:"status"`
+}
+
+type DryRunKeywordsReq struct {
+	Keywords []string `json:"keywords" binding:"required"`
+}
+
+func (r DryRunKeywordsReq) validate() error {
+	if len(r.Keywords) == 0 {
+		return errors.New("keywords cannot be empty")
+	}
+	return nil
+}
+
+func (r DryRunKeywordsReq) toInput() []string {
+	return r.Keywords
+}

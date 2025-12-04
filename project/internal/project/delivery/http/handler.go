@@ -201,3 +201,40 @@ func (h handler) Delete(c *gin.Context) {
 
 	response.OK(c, nil)
 }
+
+// @Summary Dry run keywords
+// @Description Perform a dry run for the provided keywords
+// @Tags Projects
+// @Accept json
+// @Produce json
+// @Security CookieAuth
+// @Param request body DryRunKeywordsReq true "Dry run keywords request"
+// @Success 200 {object} DryRunJobResp
+// @Failure 400 {object} errors.HTTPError
+// @Failure 500 {object} errors.HTTPError
+// @Router /projects/dryrun [post]
+func (h handler) DryRunKeywords(c *gin.Context) {
+	ctx := c.Request.Context()
+	req, sc, err := h.processDryRunReq(c)
+	if err != nil {
+		h.l.Errorf(ctx, "project.http.DryRunKeywords.processDryRunReq: %v", err)
+		response.Error(c, err, h.discord)
+		return
+
+	}
+
+	jobID, err := h.uc.DryRunKeywords(ctx, sc, req.toInput())
+
+	if err != nil {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "project.http.DryRunKeywords.DryRunKeywords: %v", err)
+		} else {
+			h.l.Warnf(ctx, "project.http.DryRunKeywords.DryRunKeywords: %v", err)
+		}
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	response.OK(c, DryRunJobResp{JobID: jobID, Status: "processing"})
+}

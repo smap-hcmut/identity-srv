@@ -117,3 +117,25 @@ func (h handler) processDeleteReq(c *gin.Context) (DeleteReq, model.Scope, error
 
 	return req, sc, nil
 }
+
+func (h handler) processDryRunReq(c *gin.Context) (DryRunKeywordsReq, model.Scope, error) {
+	ctx := c.Request.Context()
+	sc, ok := scope.GetScopeFromContext(ctx)
+	if !ok {
+		h.l.Errorf(ctx, "project.http.processDryRunReq: unauthorized")
+		return DryRunKeywordsReq{}, model.Scope{}, errUnauthorized
+	}
+
+	var req DryRunKeywordsReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.l.Errorf(ctx, "project.http.processDryRunReq.ShouldBindJSON: %v", err)
+		return DryRunKeywordsReq{}, model.Scope{}, errWrongBody
+	}
+
+	if err := req.validate(); err != nil {
+		h.l.Errorf(ctx, "project.http.processDryRunReq.validate: %v", err)
+		return DryRunKeywordsReq{}, model.Scope{}, errWrongBody
+	}
+
+	return req, sc, nil
+}

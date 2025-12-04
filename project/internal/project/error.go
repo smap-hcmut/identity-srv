@@ -12,4 +12,5 @@ var (
 	ErrInvalidStatus      = errors.New("invalid project status")
 	ErrInvalidUUID        = errors.New("invalid UUID format")
 	ErrInvalidKeywordsMap = errors.New("invalid competitor keywords map")
+	ErrInvalidKeywords    = errors.New("invalid keywords")
 )

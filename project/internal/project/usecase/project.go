@@ -2,11 +2,15 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"smap-project/internal/keyword"
 	"smap-project/internal/model"
 	"smap-project/internal/project"
+	"smap-project/internal/project/delivery/rabbitmq"
 	"smap-project/internal/project/repository"
+
+	"github.com/google/uuid"
 )
 
 func (uc *usecase) Detail(ctx context.Context, sc model.Scope, id string) (project.ProjectOutput, error) {
@@ -247,4 +251,58 @@ func (uc *usecase) Delete(ctx context.Context, sc model.Scope, ip project.Delete
 	}
 
 	return nil
+}
+
+func (uc *usecase) DryRunKeywords(ctx context.Context, sc model.Scope, keywords []string) (string, error) {
+	// Validate keywords using existing keyword validation
+	// validateOut, err := uc.keywordUC.Validate(ctx, keyword.ValidateInput{Keywords: keywords})
+	// if err != nil {
+	// 	uc.l.Errorf(ctx, "internal.project.usecase.DryRunKeywords.Validate: %v", err)
+	// 	return "", err
+	// }
+
+	// // Use validated keywords
+	// validKeywords := validateOut.ValidKeywords
+	// if len(validKeywords) == 0 {
+	// 	uc.l.Warnf(ctx, "internal.project.usecase.DryRunKeywords: no valid keywords after validation")
+	// 	return "", project.ErrInvalidKeywords
+	// }
+
+	// Generate UUID for job_id
+	jobID := uuid.New().String()
+
+	// Store job mapping in Redis before publishing to RabbitMQ
+	// For dry-run jobs, projectID is empty since they're not associated with a specific project
+	if err := uc.webhookUC.StoreJobMapping(ctx, jobID, sc.UserID, ""); err != nil {
+		uc.l.Errorf(ctx, "internal.project.usecase.DryRunKeywords.StoreJobMapping: jobID=%s, userID=%s, error=%v", jobID, sc.UserID, err)
+		return "", fmt.Errorf("failed to store job mapping: %w", err)
+	}
+	uc.l.Infof(ctx, "Stored job mapping: jobID=%s, userID=%s", jobID, sc.UserID)
+
+	// Build DryRunCrawlRequest message
+	payload := map[string]any{
+		"keywords":          keywords, // validKeywords
+		"limit_per_keyword": 3,
+		"include_comments":  true,
+		"max_comments":      5,
+	}
+
+	msg := rabbitmq.DryRunCrawlRequest{
+		JobID:       jobID,
+		TaskType:    "dryrun_keyword",
+		Payload:     payload,
+		TimeRange:   0,
+		Attempt:     1,
+		MaxAttempts: 3,
+		EmittedAt:   uc.clock(),
+	}
+
+	// Publish to RabbitMQ
+	if err := uc.producer.PublishDryRunTask(ctx, msg); err != nil {
+		uc.l.Errorf(ctx, "internal.project.usecase.DryRunKeywords.PublishDryRunTask: %v", err)
+		return "", err
+	}
+
+	uc.l.Infof(ctx, "Created dry-run job for user %s with %d keywords, job_id=%s", sc.UserID, len(keywords), jobID)
+	return jobID, nil
 }
