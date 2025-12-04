@@ -116,6 +116,15 @@ func (s *Subscriber) handleMessage(channel string, payload string) {
 		return
 	}
 
+	// Log dry-run messages specifically
+	if redisMsg.Type == "dryrun_result" {
+		var dryRunPayload map[string]interface{}
+		if err := json.Unmarshal(redisMsg.Payload, &dryRunPayload); err == nil {
+			s.logger.Infof(s.ctx, "Received dry-run result for user %s: job_id=%v, platform=%v, status=%v",
+				userID, dryRunPayload["job_id"], dryRunPayload["platform"], dryRunPayload["status"])
+		}
+	}
+
 	// Create WebSocket message
 	wsMsg := &ws.Message{
 		Type:      ws.MessageType(redisMsg.Type),

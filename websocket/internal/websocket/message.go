@@ -14,6 +14,7 @@ const (
 	MessageTypeUpdate       MessageType = "update"
 	MessageTypePing         MessageType = "ping"
 	MessageTypePong         MessageType = "pong"
+	MessageTypeDryRunResult MessageType = "dryrun_result"
 )
 
 // Message represents a message sent over WebSocket
