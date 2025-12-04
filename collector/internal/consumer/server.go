@@ -6,6 +6,9 @@ import (
 	dispatcherConsumer "smap-collector/internal/dispatcher/delivery/rabbitmq/consumer"
 	dispatcherProducer "smap-collector/internal/dispatcher/delivery/rabbitmq/producer"
 	dispatcherUsecase "smap-collector/internal/dispatcher/usecase"
+	resultsConsumer "smap-collector/internal/results/delivery/rabbitmq/consumer"
+	resultsUsecase "smap-collector/internal/results/usecase"
+	"smap-collector/pkg/project"
 )
 
 func (srv *Server) Run(ctx context.Context) error {
@@ -23,16 +26,26 @@ func (srv *Server) Run(ctx context.Context) error {
 	// TODO: Add Close() to cleanup if needed, though srv.Close() handles conn.
 
 	// 2. Init UseCases
-	uc, err := dispatcherUsecase.NewUseCase(srv.l, prod, srv.cfg.DispatcherOptions)
+	dispatcherUC, err := dispatcherUsecase.NewUseCase(srv.l, prod, srv.cfg.DispatcherOptions)
 	if err != nil {
 		return err
 	}
 
+	// 2.1 Init Project Client for results webhook
+	projectClient := project.NewClient(srv.cfg.ProjectConfig, srv.l)
+
+	// 2.2 Init Results UseCase
+	resultsUC := resultsUsecase.NewUseCase(srv.l, projectClient)
+
 	// 3. Init Consumers
-	dispatchC := dispatcherConsumer.NewConsumer(srv.l, srv.conn, uc)
+	dispatchC := dispatcherConsumer.NewConsumer(srv.l, srv.conn, dispatcherUC)
+	resultsC := resultsConsumer.NewConsumer(srv.l, srv.conn, resultsUC)
 
 	// 4. Start Consumers
 	dispatchC.Consume()
+	resultsC.Consume()
+
+	srv.l.Info(ctx, "All consumers started - dispatcher and results")
 
 	// Block until context cancelled (caller should cancel via signal).
 	<-ctx.Done()

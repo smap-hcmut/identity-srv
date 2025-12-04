@@ -13,6 +13,9 @@ type Config struct {
 	// Message Queue Configuration
 	RabbitMQConfig RabbitMQConfig
 
+	// External Services
+	Project ProjectConfig
+
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
 }
@@ -34,6 +37,15 @@ type DiscordConfig struct {
 // which is used to connect to RabbitMQ server.
 type RabbitMQConfig struct {
 	URL string `env:"RABBITMQ_URL"`
+}
+
+// ProjectConfig is the configuration for the Project Service.
+type ProjectConfig struct {
+	BaseURL              string `env:"PROJECT_SERVICE_URL" envDefault:"http://localhost:8080"`
+	Timeout              int    `env:"PROJECT_TIMEOUT" envDefault:"10"`
+	InternalKey          string `env:"PROJECT_INTERNAL_KEY"`
+	WebhookRetryAttempts int    `env:"WEBHOOK_RETRY_ATTEMPTS" envDefault:"5"`
+	WebhookRetryDelay    int    `env:"WEBHOOK_RETRY_DELAY" envDefault:"1"`
 }
 
 // Load is the function to load the configuration from the environment variables.

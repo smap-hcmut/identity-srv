@@ -1,6 +1,6 @@
 {
     "email_verification.email_subject": "SMAP - XÁC THỰC OTP",
-    "email_verification.Name": "SMAP - XÁC THỰC OTP",
+    "email_verification.title": "SMAP - XÁC THỰC OTP",
     "email_verification.instructions": "Đây là mã xác thực SMAP của bạn. Mã có hiệu lực trong vòng 5 phút:",
     "email_verification.wishes": "Trân trọng,",
     "email_verification.team_name": "Đội ngũ SMAP",

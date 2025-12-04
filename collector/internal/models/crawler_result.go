@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 // CrawlerStatus mô tả trạng thái trả về của worker.
 type CrawlerStatus string
 
@@ -11,18 +9,12 @@ const (
 	CrawlerStatusFailed  CrawlerStatus = "failed"
 )
 
-// CrawlerResult là payload worker gửi ngược collector để quyết định retry/hoàn thành.
+// CrawlerResult là payload worker gửi ngược collector.
+// Format mới chỉ có 2 fields: success và payload (array of content items).
+// Metadata như job_id, platform được lấy từ payload[].meta
 type CrawlerResult struct {
-	JobID     string         `json:"job_id"`
-	Platform  Platform       `json:"platform"`
-	TaskType  TaskType       `json:"task_type"`
-	Status    CrawlerStatus  `json:"status"`
-	Payload   any            `json:"payload,omitempty"`
-	Cursor    string         `json:"cursor,omitempty"`
-	Metrics   ResultMetrics  `json:"metrics,omitempty"`
-	Errors    []ResultError  `json:"errors,omitempty"`
-	Attempt   int            `json:"attempt,omitempty"`
-	EmittedAt time.Time      `json:"emitted_at"`
+	Success bool `json:"success"`
+	Payload any  `json:"payload"` // Array of content items with meta, content, interaction, author, comments
 }
 
 // ResultMetrics thống kê kết quả crawl.

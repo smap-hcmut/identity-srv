@@ -77,9 +77,6 @@ func NewWithDefaultConfig(l log.Logger, webhookID, webhookToken string) (*Discor
 	}
 
 	config := DefaultConfig()
-	config.WebhookID = webhookID
-	config.WebhookToken = webhookToken
-
 	return New(l, webhook, config)
 }
 

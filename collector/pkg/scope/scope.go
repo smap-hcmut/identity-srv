@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"smap-collector/internal/models"
 	model "smap-collector/internal/models"
 )
 
@@ -33,27 +32,27 @@ func CreateScopeHeader(scope model.Scope) (string, error) {
 	return base64Data, nil
 }
 
-func ParseScopeHeader(scopeHeader string) (models.Scope, error) {
+func ParseScopeHeader(scopeHeader string) (model.Scope, error) {
 	// Decode the Base64 data
 	jsonData, err := base64.StdEncoding.DecodeString(scopeHeader)
 	if err != nil {
-		return models.Scope{}, err
+		return model.Scope{}, err
 	}
 
 	// Unmarshal the JSON data
-	var scope models.Scope
+	var scope model.Scope
 	err = json.Unmarshal(jsonData, &scope)
 	if err != nil {
-		return models.Scope{}, err
+		return model.Scope{}, err
 	}
 
 	return scope, nil
 }
 
-func (m implManager) VerifyScope(scopeHeader string) (models.Scope, error) {
+func (m implManager) VerifyScope(scopeHeader string) (model.Scope, error) {
 	scope, err := ParseScopeHeader(scopeHeader)
 	if err != nil {
-		return models.Scope{}, err
+		return model.Scope{}, err
 	}
 
 	return scope, nil

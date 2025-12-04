@@ -10,13 +10,15 @@ import (
 	"time"
 )
 
-// sendWithRetry gửi request với retry mechanism
+// sendWithRetry sends a request with retry mechanism.
 func (d *Discord) sendWithRetry(ctx context.Context, payload *WebhookPayload) error {
 	var lastErr error
 
 	for attempt := 0; attempt <= d.config.RetryCount; attempt++ {
 		if attempt > 0 {
-			d.l.Infof(ctx, "pkg.discord.webhook.sendWithRetry: retrying attempt %d/%d", attempt, d.config.RetryCount)
+			if d.l != nil {
+				d.l.Infof(ctx, "pkg.discord.webhook.sendWithRetry: retrying attempt %d/%d", attempt, d.config.RetryCount)
+			}
 			time.Sleep(d.config.RetryDelay)
 		}
 
@@ -26,13 +28,15 @@ func (d *Discord) sendWithRetry(ctx context.Context, payload *WebhookPayload) er
 		}
 
 		lastErr = err
-		d.l.Warnf(ctx, "pkg.discord.webhook.sendWithRetry: attempt %d failed: %v", attempt+1, err)
+		if d.l != nil {
+			d.l.Warnf(ctx, "pkg.discord.webhook.sendWithRetry: attempt %d failed: %v", attempt+1, err)
+		}
 	}
 
 	return fmt.Errorf("failed after %d attempts, last error: %w", d.config.RetryCount+1, lastErr)
 }
 
-// sendRequest gửi request đến Discord webhook
+// sendRequest sends a request to Discord webhook.
 func (d *Discord) sendRequest(ctx context.Context, payload *WebhookPayload) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -46,7 +50,7 @@ func (d *Discord) sendRequest(ctx context.Context, payload *WebhookPayload) erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Smap-Bot/1.0")
+	req.Header.Set("User-Agent", "SMAP-Bot/1.0")
 
 	resp, err := d.client.Do(req)
 	if err != nil {
@@ -66,7 +70,7 @@ func (d *Discord) sendRequest(ctx context.Context, payload *WebhookPayload) erro
 	return nil
 }
 
-// validateMessageLength kiểm tra độ dài message
+// validateMessageLength validates the length of a message.
 func (d *Discord) validateMessageLength(content string) error {
 	if len(content) > MaxMessageLength {
 		return fmt.Errorf("message too long: %d characters (max: %d)", len(content), MaxMessageLength)
@@ -74,9 +78,9 @@ func (d *Discord) validateMessageLength(content string) error {
 	return nil
 }
 
-// validateEmbedLength kiểm tra độ dài embed
+// validateEmbedLength validates the length of an embed.
 func (d *Discord) validateEmbedLength(embed *Embed) error {
-	totalLength := len(embed.Name) + len(embed.Description)
+	totalLength := len(embed.Title) + len(embed.Description)
 
 	for _, field := range embed.Fields {
 		totalLength += len(field.Name) + len(field.Value)
@@ -89,7 +93,7 @@ func (d *Discord) validateEmbedLength(embed *Embed) error {
 	return nil
 }
 
-// getColorForType trả về màu cho message type
+// getColorForType returns the color for a message type.
 func (d *Discord) getColorForType(msgType MessageType) int {
 	switch msgType {
 	case MessageTypeInfo:
@@ -105,12 +109,12 @@ func (d *Discord) getColorForType(msgType MessageType) int {
 	}
 }
 
-// formatTimestamp format timestamp cho Discord
+// formatTimestamp formats a timestamp for Discord.
 func (d *Discord) formatTimestamp(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-// truncateString cắt chuỗi nếu quá dài
+// truncateString truncates a string if it exceeds the maximum length.
 func (d *Discord) truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -118,7 +122,7 @@ func (d *Discord) truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// SendMessage gửi message đơn giản
+// SendMessage sends a simple text message.
 func (d *Discord) SendMessage(ctx context.Context, content string) error {
 	if err := d.validateMessageLength(content); err != nil {
 		return err
@@ -133,10 +137,10 @@ func (d *Discord) SendMessage(ctx context.Context, content string) error {
 	return d.sendWithRetry(ctx, payload)
 }
 
-// SendEmbed gửi embed message với options
+// SendEmbed sends an embed message with options.
 func (d *Discord) SendEmbed(ctx context.Context, options MessageOptions) error {
 	embed := &Embed{
-		Name:        d.truncateString(options.Name, 256),
+		Title:       d.truncateString(options.Title, 256),
 		Description: d.truncateString(options.Description, 4096),
 		Color:       d.getColorForType(options.Type),
 		Fields:      options.Fields,
@@ -170,8 +174,8 @@ func (d *Discord) SendEmbed(ctx context.Context, options MessageOptions) error {
 	return d.sendWithRetry(ctx, payload)
 }
 
-// SendError gửi error message
-func (d *Discord) SendError(ctx context.Context, Name, description string, err error) error {
+// SendError sends an error message.
+func (d *Discord) SendError(ctx context.Context, title, description string, err error) error {
 	fields := []EmbedField{}
 	if err != nil {
 		fields = append(fields, EmbedField{
@@ -184,7 +188,7 @@ func (d *Discord) SendError(ctx context.Context, Name, description string, err e
 	options := MessageOptions{
 		Type:        MessageTypeError,
 		Level:       LevelHigh,
-		Name:        Name,
+		Title:       title,
 		Description: description,
 		Fields:      fields,
 		Timestamp:   time.Now(),
@@ -193,12 +197,12 @@ func (d *Discord) SendError(ctx context.Context, Name, description string, err e
 	return d.SendEmbed(ctx, options)
 }
 
-// SendSuccess gửi success message
-func (d *Discord) SendSuccess(ctx context.Context, Name, description string) error {
+// SendSuccess sends a success message.
+func (d *Discord) SendSuccess(ctx context.Context, title, description string) error {
 	options := MessageOptions{
 		Type:        MessageTypeSuccess,
 		Level:       LevelNormal,
-		Name:        Name,
+		Title:       title,
 		Description: description,
 		Timestamp:   time.Now(),
 	}
@@ -206,12 +210,12 @@ func (d *Discord) SendSuccess(ctx context.Context, Name, description string) err
 	return d.SendEmbed(ctx, options)
 }
 
-// SendWarning gửi warning message
-func (d *Discord) SendWarning(ctx context.Context, Name, description string) error {
+// SendWarning sends a warning message.
+func (d *Discord) SendWarning(ctx context.Context, title, description string) error {
 	options := MessageOptions{
 		Type:        MessageTypeWarning,
 		Level:       LevelNormal,
-		Name:        Name,
+		Title:       title,
 		Description: description,
 		Timestamp:   time.Now(),
 	}
@@ -219,12 +223,12 @@ func (d *Discord) SendWarning(ctx context.Context, Name, description string) err
 	return d.SendEmbed(ctx, options)
 }
 
-// SendInfo gửi info message
-func (d *Discord) SendInfo(ctx context.Context, Name, description string) error {
+// SendInfo sends an info message.
+func (d *Discord) SendInfo(ctx context.Context, title, description string) error {
 	options := MessageOptions{
 		Type:        MessageTypeInfo,
 		Level:       LevelNormal,
-		Name:        Name,
+		Title:       title,
 		Description: description,
 		Timestamp:   time.Now(),
 	}
@@ -232,7 +236,7 @@ func (d *Discord) SendInfo(ctx context.Context, Name, description string) error 
 	return d.SendEmbed(ctx, options)
 }
 
-// ReportBug gửi bug report (backward compatibility)
+// ReportBug sends a bug report (backward compatibility).
 func (d *Discord) ReportBug(ctx context.Context, message string) error {
 	// Truncate message if too long
 	if len(message) > 4096 {
@@ -242,7 +246,7 @@ func (d *Discord) ReportBug(ctx context.Context, message string) error {
 	options := MessageOptions{
 		Type:        MessageTypeError,
 		Level:       LevelUrgent,
-		Name:        "SMAP Service Error Report",
+		Title:       "SMAP Service Error Report",
 		Description: fmt.Sprintf("```%s```", message),
 		Timestamp:   time.Now(),
 	}
@@ -250,8 +254,8 @@ func (d *Discord) ReportBug(ctx context.Context, message string) error {
 	return d.SendEmbed(ctx, options)
 }
 
-// SendNotification gửi notification với custom fields
-func (d *Discord) SendNotification(ctx context.Context, Name, description string, fields map[string]string) error {
+// SendNotification sends a notification with custom fields.
+func (d *Discord) SendNotification(ctx context.Context, title, description string, fields map[string]string) error {
 	var embedFields []EmbedField
 	for name, value := range fields {
 		embedFields = append(embedFields, EmbedField{
@@ -264,7 +268,7 @@ func (d *Discord) SendNotification(ctx context.Context, Name, description string
 	options := MessageOptions{
 		Type:        MessageTypeInfo,
 		Level:       LevelNormal,
-		Name:        Name,
+		Title:       title,
 		Description: description,
 		Fields:      embedFields,
 		Timestamp:   time.Now(),
@@ -273,7 +277,7 @@ func (d *Discord) SendNotification(ctx context.Context, Name, description string
 	return d.SendEmbed(ctx, options)
 }
 
-// SendActivityLog gửi activity log
+// SendActivityLog sends an activity log.
 func (d *Discord) SendActivityLog(ctx context.Context, action, user, details string) error {
 	fields := []EmbedField{
 		{
@@ -299,7 +303,7 @@ func (d *Discord) SendActivityLog(ctx context.Context, action, user, details str
 	options := MessageOptions{
 		Type:        MessageTypeInfo,
 		Level:       LevelLow,
-		Name:        "Activity Log",
+		Title:       "Activity Log",
 		Description: fmt.Sprintf("**%s** performed **%s**", user, action),
 		Fields:      fields,
 		Timestamp:   time.Now(),

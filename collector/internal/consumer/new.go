@@ -3,6 +3,7 @@ package consumer
 import (
 	"errors"
 
+	"smap-collector/config"
 	"smap-collector/internal/dispatcher"
 	"smap-collector/pkg/discord"
 	pkgLog "smap-collector/pkg/log"
@@ -21,6 +22,7 @@ type Config struct {
 	AMQPConn          *rabbitmq.Connection
 	Discord           *discord.DiscordWebhook
 	DispatcherOptions dispatcher.Options
+	ProjectConfig     config.ProjectConfig
 }
 
 func New(cfg Config) (*Server, error) {

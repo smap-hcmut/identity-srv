@@ -19,19 +19,8 @@ type zapLogger struct {
 	cfg         *ZapConfig
 }
 
-func InitializeTestZapLogger() Logger {
-	logger := zapLogger{
-		cfg: &ZapConfig{
-			Level:    "debug",
-			Mode:     "testing",
-			Encoding: "console",
-		},
-	}
-	logger.init()
-	return &logger
-}
-
-func InitializeZapLogger(cfg ZapConfig) Logger {
+// Init initializes and returns a new Zap logger instance with the provided configuration.
+func Init(cfg ZapConfig) Logger {
 	logger := zapLogger{
 		cfg: &cfg,
 	}
@@ -88,9 +77,11 @@ func (l *zapLogger) init() {
 	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 
 	l.sugarLogger = logger.Sugar()
-	if err := l.sugarLogger.Sync(); err != nil {
-		l.sugarLogger.Error(err)
-	}
+	// Note: Sync() can cause issues in some environments like terminals
+	// Uncomment the following lines if you need to sync logs
+	// if err := l.sugarLogger.Sync(); err != nil {
+	// 	l.sugarLogger.Error(err)
+	// }
 }
 
 // loggerKey holds the context key used for loggers.

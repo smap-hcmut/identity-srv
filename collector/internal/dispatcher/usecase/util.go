@@ -42,6 +42,18 @@ func (uc implUseCase) mapYouTubePayload(taskType models.TaskType, raw map[string
 	case models.TaskTypeResearchAndCrawl:
 		var payload models.YouTubeResearchAndCrawlPayload
 		return uc.decodePayload(raw, &payload)
+	case models.TaskTypeDryRunKeyword:
+		var payload models.YouTubeResearchAndCrawlPayload
+		// Map dry-run payload with hard limits
+		_, err := uc.decodePayload(raw, &payload)
+		if err != nil {
+			return nil, err
+		}
+		// Enforce dry-run limits
+		payload.LimitPerKeyword = 3
+		payload.IncludeComments = true
+		payload.MaxComments = 5
+		return &payload, nil
 	default:
 		return nil, dispatcher.ErrUnknownRoute
 	}
@@ -58,6 +70,18 @@ func (uc implUseCase) mapTikTokPayload(taskType models.TaskType, raw map[string]
 	case models.TaskTypeResearchAndCrawl:
 		var payload models.TikTokResearchAndCrawlPayload
 		return uc.decodePayload(raw, &payload)
+	case models.TaskTypeDryRunKeyword:
+		var payload models.TikTokResearchAndCrawlPayload
+		// Map dry-run payload with hard limits
+		_, err := uc.decodePayload(raw, &payload)
+		if err != nil {
+			return nil, err
+		}
+		// Enforce dry-run limits
+		payload.LimitPerKeyword = 3
+		payload.IncludeComments = true
+		payload.MaxComments = 5
+		return &payload, nil
 	default:
 		return nil, dispatcher.ErrUnknownRoute
 	}

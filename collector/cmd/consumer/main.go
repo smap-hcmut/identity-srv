@@ -23,7 +23,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	l := pkgLog.InitializeZapLogger(pkgLog.ZapConfig{
+	l := pkgLog.Init(pkgLog.ZapConfig{
 		Level:    cfg.Logger.Level,
 		Mode:     cfg.Logger.Mode,
 		Encoding: cfg.Logger.Encoding,
@@ -42,9 +42,10 @@ func main() {
 	defer conn.Close()
 
 	srv, err := consumer.New(consumer.Config{
-		Logger:   l,
-		AMQPConn: conn,
-		Discord:  discordWebhook,
+		Logger:        l,
+		AMQPConn:      conn,
+		Discord:       discordWebhook,
+		ProjectConfig: cfg.Project,
 	})
 	if err != nil {
 		l.Fatalf(ctx, "failed to init consumer: %v", err)

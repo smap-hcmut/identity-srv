@@ -9,14 +9,14 @@ const (
 	RoutingKeyInbound = "crawler.#"
 
 	// TikTok
-	ExchangeTikTok   = "collector.tiktok"
-	QueueTikTok      = "collector.tiktok.queue"
-	RoutingKeyTikTok = "tiktok.task"
+	ExchangeTikTok   = "tiktok_exchange"
+	QueueTikTok      = "tiktok_crawl_queue"
+	RoutingKeyTikTok = "tiktok.crawl"
 
 	// YouTube
-	ExchangeYouTube   = "collector.youtube"
-	QueueYouTube      = "collector.youtube.queue"
-	RoutingKeyYouTube = "youtube.task"
+	ExchangeYouTube   = "youtube_exchange"
+	QueueYouTube      = "youtube_crawl_queue"
+	RoutingKeyYouTube = "youtube.crawl"
 )
 
 var (

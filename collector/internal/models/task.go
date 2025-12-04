@@ -9,6 +9,7 @@ const (
 	TaskTypeResearchKeyword  TaskType = "research_keyword"
 	TaskTypeCrawlLinks       TaskType = "crawl_links"
 	TaskTypeResearchAndCrawl TaskType = "research_and_crawl"
+	TaskTypeDryRunKeyword    TaskType = "dryrun_keyword"
 )
 
 // Platform liệt kê các worker/platform hiện có.

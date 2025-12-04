@@ -1,0 +1,485 @@
+package usecase
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"smap-collector/internal/models"
+	"smap-collector/internal/results"
+	"smap-collector/pkg/project"
+)
+
+func (uc implUseCase) HandleResult(ctx context.Context, res models.CrawlerResult) error {
+	uc.l.Infof(ctx, "Handling crawler result: success=%v", res.Success)
+
+	// Build callback request
+	callbackReq, err := uc.buildCallbackRequest(ctx, res)
+	if err != nil {
+		uc.l.Errorf(ctx, "Failed to build callback request: success=%v, error=%v",
+			res.Success, err)
+		// Parse/validation errors are permanent - don't retry
+		return fmt.Errorf("%w: %v", results.ErrInvalidInput, err)
+	}
+
+	// Send webhook to project service
+	if err := uc.projectClient.SendDryRunCallback(ctx, callbackReq); err != nil {
+		// Determine if error is permanent (4xx) or temporary (5xx, network)
+		return uc.handleWebhookError(ctx, callbackReq.JobID, callbackReq.Platform, err)
+	}
+
+	uc.l.Infof(ctx, "Successfully sent webhook callback for job_id=%s, platform=%s",
+		callbackReq.JobID, callbackReq.Platform)
+
+	return nil
+}
+
+// handleWebhookError determines if a webhook error is permanent or temporary
+func (uc implUseCase) handleWebhookError(ctx context.Context, jobID, platform string, err error) error {
+	// Check if error message indicates a 4xx client error (permanent)
+	errMsg := err.Error()
+
+	// 4xx errors are permanent - don't retry
+	if contains(errMsg, "client error") || contains(errMsg, "not retrying") {
+		uc.l.Errorf(ctx, "Webhook failed with permanent error (4xx): job_id=%s, platform=%s, error=%v",
+			jobID, platform, err)
+		// Return ErrInvalidInput to signal permanent failure (no retry)
+		return fmt.Errorf("%w: %v", results.ErrInvalidInput, err)
+	}
+
+	// Check for specific error types from project client
+	if errors.Is(err, project.ErrProjectUnavailable) {
+		// 5xx or network errors - temporary, should retry
+		uc.l.Errorf(ctx, "Webhook failed with temporary error (5xx/network): job_id=%s, platform=%s, error=%v",
+			jobID, platform, err)
+		return fmt.Errorf("%w: %v", results.ErrTemporary, err)
+	}
+
+	if errors.Is(err, project.ErrProjectTimeout) {
+		// Timeout - temporary, should retry
+		uc.l.Errorf(ctx, "Webhook failed with timeout: job_id=%s, platform=%s, error=%v",
+			jobID, platform, err)
+		return fmt.Errorf("%w: %v", results.ErrTemporary, err)
+	}
+
+	if errors.Is(err, project.ErrProjectUnauthorized) {
+		// Unauthorized - permanent, don't retry
+		uc.l.Errorf(ctx, "Webhook failed with unauthorized error: job_id=%s, platform=%s, error=%v",
+			jobID, platform, err)
+		return fmt.Errorf("%w: %v", results.ErrInvalidInput, err)
+	}
+
+	// Default: treat unknown errors as temporary (safer to retry)
+	uc.l.Errorf(ctx, "Webhook failed with unknown error (treating as temporary): job_id=%s, platform=%s, error=%v",
+		jobID, platform, err)
+	return fmt.Errorf("%w: %v", results.ErrTemporary, err)
+}
+
+// contains checks if a string contains a substring (case-insensitive helper)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+func (uc implUseCase) buildCallbackRequest(ctx context.Context, res models.CrawlerResult) (project.CallbackRequest, error) {
+	// Determine status based on success field
+	status := "failed"
+	if res.Success {
+		status = "success"
+	}
+
+	// Build payload
+	payload := project.CallbackPayload{}
+
+	// Extract job_id and platform from payload (will be extracted in extractContent)
+	var jobID, platform string
+
+	// If successful, extract content from result payload
+	if res.Success && res.Payload != nil {
+		content, extractedJobID, extractedPlatform, err := uc.extractContent(ctx, res.Payload)
+		if err != nil {
+			// Error already logged in extractContent
+			return project.CallbackRequest{}, fmt.Errorf("failed to extract content: %w", err)
+		}
+		payload.Content = content
+		jobID = extractedJobID
+		platform = extractedPlatform
+	} else {
+		// For failed cases, try to extract job_id and platform from payload if possible
+		jobID, platform = uc.tryExtractMetadata(ctx, res.Payload)
+		if jobID == "" {
+			jobID = "unknown"
+		}
+		if platform == "" {
+			platform = "unknown"
+		}
+	}
+
+	return project.CallbackRequest{
+		JobID:    jobID,
+		Status:   status,
+		Platform: platform,
+		Payload:  payload,
+	}, nil
+}
+
+// tryExtractMetadata attempts to extract job_id and platform from payload
+func (uc implUseCase) tryExtractMetadata(ctx context.Context, payload any) (jobID, platform string) {
+	if payload == nil {
+		return "", ""
+	}
+
+	// Try to unmarshal and extract first item's meta
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return "", ""
+	}
+
+	// payload is already the array of content items from CrawlerResult.Payload
+	var crawlerContentArray []results.CrawlerContent
+	if err := json.Unmarshal(jsonData, &crawlerContentArray); err != nil {
+		return "", ""
+	}
+
+	if len(crawlerContentArray) > 0 {
+		return crawlerContentArray[0].Meta.JobID, crawlerContentArray[0].Meta.Platform
+	}
+
+	return "", ""
+}
+
+func (uc implUseCase) extractContent(ctx context.Context, payload any) ([]project.Content, string, string, error) {
+	// Step 1: Marshal to JSON (handles the generic 'any' type)
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		uc.l.Errorf(ctx, "Failed to marshal payload to JSON: error=%v", err)
+		return nil, "", "", fmt.Errorf("failed to marshal payload to JSON: %w", err)
+	}
+
+	// Step 2: Unmarshal to typed CrawlerContent array
+	// Note: payload is already the array of content items from CrawlerResult.Payload,
+	// not the full message with success/payload wrapper
+	var crawlerContentArray []results.CrawlerContent
+	if err := json.Unmarshal(jsonData, &crawlerContentArray); err != nil {
+		// Truncate raw message for logging (max 500 chars)
+		rawMsg := string(jsonData)
+		if len(rawMsg) > 500 {
+			rawMsg = rawMsg[:500] + "... (truncated)"
+		}
+		uc.l.Errorf(ctx, "Failed to unmarshal to CrawlerContent array: raw_message=%s, error=%v",
+			rawMsg, err)
+		return nil, "", "", fmt.Errorf("failed to unmarshal to CrawlerContent array: %w", err)
+	}
+
+	// Extract job_id and platform from first item (if available)
+	var jobID, platform string
+	if len(crawlerContentArray) > 0 {
+		jobID = crawlerContentArray[0].Meta.JobID
+		platform = crawlerContentArray[0].Meta.Platform
+	}
+
+	// Step 3: Map crawler content to project content
+	content, err := uc.mapCrawlerContentToProjectContent(ctx, jobID, platform, crawlerContentArray)
+	if err != nil {
+		return nil, jobID, platform, err
+	}
+
+	// Log success with content count
+	uc.l.Infof(ctx, "Successfully extracted content: job_id=%s, platform=%s, content_count=%d",
+		jobID, platform, len(content))
+
+	return content, jobID, platform, nil
+}
+
+// mapCrawlerContentToProjectContent converts a slice of CrawlerContent to a slice of project.Content
+func (uc implUseCase) mapCrawlerContentToProjectContent(ctx context.Context, jobID, platform string, crawlerContent []results.CrawlerContent) ([]project.Content, error) {
+	projectContent := make([]project.Content, 0, len(crawlerContent))
+	for i, crawlerItem := range crawlerContent {
+		// Validate required fields
+		if err := uc.validateCrawlerContent(ctx, jobID, platform, i, crawlerItem); err != nil {
+			return nil, fmt.Errorf("validation failed for content at index %d: %w", i, err)
+		}
+
+		// Map crawler content to project content
+		projectItem, err := uc.mapCrawlerContentItemToProjectContent(ctx, jobID, platform, crawlerItem)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map content at index %d (job_id=%s, platform=%s, content_id=%s): %w",
+				i, crawlerItem.Meta.JobID, crawlerItem.Meta.Platform, crawlerItem.Meta.ID, err)
+		}
+
+		projectContent = append(projectContent, projectItem)
+	}
+
+	return projectContent, nil
+}
+
+// validateCrawlerContent validates that required fields are present in a crawler content item
+func (uc implUseCase) validateCrawlerContent(ctx context.Context, jobID, platform string, index int, content results.CrawlerContent) error {
+	missingFields := []string{}
+
+	if content.Meta.JobID == "" {
+		missingFields = append(missingFields, "job_id")
+	}
+	if content.Meta.Platform == "" {
+		missingFields = append(missingFields, "platform")
+	}
+	if content.Meta.ID == "" {
+		missingFields = append(missingFields, "content_id (meta.id)")
+	}
+
+	if len(missingFields) > 0 {
+		uc.l.Errorf(ctx, "Validation failed for content at index %d: job_id=%s, platform=%s, missing_fields=%v",
+			index, jobID, platform, missingFields)
+		return fmt.Errorf("missing required fields: %v", missingFields)
+	}
+
+	return nil
+}
+
+// mapCrawlerContentItemToProjectContent converts a CrawlerContent to a project.Content
+func (uc implUseCase) mapCrawlerContentItemToProjectContent(ctx context.Context, jobID, platform string, cc results.CrawlerContent) (project.Content, error) {
+	// Map meta with timestamp parsing
+	meta, err := uc.mapCrawlerMetaToProjectMeta(ctx, jobID, platform, cc.Meta.ID, cc.Meta)
+	if err != nil {
+		return project.Content{}, fmt.Errorf("failed to map meta: %w", err)
+	}
+
+	// Map content data
+	contentData, err := uc.mapCrawlerContentDataToProjectContentData(ctx, jobID, platform, cc.Meta.ID, cc.Content)
+	if err != nil {
+		return project.Content{}, fmt.Errorf("failed to map content data: %w", err)
+	}
+
+	// Map interaction with timestamp parsing
+	interaction, err := uc.mapCrawlerInteractionToProjectInteraction(ctx, jobID, platform, cc.Meta.ID, cc.Interaction)
+	if err != nil {
+		return project.Content{}, fmt.Errorf("failed to map interaction: %w", err)
+	}
+
+	// Map author
+	author := uc.mapCrawlerAuthorToProjectAuthor(cc.Author)
+
+	// Log YouTube-specific author fields for debugging
+	if cc.Author.Country != nil || cc.Author.TotalViewCount != nil {
+		uc.l.Debugf(ctx, "Mapping YouTube author fields: job_id=%s, platform=%s, content_id=%s, has_country=%v, has_total_view_count=%v",
+			jobID, platform, cc.Meta.ID, cc.Author.Country != nil, cc.Author.TotalViewCount != nil)
+	}
+
+	// Map comments with timestamp parsing
+	comments, err := uc.mapCrawlerCommentsToProjectComments(ctx, jobID, platform, cc.Meta.ID, cc.Comments)
+	if err != nil {
+		return project.Content{}, fmt.Errorf("failed to map comments: %w", err)
+	}
+
+	return project.Content{
+		Meta:        meta,
+		Content:     contentData,
+		Interaction: interaction,
+		Author:      author,
+		Comments:    comments,
+	}, nil
+}
+
+// mapCrawlerMetaToProjectMeta converts CrawlerContentMeta to project.ContentMeta
+func (uc implUseCase) mapCrawlerMetaToProjectMeta(ctx context.Context, jobID, platform, contentID string, cm results.CrawlerContentMeta) (project.ContentMeta, error) {
+	// Parse timestamps
+	crawledAt, err := parseTimestamp(cm.CrawledAt)
+	if err != nil {
+		uc.l.Errorf(ctx, "Failed to parse crawled_at timestamp: job_id=%s, platform=%s, content_id=%s, field=crawled_at, value=%s, error=%v",
+			jobID, platform, contentID, cm.CrawledAt, err)
+		return project.ContentMeta{}, fmt.Errorf("invalid crawled_at timestamp: %w", err)
+	}
+
+	publishedAt, err := parseTimestamp(cm.PublishedAt)
+	if err != nil {
+		uc.l.Errorf(ctx, "Failed to parse published_at timestamp: job_id=%s, platform=%s, content_id=%s, field=published_at, value=%s, error=%v",
+			jobID, platform, contentID, cm.PublishedAt, err)
+		return project.ContentMeta{}, fmt.Errorf("invalid published_at timestamp: %w", err)
+	}
+
+	return project.ContentMeta{
+		ID:              cm.ID,
+		Platform:        cm.Platform,
+		JobID:           cm.JobID,
+		CrawledAt:       crawledAt,
+		PublishedAt:     publishedAt,
+		Permalink:       cm.Permalink,
+		KeywordSource:   cm.KeywordSource,
+		Lang:            cm.Lang,
+		Region:          cm.Region,
+		PipelineVersion: cm.PipelineVersion,
+		FetchStatus:     cm.FetchStatus,
+		FetchError:      cm.FetchError,
+	}, nil
+}
+
+// mapCrawlerContentDataToProjectContentData converts CrawlerContentData to project.ContentData
+func (uc implUseCase) mapCrawlerContentDataToProjectContentData(ctx context.Context, jobID, platform, contentID string, cc results.CrawlerContentData) (project.ContentData, error) {
+	var media *project.ContentMedia
+	if cc.Media != nil {
+		var downloadedAt time.Time
+		var err error
+		if cc.Media.DownloadedAt != "" {
+			downloadedAt, err = parseTimestamp(cc.Media.DownloadedAt)
+			if err != nil {
+				uc.l.Errorf(ctx, "Failed to parse media.downloaded_at timestamp: job_id=%s, platform=%s, content_id=%s, field=media.downloaded_at, value=%s, error=%v",
+					jobID, platform, contentID, cc.Media.DownloadedAt, err)
+				return project.ContentData{}, fmt.Errorf("invalid media.downloaded_at timestamp: %w", err)
+			}
+		}
+
+		media = &project.ContentMedia{
+			Type:         cc.Media.Type,
+			VideoPath:    cc.Media.VideoPath,
+			AudioPath:    cc.Media.AudioPath,
+			DownloadedAt: downloadedAt,
+		}
+	}
+
+	// Log YouTube-specific field presence for debugging
+	if cc.Title != nil {
+		uc.l.Debugf(ctx, "Mapping YouTube title field: job_id=%s, platform=%s, content_id=%s, has_title=true",
+			jobID, platform, contentID)
+	}
+
+	return project.ContentData{
+		Text:          cc.Text,
+		Duration:      cc.Duration,
+		Hashtags:      cc.Hashtags,
+		SoundName:     cc.SoundName,
+		Category:      cc.Category,
+		Title:         cc.Title, // YouTube only
+		Media:         media,
+		Transcription: cc.Transcription,
+	}, nil
+}
+
+// mapCrawlerInteractionToProjectInteraction converts CrawlerContentInteraction to project.ContentInteraction
+func (uc implUseCase) mapCrawlerInteractionToProjectInteraction(ctx context.Context, jobID, platform, contentID string, ci results.CrawlerContentInteraction) (project.ContentInteraction, error) {
+	// Parse updated_at timestamp (optional - can be null/empty)
+	var updatedAt time.Time
+	if ci.UpdatedAt != "" {
+		var err error
+		updatedAt, err = parseTimestamp(ci.UpdatedAt)
+		if err != nil {
+			uc.l.Errorf(ctx, "Failed to parse updated_at timestamp: job_id=%s, platform=%s, content_id=%s, field=updated_at, value=%s, error=%v",
+				jobID, platform, contentID, ci.UpdatedAt, err)
+			return project.ContentInteraction{}, fmt.Errorf("invalid updated_at timestamp: %w", err)
+		}
+	}
+
+	return project.ContentInteraction{
+		Views:          ci.Views,
+		Likes:          ci.Likes,
+		CommentsCount:  ci.CommentsCount,
+		Shares:         ci.Shares,
+		Saves:          ci.Saves,
+		EngagementRate: ci.EngagementRate,
+		UpdatedAt:      updatedAt,
+	}, nil
+}
+
+// mapCrawlerAuthorToProjectAuthor converts CrawlerContentAuthor to project.ContentAuthor
+func (uc implUseCase) mapCrawlerAuthorToProjectAuthor(ca results.CrawlerContentAuthor) project.ContentAuthor {
+	return project.ContentAuthor{
+		ID:             ca.ID,
+		Name:           ca.Name,
+		Username:       ca.Username,
+		Followers:      ca.Followers,
+		Following:      ca.Following,
+		Likes:          ca.Likes,
+		Videos:         ca.Videos,
+		IsVerified:     ca.IsVerified,
+		Bio:            ca.Bio,
+		AvatarURL:      ca.AvatarURL,
+		ProfileURL:     ca.ProfileURL,
+		Country:        ca.Country,        // YouTube only
+		TotalViewCount: ca.TotalViewCount, // YouTube only
+	}
+}
+
+// mapCrawlerCommentsToProjectComments converts []CrawlerComment to []project.Comment
+func (uc implUseCase) mapCrawlerCommentsToProjectComments(ctx context.Context, jobID, platform, contentID string, comments []results.CrawlerComment) ([]project.Comment, error) {
+	if len(comments) == 0 {
+		return nil, nil
+	}
+
+	projectComments := make([]project.Comment, 0, len(comments))
+	for i, cc := range comments {
+		// Parse published_at timestamp
+		publishedAt, err := parseTimestamp(cc.PublishedAt)
+		if err != nil {
+			uc.l.Errorf(ctx, "Failed to parse comment published_at timestamp: job_id=%s, platform=%s, content_id=%s, comment_index=%d, comment_id=%s, field=published_at, value=%s, error=%v",
+				jobID, platform, contentID, i, cc.ID, cc.PublishedAt, err)
+			return nil, fmt.Errorf("invalid published_at timestamp for comment at index %d: %w", i, err)
+		}
+
+		projectComments = append(projectComments, project.Comment{
+			ID:       cc.ID,
+			ParentID: cc.ParentID,
+			PostID:   cc.PostID,
+			User: project.CommentUser{
+				ID:        cc.User.ID,
+				Name:      cc.User.Name,
+				AvatarURL: cc.User.AvatarURL,
+			},
+			Text:         cc.Text,
+			Likes:        cc.Likes,
+			RepliesCount: cc.RepliesCount,
+			PublishedAt:  publishedAt,
+			IsAuthor:     cc.IsAuthor,
+			Media:        cc.Media,
+			IsFavorited:  cc.IsFavorited, // YouTube only
+		})
+
+		// Log YouTube-specific comment field for debugging
+		if cc.IsFavorited {
+			uc.l.Debugf(ctx, "Mapping YouTube favorited comment: job_id=%s, platform=%s, content_id=%s, comment_id=%s, is_favorited=true",
+				jobID, platform, contentID, cc.ID)
+		}
+	}
+
+	return projectComments, nil
+}
+
+// parseTimestamp converts a timestamp string to time.Time
+// Supports multiple formats: RFC3339, RFC3339Nano, and datetime without timezone
+func parseTimestamp(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, fmt.Errorf("empty timestamp")
+	}
+
+	// Try RFC3339 first (most common)
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+
+	// Try RFC3339Nano (with nanoseconds and timezone)
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return t, nil
+	}
+
+	// Try datetime without timezone (e.g., "2025-12-02T21:30:06.704383")
+	if t, err := time.Parse("2006-01-02T15:04:05.999999", s); err == nil {
+		return t, nil
+	}
+
+	// Try datetime without timezone and without fractional seconds
+	if t, err := time.Parse("2006-01-02T15:04:05", s); err == nil {
+		return t, nil
+	}
+
+	return time.Time{}, fmt.Errorf("invalid timestamp '%s': unsupported format", s)
+}

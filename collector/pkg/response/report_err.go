@@ -14,18 +14,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func sendDiscordMesssageAsync(c *gin.Context, d *discord.Discord, message string) {
+// sendDiscordMessageAsync sends Discord messages asynchronously.
+func sendDiscordMessageAsync(c *gin.Context, d *discord.Discord, message string) {
+	if d == nil {
+		return
+	}
+
 	go func() {
 		splitMessages := splitMessageForDiscord(message)
-		for _, message := range splitMessages {
-			err := d.ReportBug(c, message)
+		for _, msg := range splitMessages {
+			err := d.ReportBug(c.Request.Context(), msg)
 			if err != nil {
-				log.Printf("pkg.response.sendDiscordMesssageAsync.ReportBug: %v\n", err)
+				// Use standard log as fallback since we're in async goroutine
+				log.Printf("pkg.response.sendDiscordMessageAsync.ReportBug: %v\n", err)
 			}
 		}
 	}()
 }
 
+// splitMessageForDiscord splits a message into chunks that fit Discord's message length limits.
 func splitMessageForDiscord(message string) []string {
 	const maxLen = 5000
 	var chunks []string
@@ -52,6 +59,7 @@ func splitMessageForDiscord(message string) []string {
 	return chunks
 }
 
+// buildInternalServerErrorDataForReportBug builds a formatted error report for Discord.
 func buildInternalServerErrorDataForReportBug(c *gin.Context, errString string, backtrace []string) string {
 	url := c.Request.URL.String()
 	method := c.Request.Method
@@ -66,7 +74,7 @@ func buildInternalServerErrorDataForReportBug(c *gin.Context, errString string, 
 	body := string(bodyBytes)
 
 	var sb strings.Builder
-	sb.WriteString("================ Smap SERVICE ERROR ================\n")
+	sb.WriteString("================ SMAP SERVICE ERROR ================\n")
 	sb.WriteString(fmt.Sprintf("Route   : %s\n", url))
 	sb.WriteString(fmt.Sprintf("Method  : %s\n", method))
 	sb.WriteString("----------------------------------------------------\n")

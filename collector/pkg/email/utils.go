@@ -25,7 +25,7 @@ func translateData(lang string, templateType string, data interface{}, translare
 		(*translareData)["Name"] = d.Name
 		(*translareData)["OTP"] = d.OTP
 		(*translareData)["OTPExpireMin"] = d.OTPExpireMin
-		(*translareData)["Source"] = localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "email_verification.Name"})
+		(*translareData)["Source"] = localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "email_verification.title"})
 		(*translareData)["SupportMail"] = localizer.MustLocalize(&i18n.LocalizeConfig{MessageID: "email_verification.support_email"})
 		(*translareData)["Email"] = d.Email
 	}

@@ -12,6 +12,7 @@ type ValidationError struct {
 	Messages []string `json:"messages"`
 }
 
+// NewValidationError creates a new validation error.
 func NewValidationError(code int, field string, messages ...string) *ValidationError {
 	return &ValidationError{
 		Code:     code,
@@ -21,39 +22,43 @@ func NewValidationError(code int, field string, messages ...string) *ValidationE
 }
 
 // Error returns the error message.
-func (e ValidationError) Error() string {
+func (e *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, strings.Join(e.Messages, ", "))
 }
 
+// ValidationErrorCollector collects multiple validation errors.
 type ValidationErrorCollector struct {
 	errors []*ValidationError
 }
 
+// NewValidationErrorCollector creates a new validation error collector.
 func NewValidationErrorCollector() *ValidationErrorCollector {
-	return &ValidationErrorCollector{}
+	return &ValidationErrorCollector{
+		errors: make([]*ValidationError, 0),
+	}
 }
 
-// Add adds a new validation error to the collector.
-func (c *ValidationErrorCollector) Add(err *ValidationError) ValidationErrorCollector {
+// Add adds a new validation error to the collector and returns the collector for chaining.
+func (c *ValidationErrorCollector) Add(err *ValidationError) *ValidationErrorCollector {
 	c.errors = append(c.errors, err)
-	return *c
+	return c
 }
 
 // HasError returns true if the collector has any error.
-func (c ValidationErrorCollector) HasError() bool {
+func (c *ValidationErrorCollector) HasError() bool {
 	return len(c.errors) > 0
 }
 
 // Errors returns the list of errors.
-func (c ValidationErrorCollector) Errors() []*ValidationError {
+func (c *ValidationErrorCollector) Errors() []*ValidationError {
 	return c.errors
 }
 
 // Error returns the error message.
-func (c ValidationErrorCollector) Error() string {
-	var errors []string
+func (c *ValidationErrorCollector) Error() string {
+	var errorMessages []string
 	for _, err := range c.errors {
-		errors = append(errors, err.Error())
+		errorMessages = append(errorMessages, err.Error())
 	}
-	return strings.Join(errors, ", ")
+	return strings.Join(errorMessages, ", ")
 }
