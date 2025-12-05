@@ -16,5 +16,5 @@ type Repository interface {
 	Update(ctx context.Context, sc model.Scope, opts UpdateOptions) (model.Subscription, error)
 	GetOne(ctx context.Context, sc model.Scope, opts GetOneOptions) (model.Subscription, error)
 	Delete(ctx context.Context, sc model.Scope, id string) error
+	GetUserSubscription(ctx context.Context, sc model.Scope, userID string) (model.Subscription, error)
 }
-

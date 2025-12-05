@@ -332,3 +332,41 @@ func (h handler) Cancel(c *gin.Context) {
 
 	response.OK(c, h.newSubscriptionResp(output.Subscription))
 }
+
+// @Summary Get User Subscription (Internal)
+// @Description Get active subscription for a user (Internal use only)
+// @Tags Subscription
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} response.Resp "Success"
+// @Failure 400 {object} response.Resp "Bad Request"
+// @Failure 401 {object} response.Resp "Unauthorized"
+// @Failure 404 {object} response.Resp "Not Found"
+// @Failure 500 {object} response.Resp "Internal Server Error"
+// @Router /subscriptions/internal/users/{id} [GET]
+func (h handler) GetUserSubscription(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, sc, err := h.processGetUserSubscriptionRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "subscription.http.GetUserSubscription.processGetUserSubscriptionRequest: %v", err)
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	sub, err := h.uc.GetUserSubscription(ctx, sc, userID)
+	if err != nil {
+		err = h.mapErrorCode(err)
+		if !slices.Contains(NotFound, err) {
+			h.l.Errorf(ctx, "subscription.http.GetUserSubscription.GetUserSubscription: %v", err)
+		} else {
+			h.l.Warnf(ctx, "subscription.http.GetUserSubscription.GetUserSubscription: %v", err)
+		}
+		response.Error(c, err, h.discord)
+		return
+	}
+
+	response.OK(c, h.newSubscriptionResp(sub))
+}

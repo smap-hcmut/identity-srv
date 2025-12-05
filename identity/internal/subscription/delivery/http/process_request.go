@@ -30,6 +30,7 @@ func (h handler) processUpdateSubscriptionRequest(c *gin.Context) (updateSubscri
 	id := c.Param("id")
 
 	if id == "" {
+		h.l.Errorf(ctx, "subscription.http.processUpdateSubscriptionRequest: %v", errInvalidID)
 		return updateSubscriptionReq{}, "", model.Scope{}, errInvalidID
 	}
 
@@ -74,10 +75,12 @@ func (h handler) processGetSubscriptionRequest(c *gin.Context) (getSubscriptionQ
 }
 
 func (h handler) processDetailSubscriptionRequest(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
 	sc := c.MustGet("scope").(model.Scope)
 	id := c.Param("id")
 
 	if id == "" {
+		h.l.Errorf(ctx, "subscription.http.processDetailSubscriptionRequest: %v", errInvalidID)
 		return "", model.Scope{}, errInvalidID
 	}
 
@@ -85,10 +88,12 @@ func (h handler) processDetailSubscriptionRequest(c *gin.Context) (string, model
 }
 
 func (h handler) processDeleteSubscriptionRequest(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
 	sc := c.MustGet("scope").(model.Scope)
 	id := c.Param("id")
 
 	if id == "" {
+		h.l.Errorf(ctx, "subscription.http.processDeleteSubscriptionRequest: %v", errInvalidID)
 		return "", model.Scope{}, errInvalidID
 	}
 
@@ -96,10 +101,12 @@ func (h handler) processDeleteSubscriptionRequest(c *gin.Context) (string, model
 }
 
 func (h handler) processCancelSubscriptionRequest(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
 	sc := c.MustGet("scope").(model.Scope)
 	id := c.Param("id")
 
 	if id == "" {
+		h.l.Errorf(ctx, "subscription.http.processCancelSubscriptionRequest: %v", errInvalidID)
 		return "", model.Scope{}, errInvalidID
 	}
 
@@ -109,4 +116,18 @@ func (h handler) processCancelSubscriptionRequest(c *gin.Context) (string, model
 func (h handler) processGetMySubscriptionRequest(c *gin.Context) (model.Scope, error) {
 	sc := c.MustGet("scope").(model.Scope)
 	return sc, nil
+}
+
+func (h handler) processGetUserSubscriptionRequest(c *gin.Context) (string, model.Scope, error) {
+	ctx := c.Request.Context()
+
+	sc := c.MustGet("scope").(model.Scope)
+	id := c.Param("id")
+
+	if id == "" {
+		h.l.Errorf(ctx, "subscription.http.processGetUserSubscriptionRequest: %v", errInvalidID)
+		return "", model.Scope{}, errInvalidID
+	}
+
+	return id, sc, nil
 }
