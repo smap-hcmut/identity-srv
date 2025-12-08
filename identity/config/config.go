@@ -20,9 +20,6 @@ type Config struct {
 	// Database Configuration
 	Postgres PostgresConfig
 
-	// Storage Configuration
-	MinIO MinIOConfig
-
 	// SMTP Configuration
 	SMTP SMTPConfig
 
