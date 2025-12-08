@@ -16,13 +16,6 @@ data:
   LOGGER_MODE: "production"
   LOGGER_ENCODING: "json"
   
-  # MinIO Configuration (non-sensitive)
-  MINIO_USE_SSL: "true"
-  MINIO_REGION: "us-east-1"
-  MINIO_BUCKET: "smap-identity"
-  MINIO_ASYNC_UPLOAD_WORKERS: "4"
-  MINIO_ASYNC_UPLOAD_QUEUE_SIZE: "100"
-  
   # SMTP Configuration (non-sensitive)
   SMTP_HOST: "smtp.gmail.com"
   SMTP_PORT: "587"

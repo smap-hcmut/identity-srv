@@ -99,46 +99,6 @@ spec:
             secretKeyRef:
               name: smap-identity-secrets
               key: POSTGRES_SSLMODE
-        - name: MINIO_ENDPOINT
-          valueFrom:
-            secretKeyRef:
-              name: smap-identity-secrets
-              key: MINIO_ENDPOINT
-        - name: MINIO_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: smap-identity-secrets
-              key: MINIO_ACCESS_KEY
-        - name: MINIO_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: smap-identity-secrets
-              key: MINIO_SECRET_KEY
-        - name: MINIO_USE_SSL
-          valueFrom:
-            configMapKeyRef:
-              name: smap-identity-config
-              key: MINIO_USE_SSL
-        - name: MINIO_REGION
-          valueFrom:
-            configMapKeyRef:
-              name: smap-identity-config
-              key: MINIO_REGION
-        - name: MINIO_BUCKET
-          valueFrom:
-            configMapKeyRef:
-              name: smap-identity-config
-              key: MINIO_BUCKET
-        - name: MINIO_ASYNC_UPLOAD_WORKERS
-          valueFrom:
-            configMapKeyRef:
-              name: smap-identity-config
-              key: MINIO_ASYNC_UPLOAD_WORKERS
-        - name: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
-          valueFrom:
-            configMapKeyRef:
-              name: smap-identity-config
-              key: MINIO_ASYNC_UPLOAD_QUEUE_SIZE
         - name: RABBITMQ_URL
           valueFrom:
             secretKeyRef:
