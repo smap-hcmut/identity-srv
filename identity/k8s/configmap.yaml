@@ -15,6 +15,7 @@ data:
   LOGGER_LEVEL: "info"
   LOGGER_MODE: "production"
   LOGGER_ENCODING: "json"
+  LOGGER_COLOR_ENABLED: "false"
 
   # SMTP Configuration (non-sensitive)
   SMTP_HOST: "smtp.gmail.com"
