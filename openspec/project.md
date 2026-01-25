@@ -14,7 +14,7 @@ SMAP Identity Service is a comprehensive authentication and subscription managem
 ## Tech Stack
 
 ### Core Technologies
-- **Go**: 1.25+ (primary programming language)
+- **Go**: 1.25.4+ (primary programming language)
 - **Gin**: HTTP web framework for RESTful APIs
 - **PostgreSQL**: 15+ (primary relational database)
 - **SQLBoiler**: Type-safe ORM with code generation
@@ -130,7 +130,7 @@ func TestFunctionName(t *testing.T) {
   - `chore:` - Build/tooling changes
 - **Pull Requests**: Required for all changes
 - **Code Review**: All PRs must be reviewed before merge
-- **Main Branch**: `master-identity-api` (current active branch)
+- **Main Branch**: `master` (current active branch)
 
 ## Domain Context
 
@@ -178,7 +178,7 @@ func TestFunctionName(t *testing.T) {
 ## Important Constraints
 
 ### Technical Constraints
-- **Go Version**: Must use Go 1.25+ (specified in `go.mod`)
+- **Go Version**: Must use Go 1.25.4+ (specified in `go.mod`)
 - **Database**: PostgreSQL 15+ required
 - **Message Queue**: RabbitMQ 3.x required for async processing
 - **Container Security**: Use distroless images, non-root user (UID 65532)

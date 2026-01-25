@@ -39,6 +39,7 @@
 ## Features
 
 ### Authentication
+
 - User registration with email and password
 - OTP-based email verification
 - Secure password hashing (bcrypt)
@@ -46,6 +47,7 @@
 - Automatic account activation
 
 ### Subscription System
+
 - Multiple subscription plans (Free, Premium, etc.)
 - Automatic free trial creation (14 days)
 - Subscription status management (trialing, active, cancelled, expired)
@@ -53,6 +55,7 @@
 - Subscription cancellation support
 
 ### Asynchronous Email
+
 - Email verification with OTP
 - Localized email templates (EN, VI)
 - RabbitMQ-based message queue
@@ -60,6 +63,7 @@
 - Separate consumer service for email processing
 
 ### Additional Features
+
 - Pagination and filtering support
 - Soft delete for data retention
 - Comprehensive error handling
@@ -109,6 +113,7 @@ The service follows **Clean Architecture** principles with clear separation of c
 ```
 
 **Layers:**
+
 1. **Delivery Layer**: HTTP handlers, RabbitMQ consumers
 2. **UseCase Layer**: Business logic and orchestration
 3. **Repository Layer**: Data access and persistence
@@ -119,7 +124,8 @@ The service follows **Clean Architecture** principles with clear separation of c
 ## Tech Stack
 
 ### Core
-- **Language**: Go 1.23+
+
+- **Language**: Go 1.25+
 - **Framework**: Gin Web Framework
 - **Database**: PostgreSQL 15
 - **Message Queue**: RabbitMQ 3.x
@@ -127,12 +133,14 @@ The service follows **Clean Architecture** principles with clear separation of c
 - **Email**: SMTP (go-mail)
 
 ### Infrastructure
+
 - **Containerization**: Docker with multi-stage builds
 - **Runtime**: Distroless (secure, minimal)
 - **Build System**: BuildKit with cache optimization
 - **Orchestration**: Docker Compose (development)
 
 ### Libraries
+
 - **ORM**: SQLBoiler (type-safe, code generation)
 - **Validation**: go-playground/validator
 - **Logging**: Uber Zap
@@ -147,7 +155,7 @@ The service follows **Clean Architecture** principles with clear separation of c
 
 ### Prerequisites
 
-- **Go**: 1.23 or higher
+- **Go**: 1.25 or higher
 - **PostgreSQL**: 15 or higher
 - **RabbitMQ**: 3.x
 - **Docker**: 20.10+ (optional, for containerized setup)
@@ -156,17 +164,20 @@ The service follows **Clean Architecture** principles with clear separation of c
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd smap-api/identity
    ```
 
 2. **Install dependencies**
+
    ```bash
    go mod download
    ```
 
 3. **Setup PostgreSQL**
+
    ```bash
    # Using Docker
    docker run -d \
@@ -176,12 +187,13 @@ The service follows **Clean Architecture** principles with clear separation of c
      -e POSTGRES_DB=smap_identity \
      -p 5432:5432 \
      postgres:15-alpine
-   
+
    # Run migrations
    make migrate-up
    ```
 
 4. **Setup RabbitMQ**
+
    ```bash
    docker run -d \
      --name rabbitmq \
@@ -191,6 +203,7 @@ The service follows **Clean Architecture** principles with clear separation of c
    ```
 
 5. **Configure environment**
+
    ```bash
    cp template.env .env
    # Edit .env with your configuration
@@ -247,6 +260,7 @@ open http://localhost:15672  # guest/guest
 ## API Documentation
 
 ### Base URL
+
 ```
 http://localhost:8080/identity
 ```
@@ -282,49 +296,57 @@ The service has migrated from LocalStorage-based JWT tokens to HttpOnly cookies 
 #### Frontend Integration
 
 **Axios Example**:
+
 ```javascript
-import axios from 'axios';
+import axios from "axios";
 
 // Configure axios to send credentials (cookies)
 const api = axios.create({
-  baseURL: 'https://smap-api.tantai.dev/identity',
-  withCredentials: true  // REQUIRED for cookie authentication
+  baseURL: "https://smap-api.tantai.dev/identity",
+  withCredentials: true, // REQUIRED for cookie authentication
 });
 
 // Login
-const response = await api.post('/authentication/login', {
-  email: 'user@example.com',
-  password: 'password123',
-  remember: true  // Optional: extends cookie lifetime to 30 days
+const response = await api.post("/authentication/login", {
+  email: "user@example.com",
+  password: "password123",
+  remember: true, // Optional: extends cookie lifetime to 30 days
 });
 
 // Cookie is automatically stored by browser
 console.log(response.data.user);
 
 // Make authenticated requests (cookie sent automatically)
-const currentUser = await api.get('/authentication/me');
+const currentUser = await api.get("/authentication/me");
 
 // Logout
-await api.post('/authentication/logout');
+await api.post("/authentication/logout");
 ```
 
 **Fetch API Example**:
+
 ```javascript
 // Login
-const response = await fetch('https://smap-api.tantai.dev/identity/authentication/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include',  // REQUIRED for cookie authentication
-  body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'password123'
-  })
-});
+const response = await fetch(
+  "https://smap-api.tantai.dev/identity/authentication/login",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include", // REQUIRED for cookie authentication
+    body: JSON.stringify({
+      email: "user@example.com",
+      password: "password123",
+    }),
+  },
+);
 
 // Get current user
-const userResponse = await fetch('https://smap-api.tantai.dev/identity/authentication/me', {
-  credentials: 'include'
-});
+const userResponse = await fetch(
+  "https://smap-api.tantai.dev/identity/authentication/me",
+  {
+    credentials: "include",
+  },
+);
 ```
 
 #### Cookie Configuration
@@ -344,6 +366,7 @@ COOKIE_MAX_AGE_REMEMBER=2592000      # Remember me: 30 days
 #### Migration Guide
 
 **Changes Required**:
+
 1. Set `withCredentials: true` (axios) or `credentials: 'include'` (fetch)
 2. Remove manual token storage (localStorage, sessionStorage)
 3. Remove manual Authorization header injection
@@ -351,76 +374,68 @@ COOKIE_MAX_AGE_REMEMBER=2592000      # Remember me: 30 days
 5. Use `/authentication/me` to get current user info
 
 **Backward Compatibility**:
+
 - Authorization header is still supported during migration period
 - Existing clients continue working while you update to cookie-based auth
 - Plan to remove header fallback after all clients migrate
 
-### Authentication Endpoints
+### Accessing API Documentation
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/authentication/register` | Register new user | ❌ |
-| POST | `/authentication/send-otp` | Send OTP to email | ❌ |
-| POST | `/authentication/verify-otp` | Verify OTP and activate account | ❌ |
-| POST | `/authentication/login` | Login (sets HttpOnly cookie) | ❌ |
-| POST | `/authentication/logout` | Logout (expires cookie) | ✅ |
-| GET | `/authentication/me` | Get current user info | ✅ |
+The best way to explore and test all available API endpoints is through the **Swagger UI** interface.
 
-### Plan Endpoints
+#### Step 1: Start the API Service
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/plans` | List all plans | ❌ |
-| GET | `/plans/page` | Get plans with pagination | ❌ |
-| GET | `/plans/:id` | Get plan details | ❌ |
-| POST | `/plans` | Create new plan | ✅ |
-| PUT | `/plans/:id` | Update plan | ✅ |
-| DELETE | `/plans/:id` | Delete plan | ✅ |
+Choose one of the following methods to start the service:
 
-### Subscription Endpoints
+**Option A: Local Development**
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/subscriptions/me` | Get my active subscription | ✅ |
-| GET | `/subscriptions` | List subscriptions | ✅ |
-| GET | `/subscriptions/page` | Get subscriptions with pagination | ✅ |
-| GET | `/subscriptions/:id` | Get subscription details | ✅ |
-| POST | `/subscriptions` | Create subscription | ✅ |
-| PUT | `/subscriptions/:id` | Update subscription | ✅ |
-| DELETE | `/subscriptions/:id` | Delete subscription | ✅ |
-| POST | `/subscriptions/:id/cancel` | Cancel subscription | ✅ |
-
-### Example Request
-
-**Register User:**
 ```bash
-curl -X POST http://localhost:8080/identity/authentication/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePass123"
-  }'
+make run-api
 ```
 
-**Login:**
+**Option B: Docker**
+
 ```bash
-curl -X POST http://localhost:8080/identity/authentication/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePass123"
-  }'
+make docker-run
 ```
 
-**Get My Subscription:**
+**Option C: Docker Compose (Full Stack)**
+
 ```bash
-curl http://localhost:8080/identity/subscriptions/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+docker-compose up -d
 ```
 
-For complete API documentation, visit:
-- **Swagger UI**: `http://localhost:8080/swagger/index.html`
-- **Sequence Diagrams**: See `document/api_01_sequence_diagrams.md`
+#### Step 2: Open Swagger UI
+
+Once the service is running, open your browser and navigate to:
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+#### Step 3: Explore APIs
+
+In Swagger UI, you can:
+
+- **Browse all endpoints**: See all available API endpoints organized by category (Authentication, Plans, Subscriptions, Users)
+- **View request/response schemas**: See detailed request body formats and response structures
+- **Test endpoints directly**: Click "Try it out" to test any endpoint with real requests
+- **View authentication requirements**: See which endpoints require authentication
+- **Copy code examples**: Generate code snippets in various languages (cURL, JavaScript, Python, etc.)
+
+#### Available API Categories
+
+- **Authentication**: Registration, login, logout, OTP verification, user profile
+- **Plans**: Subscription plan management (CRUD operations)
+- **Subscriptions**: Subscription lifecycle management, cancellation
+- **Users**: User profile management, admin operations
+
+#### Additional Resources
+
+For detailed implementation guides and migration information:
+
+- **API Documentation**: See `documents/api.md`
+- **Cookie Authentication Guide**: See section above for HttpOnly cookie setup
 
 ---
 
@@ -495,19 +510,15 @@ identity/
 │   ├── config.go               # Config loader
 │   └── postgre/                # PostgreSQL setup
 │
-├── document/                    # Documentation
-│   ├── api_01_sequence_diagrams.md
-│   ├── api_02_implementation_summary.md
-│   ├── consumer_01_readme.md
-│   ├── docker_01_optimization_guide.md
+├── documents/                    # Documentation
+│   ├── api.md
+│   ├── consumer.md
+│   ├── cookie_and_cors_env_guide.md
+│   ├── cors-standardization-proposal.md
 │   └── ...
 │
 ├── migration/                   # Database migrations
 │   └── 01_add_user_indexes.sql
-│
-├── docs/                        # Swagger docs (generated)
-│   ├── swagger.json
-│   └── swagger.yaml
 │
 ├── .env                         # Environment variables (not in git)
 ├── template.env                 # Environment template
@@ -592,19 +603,21 @@ LOGGER_ENCODING=json
 
 The `ENV` variable controls environment-specific behavior, particularly **CORS validation** for HttpOnly cookie authentication:
 
-| Environment | CORS Behavior | Use Case |
-|-------------|---------------|----------|
-| **production** | Strict origin list (production domains only) | Production deployments |
-| **staging** | Permissive (production + localhost + private subnets) | Staging/QA environments |
-| **dev** | Permissive (production + localhost + private subnets) | Local development |
-| *(empty)* | Defaults to `production` (fail-safe) | Security default |
+| Environment    | CORS Behavior                                         | Use Case                |
+| -------------- | ----------------------------------------------------- | ----------------------- |
+| **production** | Strict origin list (production domains only)          | Production deployments  |
+| **staging**    | Permissive (production + localhost + private subnets) | Staging/QA environments |
+| **dev**        | Permissive (production + localhost + private subnets) | Local development       |
+| _(empty)_      | Defaults to `production` (fail-safe)                  | Security default        |
 
 **Private Subnets** (allowed in dev/staging only):
+
 - `172.16.21.0/24` - K8s cluster subnet
 - `172.16.19.0/24` - Private network 1
 - `192.168.1.0/24` - Private network 2
 
 **Security Notes:**
+
 - **Always** set `ENV=production` in production environments
 - HttpOnly cookies require specific origins (no wildcards)
 - Private subnets are automatically allowed in non-production modes
@@ -637,6 +650,7 @@ go test ./internal/authentication/usecase/...
 ### Adding a New Module
 
 1. Create module structure:
+
    ```
    internal/
    └── newmodule/
@@ -663,6 +677,7 @@ go test ./internal/authentication/usecase/...
 ### Docker Deployment
 
 **Build optimized images:**
+
 ```bash
 # API server (for AMD64 servers)
 make docker-build-amd64
@@ -672,6 +687,7 @@ make consumer-build-amd64
 ```
 
 **Push to registry:**
+
 ```bash
 export REGISTRY=docker.io/yourname
 make docker-push
@@ -679,6 +695,7 @@ make consumer-push
 ```
 
 **Run in production:**
+
 ```bash
 docker run -d \
   --name smap-identity-api \
@@ -697,7 +714,7 @@ docker run -d \
 ### Docker Compose
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -760,41 +777,42 @@ spec:
   template:
     spec:
       containers:
-      - name: api
-        image: yourname/smap-identity:latest
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - secretRef:
-            name: smap-identity-secrets
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "200m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        - name: api
+          image: yourname/smap-identity:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: smap-identity-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 ```
 
 ---
 
 ## Documentation
 
-Comprehensive documentation is available in the `document/` folder:
+Comprehensive documentation is available in the `documents/` folder:
 
 ### API Documentation
-- **[Sequence Diagrams](document/api_01_sequence_diagrams.md)**: Detailed flow diagrams for all API endpoints
-- **[Implementation Summary](document/api_02_implementation_summary.md)**: Technical implementation details
+
+- **[API Documentation](documents/api.md)**: API endpoints and implementation details
+- **[Cookie and CORS Guide](documents/cookie_and_cors_env_guide.md)**: Cookie authentication and CORS configuration
 
 ### Consumer Service
-- **[Consumer README](document/consumer_01_readme.md)**: Consumer service overview
-- **[Implementation Summary](document/consumer_02_implementation_summary.md)**: Technical details
-- **[Flow Diagrams](document/consumer_03_flow_diagrams.md)**: Architecture and message flows
-- **[Setup Guide](document/consumer_04_setup_guide.md)**: Step-by-step setup instructions
 
-### Docker
-- **[Optimization Guide](document/docker_01_optimization_guide.md)**: Docker optimization strategies
-- **[Build Guide](document/docker_02_build_guide.md)**: Building and deploying Docker images
+- **[Consumer Documentation](documents/consumer.md)**: Consumer service overview and implementation
+
+### Other Documentation
+
+- **[Overview](documents/overview.md)**: Project overview
+- **[CORS Standardization](documents/cors-standardization-proposal.md)**: CORS configuration proposal
+- **[HttpOnly Cookie Migration](documents/httponly_microservice_migration.md)**: Migration guide for HttpOnly cookies
 
 ---
 
@@ -865,6 +883,7 @@ This project is part of the SMAP graduation project.
 ### Common Issues
 
 **Issue: Cannot connect to PostgreSQL**
+
 ```bash
 # Check if PostgreSQL is running
 docker ps | grep postgres
@@ -874,6 +893,7 @@ psql -h localhost -U postgres -d smap_identity
 ```
 
 **Issue: Email not sent**
+
 ```bash
 # For Gmail, enable 2FA and use App Password
 # https://myaccount.google.com/apppasswords
@@ -886,6 +906,7 @@ docker logs smap-consumer-dev
 ```
 
 **Issue: "Port already in use"**
+
 ```bash
 # Find process using port 8080
 lsof -i :8080
@@ -907,6 +928,7 @@ kill -9 <PID>
 SMAP is a graduation project focused on building a scalable, production-ready subscription management platform with modern architecture and best practices.
 
 **Project Goals:**
+
 - Demonstrate **Clean Architecture** in practice
 - Implement **microservices** patterns
 - Apply **DevOps** best practices (Docker, CI/CD)
@@ -920,11 +942,10 @@ SMAP is a graduation project focused on building a scalable, production-ready su
 - **Swagger UI**: http://localhost:8080/swagger/index.html
 - **Health Check**: http://localhost:8080/health
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **Sequence Diagrams**: [document/api_01_sequence_diagrams.md](document/api_01_sequence_diagrams.md)
+- **API Documentation**: [documents/api.md](documents/api.md)
 
 ---
 
 **Built with love for SMAP Graduation Project**
 
-*Last updated: November 2025*
-
+_Last updated: November 2025_
