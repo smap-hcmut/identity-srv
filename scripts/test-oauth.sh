@@ -82,7 +82,7 @@ echo ""
 
 echo -e "${BLUE}📋 Summary${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "✅ Core services are ready for OAuth testing"
+echo -e "Core services are ready for OAuth testing"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo "1. Open browser: ${BASE_URL}/authentication/login"

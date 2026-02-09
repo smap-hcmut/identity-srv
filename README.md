@@ -135,7 +135,7 @@ postgres:
 redis:
   host: localhost
   port: 6379
-  db: 0  # DB 1 used for blacklist
+  db: 0 # DB 1 used for blacklist
 
 # OAuth2 (Google Workspace)
 oauth2:
@@ -150,7 +150,7 @@ jwt:
   public_key_path: ./keys/jwt-public.pem
   issuer: smap-auth-service
   audience: [smap-api]
-  ttl: 28800  # 8 hours
+  ttl: 28800 # 8 hours
 
 # Cookie
 cookie:
@@ -385,13 +385,13 @@ docker-compose -f docker-compose.test.yml down
 
 ### Current Status (v1.0)
 
-- ✅ OAuth2/OIDC with Google Workspace
-- ✅ JWT RS256 authentication
-- ✅ HttpOnly cookie support
-- ✅ Role-based access control
-- ✅ Token blacklist
-- ✅ Audit logging via Kafka
-- ✅ JWKS endpoint for public key distribution
+- OAuth2/OIDC with Google Workspace
+- JWT RS256 authentication
+- HttpOnly cookie support
+- Role-based access control
+- Token blacklist
+- Audit logging via Kafka
+- JWKS endpoint for public key distribution
 
 ### Planned Features (v2.0)
 
@@ -479,7 +479,7 @@ This project is part of the SMAP graduation project.
 
 ## Acknowledgments
 
-Built with ❤️ using:
+Built with using:
 
 - [Gin Web Framework](https://github.com/gin-gonic/gin)
 - [golang-jwt](https://github.com/golang-jwt/jwt)

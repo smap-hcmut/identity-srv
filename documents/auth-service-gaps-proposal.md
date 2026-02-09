@@ -23,28 +23,28 @@ Document này đề xuất roadmap chi tiết để khắc phục 3 gaps với t
 
 ### 1.1 Điểm Mạnh (85% Hoàn Thành)
 
-✅ **Core Authentication Flow**
+**Core Authentication Flow**
 
 - Google OAuth2/OIDC integration hoàn chỉnh
 - JWT RS256 với public key distribution (JWKS endpoint)
 - Domain-based access control
 - Role mapping từ Google Groups (ADMIN, ANALYST, VIEWER)
 
-✅ **Security Foundation**
+**Security Foundation**
 
 - HttpOnly, Secure cookies
 - CSRF protection (state parameter)
 - Rate limiting (5 attempts/15 minutes)
 - Redirect URL validation
 
-✅ **Audit & Compliance**
+**Audit & Compliance**
 
 - Kafka-based async audit logging
 - Batch insert (100 messages hoặc 5 giây)
 - 90-day retention với auto-cleanup
 - IP address và user agent tracking
 
-✅ **Database Schema**
+**Database Schema**
 
 - Users, audit_logs, jwt_keys tables
 - Proper indexes và foreign keys
@@ -104,7 +104,7 @@ func (m Middleware) Auth() gin.HandlerFunc {
             return
         }
 
-        // ✅ NEW: Check Redis blacklist
+        // NEW: Check Redis blacklist
         ctx := c.Request.Context()
         jti := payload.ID // JWT ID from claims
 
@@ -134,12 +134,12 @@ File: `internal/middleware/new.go`
 ```go
 func New(
     jwtManager *jwt.Manager,
-    blacklistManager *usecase.BlacklistManager, // ✅ Add this
+    blacklistManager *usecase.BlacklistManager, // Add this
     // ... other dependencies
 ) Middleware {
     return Middleware{
         jwtManager:       jwtManager,
-        blacklistManager: blacklistManager, // ✅ Add this
+        blacklistManager: blacklistManager, // Add this
         // ...
     }
 }
@@ -545,14 +545,14 @@ File: `internal/authentication/delivery/http/handler.go`
 
 ```go
 type handler struct {
-    provider provider.IdentityProvider // ✅ Use interface instead of oauth2.Config
+    provider provider.IdentityProvider // Use interface instead of oauth2.Config
     // ... other fields
 }
 
 func (h *handler) OAuthLogin(c *gin.Context) {
     // ... existing code ...
 
-    // ✅ Use provider interface
+    // Use provider interface
     authURL := h.provider.GetAuthURL(state)
     c.Redirect(http.StatusTemporaryRedirect, authURL)
 }
@@ -560,7 +560,7 @@ func (h *handler) OAuthLogin(c *gin.Context) {
 func (h *handler) OAuthCallback(c *gin.Context) {
     // ... existing code ...
 
-    // ✅ Use provider interface
+    // Use provider interface
     tokenResp, err := h.provider.ExchangeCode(ctx, code)
     if err != nil {
         // handle error
@@ -910,14 +910,14 @@ File: `pkg/jwt/manager.go`
 
 ```go
 type Manager struct {
-    rotationManager *KeyRotationManager // ✅ Add rotation manager
+    rotationManager *KeyRotationManager // Add rotation manager
     issuer          string
     audience        []string
     ttl             time.Duration
 }
 
 func (m *Manager) GenerateToken(userID, email, role string, groups []string) (string, error) {
-    // ✅ Get current active key from rotation manager
+    // Get current active key from rotation manager
     currentKey, err := m.rotationManager.GetCurrentKey()
     if err != nil {
         return "", fmt.Errorf("failed to get current key: %w", err)
@@ -932,20 +932,20 @@ func (m *Manager) GenerateToken(userID, email, role string, groups []string) (st
     // ... generate token with privateKey ...
 
     token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-    token.Header["kid"] = currentKey.KID // ✅ Use current key ID
+    token.Header["kid"] = currentKey.KID // Use current key ID
 
     return token.SignedString(privateKey)
 }
 
 func (m *Manager) VerifyToken(tokenString string) (*Claims, error) {
     token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-        // ✅ Extract kid from token header
+        // Extract kid from token header
         kid, ok := token.Header["kid"].(string)
         if !ok {
             return nil, fmt.Errorf("missing kid in token header")
         }
 
-        // ✅ Get key by ID from rotation manager
+        // Get key by ID from rotation manager
         key, err := m.rotationManager.GetKeyByID(kid)
         if err != nil {
             return nil, fmt.Errorf("key not found: %w", err)
@@ -989,7 +989,7 @@ jwt:
 
   # Key Rotation (Phase 2)
   rotation:
-    enabled: false # ✅ Enable in production after testing
+    enabled: false # Enable in production after testing
     interval: 720h # 30 days (30 * 24 hours)
     grace_period: 15m # Old key valid for 15 min after rotation
 ```
@@ -1030,7 +1030,7 @@ File: `internal/authentication/delivery/http/jwks.go`
 
 ```go
 func (h *handler) JWKS(c *gin.Context) {
-    // ✅ Get all active and rotating keys
+    // Get all active and rotating keys
     keys := []map[string]interface{}{}
 
     for kid, key := range h.rotationManager.GetAllActiveKeys() {

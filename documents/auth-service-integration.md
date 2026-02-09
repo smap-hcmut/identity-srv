@@ -45,16 +45,16 @@ This guide provides step-by-step instructions for integrating your service with 
 ### Authentication Flow
 
 ```
-┌─────────────┐                    ┌──────────────────┐
-│   Browser   │  Cookie:           │   Microservice   │
-│             │  smap_auth_token   │   (Project, etc) │
-│             │ ─────────────────► │                  │
-│             │                    │  1. Extract JWT  │
-│             │                    │  2. Verify sig   │
-│             │                    │  3. Check claims │
+┌─────────────┐                    ┌────────────────────┐
+│   Browser   │  Cookie:           │   Microservice     │
+│             │  smap_auth_token   │   (Project, etc)   │
+│             │ ─────────────────► │                    │
+│             │                    │  1. Extract JWT    │
+│             │                    │  2. Verify sig     │
+│             │                    │  3. Check claims   │
 │             │                    │  4. Check blacklist│
-│             │                    │  5. Authorize    │
-└─────────────┘                    └──────────────────┘
+│             │                    │  5. Authorize      │
+└─────────────┘                    └────────────────────┘
 ```
 
 ### Key Components

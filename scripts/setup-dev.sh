@@ -105,7 +105,7 @@ done
 echo -e "${GREEN}✓ Redis is ready${NC}"
 
 echo ""
-echo "✅ Development environment setup complete!"
+echo "Development environment setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Update config/auth-config.yaml with your Google OAuth credentials"

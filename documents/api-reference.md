@@ -345,47 +345,24 @@ curl -X GET "https://api.example.com/internal/users/550e8400-e29b-41d4-a716-4466
 
 ### Sequence Diagram
 
-```
-┌──────┐         ┌─────────┐         ┌──────────────┐         ┌────────┐
-│ User │         │ Web UI  │         │ Identity Svc │         │ Google │
-└──┬───┘         └────┬────┘         └──────┬───────┘         └───┬────┘
-   │                  │                     │                     │
-   │ Click "Login"    │                     │                     │
-   ├─────────────────>│                     │                     │
-   │                  │                     │                     │
-   │                  │ GET /auth/login     │                     │
-   │                  ├────────────────────>│                     │
-   │                  │                     │                     │
-   │                  │                     │ Redirect to OAuth   │
-   │                  │<────────────────────┤                     │
-   │                  │                     │                     │
-   │                  │ 302 Redirect        │                     │
-   │<─────────────────┤                     │                     │
-   │                  │                     │                     │
-   │ OAuth Consent Screen                   │                     │
-   ├───────────────────────────────────────────────────────────>│
-   │                  │                     │                     │
-   │                  │                     │ Callback with code  │
-   │                  │                     │<────────────────────┤
-   │                  │                     │                     │
-   │                  │                     │ Exchange code       │
-   │                  │                     ├────────────────────>│
-   │                  │                     │                     │
-   │                  │                     │ User info + token   │
-   │                  │                     │<────────────────────┤
-   │                  │                     │                     │
-   │                  │                     │ Fetch Groups        │
-   │                  │                     ├────────────────────>│
-   │                  │                     │                     │
-   │                  │                     │ Groups list         │
-   │                  │                     │<────────────────────┤
-   │                  │                     │                     │
-   │                  │ Set Cookie + Redirect                     │
-   │                  │<────────────────────┤                     │
-   │                  │                     │                     │
-   │ Dashboard        │                     │                     │
-   │<─────────────────┤                     │                     │
-   │                  │                     │                     │
+```mermaid
+sequenceDiagram
+    participant User
+    participant WebUI as Web UI
+    participant IDSvc as Identity Svc
+    participant Google
+
+    User->>WebUI: Click "Login"
+    WebUI->>IDSvc: GET /auth/login
+    IDSvc->>WebUI: Redirect to OAuth (302 Redirect)
+    WebUI->>Google: OAuth Consent Screen
+    Google->>IDSvc: Callback with code
+    IDSvc->>Google: Exchange code
+    Google->>IDSvc: User info + token
+    IDSvc->>Google: Fetch Groups
+    Google->>IDSvc: Groups list
+    IDSvc->>WebUI: Set Cookie + Redirect
+    WebUI->>User: Dashboard
 ```
 
 ### Flow Steps
