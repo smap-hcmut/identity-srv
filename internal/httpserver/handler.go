@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	audithttp "smap-api/internal/audit/delivery/http"
+	auditPostgre "smap-api/internal/audit/repository/postgre"
 	authhttp "smap-api/internal/authentication/delivery/http"
 	authusecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/middleware"
@@ -18,7 +20,7 @@ import (
 
 func (srv HTTPServer) mapHandlers() error {
 	scopeManager := scope.New("temporary-secret-not-used-in-oauth") // Legacy scope manager - not used in OAuth flow
-	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, "")
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, "", srv.config, srv.encrypter)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
@@ -40,7 +42,7 @@ func (srv HTTPServer) mapHandlers() error {
 	}
 
 	// Initialize HTTP handlers with new dependencies
-	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.googleClient, srv.groupsManager, srv.roleMapper)
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo)
 
 	// Initialize OAuth2 config
 	authHandler.InitOAuth2Config(authhttp.OAuthConfig{
@@ -52,8 +54,13 @@ func (srv HTTPServer) mapHandlers() error {
 
 	// userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
+	// Initialize audit handler
+	auditRepo := auditPostgre.New(srv.postgresDB)
+	auditHandler := audithttp.New(srv.l, auditRepo, srv.discord)
+
 	// Map routes (no prefix)
 	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
+	audithttp.MapAuditRoutes(srv.gin.Group("/audit-logs"), auditHandler, mw)
 	// userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw) // Temporarily disabled for Task 1.9
 
 	return nil

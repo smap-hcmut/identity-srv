@@ -2,13 +2,15 @@
 
 ## Overview
 
-This implementation plan covers the migration from Identity Service to Auth Service for on-premise enterprise deployments. The plan follows a 7-day timeline with incremental delivery of features, starting with core OAuth2 authentication and JWT management, then adding enterprise features like Google Groups RBAC, audit logging, and service integration.
+This implementation plan covers the migration from Identity Service to Auth Service for on-premise enterprise deployments. The plan is reorganized to focus on **Identity Service implementation** first, then provide **comprehensive migration documentation** for other services and frontend.
 
-**Timeline**: 7 days
+**Timeline**: 5 days (Identity Service only)
 **Tech Stack**: Go 1.25, Gin framework, Viper (config), PostgreSQL, Redis, Kafka
 **Approach**: Greenfield implementation (no data migration needed)
 **Service Name**: identity-service (keep existing name)
 **Code Structure**: Follow existing pattern (internal/domain/delivery/usecase/repository)
+
+**Note**: Service integration (Day 4) and Frontend integration (Day 5) are **documentation-only** - no code implementation required. Other teams will use the guides to migrate their services.
 
 ## Tasks
 
@@ -210,15 +212,15 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Verify audit consumer batch inserts to database
     - Ask user if questions arise
 
-- [ ] 3. Day 4: JWT Middleware Package + Token Blacklist
-  - [ ] 3.1 Create pkg/auth package structure
+- [-] 3. Day 4: JWT Middleware Package + Token Blacklist
+  - [x] 3.1 Create pkg/auth package structure
     - Create pkg/auth directory
     - Define public interfaces and types
     - Create README with usage examples
     - _Requirements: 7.1_
     - _Pattern: Follow existing pkg structure (similar to pkg/encrypter)_
 
-  - [ ] 3.2 Implement JWT verifier component
+  - [x] 3.2 Implement JWT verifier component
     - Create pkg/auth/verifier.go
     - Fetch public keys from JWKS endpoint on startup
     - Cache public keys in memory with 1-hour TTL
@@ -229,7 +231,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
     - _Pattern: Create new pkg component_
 
-  - [ ] 3.3 Implement authentication middleware
+  - [x] 3.3 Implement authentication middleware
     - Create pkg/auth/middleware.go
     - Extract JWT from Authorization header or cookie
     - Verify JWT using verifier component
@@ -239,7 +241,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 7.5, 7.6, 7.7_
     - _Pattern: Similar to existing middleware pattern_
 
-  - [ ] 3.4 Implement authorization helpers
+  - [x] 3.4 Implement authorization helpers
     - Create pkg/auth/helpers.go
     - RequireRole(role string) middleware
     - RequireAnyRole(roles ...string) middleware
@@ -250,7 +252,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 7.8_
     - _Pattern: Gin middleware pattern_
 
-  - [ ] 3.5 Implement token blacklist manager
+  - [x] 3.5 Implement token blacklist manager
     - Create internal/authentication/usecase/blacklist.go
     - Add token to blacklist by jti
     - Add all user tokens to blacklist by user_id
@@ -260,7 +262,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
     - _Pattern: Follow existing usecase pattern_
 
-  - [ ] 3.6 Implement internal admin endpoints
+  - [x] 3.6 Implement internal admin endpoints
     - Create internal/authentication/delivery/http/internal.go
     - Create internal/middleware/service_auth.go for X-Service-Key validation
     - Implement service key decryption using pkg/encrypter
@@ -274,7 +276,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 6.6, 10.7, 10.8, 10.10, 10.11, 10.12_
     - _Pattern: Follow existing handler pattern + new middleware_
 
-  - [ ] 3.7 Implement audit log query endpoint
+  - [x] 3.7 Implement audit log query endpoint
     - Create internal/audit/delivery/http package
     - GET /audit-logs with query params (user_id, action, from, to, page, limit)
     - Implement pagination logic in repository
@@ -284,280 +286,233 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 10.9_
     - _Pattern: Follow existing delivery/http pattern_
 
-  - [ ] 3.8 Write comprehensive middleware documentation
+  - [x] 3.8 Write comprehensive middleware documentation
     - Document installation and setup in pkg/auth/README.md
     - Provide usage examples for each helper
     - Document configuration options
     - Add troubleshooting guide
     - _Requirements: 14.4_
 
-  - [ ] 3.9 Checkpoint - Middleware package ready
+  - [x] 3.9 Checkpoint - Middleware package ready
     - Manually test JWT verification
     - Verify blacklist checking works
     - Verify authorization helpers work
     - Verify documentation is complete
     - Ask user if questions arise
 
-- [ ] 4. Day 5: Service Integration
-  - [ ] 4.1 Integrate Auth middleware into Project Service
-    - Add pkg/auth dependency to Project Service go.mod
-    - Initialize JWT middleware with Identity Service URL
-    - Apply Authenticate middleware to all routes
-    - Add RequireAnyRole("ANALYST", "ADMIN") to POST /projects
-    - Add RequireRole("ADMIN") to DELETE /projects/:id
-    - Update error handling for 401/403 responses
-    - Configure PROJECT_SERVICE_KEY in environment
-    - Add X-Service-Key header when calling /internal/* endpoints
-    - _Requirements: 8.1, 8.5, 8.6, 10.10_
-    - _Pattern: Use pkg/auth middleware in Project Service_
-
-  - [ ] 4.2 Integrate Auth middleware into Ingest Service
-    - Add pkg/auth dependency to Ingest Service go.mod
-    - Initialize JWT middleware
-    - Apply Authenticate middleware to all routes
-    - Add RequireAnyRole("ANALYST", "ADMIN") to data ingestion endpoints
-    - Update error handling
-    - _Requirements: 8.2, 8.7_
-    - _Pattern: Use pkg/auth middleware in Ingest Service_
-
-  - [ ] 4.3 Integrate Auth middleware into Knowledge Service
-    - Add pkg/auth dependency to Knowledge Service go.mod
-    - Initialize JWT middleware
-    - Apply Authenticate middleware to all routes
-    - Allow VIEWER role for GET endpoints (read operations)
-    - Require ANALYST for POST endpoints (RAG queries)
-    - Update error handling
-    - _Requirements: 8.3, 8.8_
-    - _Pattern: Use pkg/auth middleware in Knowledge Service_
-
-  - [ ] 4.4 Integrate Auth middleware into Notification Service
-    - Add pkg/auth dependency to Notification Service go.mod
-    - Implement JWT verification for WebSocket connections
-    - Extract JWT from query param or cookie during WebSocket upgrade
-    - Verify JWT before accepting WebSocket connection
-    - Store user context in WebSocket connection
-    - Update error handling for WebSocket auth failures
-    - _Requirements: 8.4_
-    - _Pattern: Custom WebSocket auth using pkg/auth verifier_
-
-  - [ ] 4.5 Update all services to publish audit events
-    - Add audit publisher to each service
-    - Publish events for: CREATE_PROJECT, DELETE_PROJECT, CREATE_SOURCE, DELETE_SOURCE, EXPORT_DATA
-    - Include user_id from JWT context
-    - Include resource_type and resource_id
-    - _Requirements: 5.1_
-    - _Pattern: Use internal/audit publisher in each service_
-
-  - [ ] 4.6 Checkpoint - All services integrated
-    - Manually test JWT verification in all services
-    - Verify role-based authorization works in each service
-    - Verify audit events are published from all services
-    - Test end-to-end flow: login → create project → view dashboard
-    - Ask user if questions arise
-
-- [ ] 5. Day 6: Frontend OAuth Integration
-  - [ ] 5.1 Update frontend login page
-    - Replace email/password form with "Login with Google" button
-    - Redirect to /auth/login on button click
-    - Handle OAuth callback redirect to dashboard
-    - Remove localStorage token management code
-    - _Requirements: 12.1, 12.2, 12.6_
-
-  - [ ] 5.2 Configure axios for cookie-based auth
-    - Ensure withCredentials: true is set (should already be set from Identity Service)
-    - Verify CORS configuration allows credentials
-    - Test that cookies are sent automatically with requests
-    - _Requirements: 12.3_
-
-  - [ ] 5.3 Implement /auth/me call on app load
-    - Call GET /auth/me when app initializes
-    - Store user info in React context or state management
-    - Redirect to login if 401 response
-    - Display user info in header (name, avatar, role)
-    - _Requirements: 12.7_
-
-  - [ ] 5.4 Update error handling for 401/403
-    - Add axios interceptor for 401 responses
-    - Redirect to /auth/login on 401
-    - Add axios interceptor for 403 responses
-    - Show permission denied toast/modal on 403
-    - _Requirements: 12.4, 12.5_
-
-  - [ ] 5.5 Implement logout functionality
-    - Call POST /auth/logout on logout button click
-    - Clear user context/state
-    - Redirect to login page
-    - _Requirements: 12.8_
-
-  - [ ] 5.6 Update role-based UI rendering
-    - Hide/show UI elements based on user role
-    - Disable buttons for insufficient permissions
-    - Show role badge in user profile
-    - _Requirements: 8.5, 8.6, 8.7, 8.8_
-
-  - [ ] 5.7 Test frontend OAuth flow end-to-end
-    - Manually test login flow from start to finish
-    - Verify cookies are set correctly
-    - Verify API requests include cookies
-    - Test logout flow
-    - Test 401 redirect to login
-    - Test 403 permission denied message
-
-  - [ ] 5.8 Checkpoint - Frontend OAuth working
-    - Verify login with Google works
-    - Verify cookies are handled correctly
-    - Verify error handling works
-    - Verify logout works
-    - Ask user if questions arise
-
-- [ ] 6. Day 7: Documentation + Security Enhancements
-  - [ ] 6.1 Write Identity Service API documentation
-    - Document all public endpoints with examples
-    - Document OAuth flow with sequence diagram
-    - Document JWT structure and claims
-    - Document error codes and responses
-    - Create documents/identity-service-api.md
-    - _Requirements: 14.1, 14.2, 14.3_
-
-  - [ ] 6.2 Write JWT middleware integration guide
-    - Document installation steps
-    - Provide code examples for each service type
-    - Document role-based authorization patterns
-    - Document troubleshooting common issues
-    - Update pkg/auth/README.md
-    - _Requirements: 14.4_
-
-  - [ ] 6.3 Write deployment guide
-    - Document Google OAuth setup steps
-    - Document service account creation for Directory API
-    - Document environment variables reference
-    - Document service API keys generation and configuration
-    - Document Kubernetes manifests
-    - Document Docker Compose setup for local development
-    - Create documents/identity-service-deployment.md
-    - _Requirements: 14.5, 14.6_
-
-  - [ ] 6.4 Write frontend migration guide
-    - Document changes from Identity Service to OAuth
-    - Provide code examples for OAuth integration
-    - Document axios configuration
-    - Document error handling patterns
-    - Create documents/frontend-oauth-migration.md
-    - _Requirements: 14.7_
-
-  - [ ] 6.5 Implement redirect URL validation
+- [ ] 4. Day 4: Security Enhancements (Identity Service)
+  - [ ] 4.1 Implement redirect URL validation
     - Create internal/authentication/usecase/redirect.go
     - Validate redirect URLs against allowed list from config
     - Prevent open redirect attacks
     - Return error for invalid redirect URLs
+    - Add to OAuth callback handler
     - _Requirements: 15.4_
+    - _Pattern: Follow existing usecase pattern_
 
-  - [ ] 6.6 Implement login rate limiting
+  - [ ] 4.2 Implement login rate limiting
     - Create internal/middleware/ratelimit.go
     - Track failed login attempts by IP address
     - Block login attempts after 5 failures in 15 minutes
     - Return 429 Too Many Requests when rate limited
     - Implement exponential backoff
     - Use Redis for storage
+    - Apply to /auth/login and /auth/callback endpoints
     - _Requirements: 15.5_
+    - _Pattern: Create new middleware_
 
-  - [ ] 6.7 Implement secure JTI generation
-    - Use crypto/rand for JTI generation in pkg/jwt
-    - Generate UUID v4 for each token
-    - Verify randomness quality
+  - [ ] 4.3 Verify secure JTI generation
+    - Review pkg/jwt/jwt.go JTI generation
+    - Confirm using crypto/rand via uuid.New()
+    - Verify UUID v4 implementation
+    - Add comment documenting security requirement
     - _Requirements: 15.7_
+    - _Pattern: Code review + documentation_
 
-  - [ ] 6.8 Implement key rotation preparation
-    - Support multiple active keys in jwt_keys table
-    - Implement key status tracking (active, rotating, retired)
-    - Document manual key rotation process
-    - Prepare for Phase 2 automatic rotation
-    - Update pkg/jwt to support multiple keys
-    - _Requirements: 15.9_
-
-  - [ ] 6.9 Implement private key encryption at rest
-    - Encrypt private keys before storing in database
-    - Use AES-256-GCM encryption
-    - Store encryption key in Kubernetes secret
-    - Document key management process
-    - Update pkg/jwt key storage
-    - _Requirements: 15.10_
-
-  - [ ] 6.10 Write configuration validation
-    - Add config validation in config/config.go
-    - Test that missing required config fails startup
-    - Test that invalid config fails startup
-    - Ensure error messages are clear
+  - [ ] 4.4 Implement configuration validation
+    - Update config/config.go validate() function
+    - Add validation for all required fields
+    - Test missing config fails startup with clear error
+    - Test invalid config fails startup with clear error
+    - Add validation for format (URLs, email, etc.)
     - _Requirements: 11.3, 11.10_
+    - _Pattern: Extend existing validate() function_
 
-  - [ ] 6.11 Write troubleshooting guide
-    - Document common issues and solutions
-    - Document debugging techniques
-    - Document log analysis
-    - Document health check interpretation
-    - Create documents/identity-service-troubleshooting.md
-    - _Requirements: 14.8_
-
-  - [ ] 6.12 Final checkpoint - Production ready
-    - Review all documentation is complete
-    - Review all security features are implemented
-    - Manually test critical flows
-    - Run security scan (gosec)
-    - Run linter (golangci-lint)
+  - [ ] 4.5 Checkpoint - Security features complete
+    - Test redirect URL validation with various URLs
+    - Test rate limiting with multiple failed attempts
+    - Verify JTI randomness (visual inspection)
+    - Test config validation with missing/invalid values
     - Ask user if questions arise
 
-- [ ] 7. Final Integration Testing and Deployment Preparation
-  - [ ] 7.1 Run end-to-end integration tests
-    - Manually test complete OAuth flow
-    - Test JWT verification across all services
-    - Test role-based authorization
-    - Test audit logging end-to-end
-    - Test token blacklist
-    - Test error handling
+- [ ] 5. Day 5: Comprehensive Documentation
+  
+  **5.1 Identity Service Documentation**
+  
+  - [ ] 5.1.1 Write Identity Service API documentation
+    - Create documents/identity-service-api.md
+    - Document all public endpoints with examples:
+      * GET /auth/login - OAuth redirect
+      * GET /auth/callback - OAuth callback
+      * GET /auth/me - Get current user
+      * POST /auth/logout - Logout
+      * GET /.well-known/jwks.json - Public keys
+    - Document OAuth flow with sequence diagram
+    - Document JWT structure and claims (iss, aud, sub, email, role, groups, jti, iat, exp)
+    - Document error codes and responses
+    - Include curl examples for each endpoint
+    - _Requirements: 14.1, 14.2, 14.3_
 
-  - [ ] 7.2 Run performance tests
-    - Test JWT verification performance (target < 5ms)
-    - Test blacklist check performance (target < 2ms)
-    - Test audit event publishing (target < 1ms)
-    - Test session management (target < 3ms)
-    - Test with 1000 concurrent requests
+  - [ ] 5.1.2 Write Internal API documentation
+    - Add to documents/identity-service-api.md
+    - Document internal endpoints:
+      * POST /internal/validate - Token validation
+      * POST /internal/revoke-token - Token revocation
+      * GET /internal/users/:id - Get user by ID
+    - Document X-Service-Key authentication
+    - Document service key generation and encryption
+    - Include code examples for calling internal APIs
+    - _Requirements: 10.7, 10.8, 10.10, 10.11, 10.12_
 
-  - [ ] 7.3 Run security tests
-    - Attempt to forge JWT tokens
-    - Attempt to bypass domain validation
-    - Attempt to access blocked accounts
-    - Attempt to reuse revoked tokens
-    - Attempt open redirect attacks
-    - Attempt brute force login
+  - [ ] 5.1.3 Write deployment guide
+    - Create documents/identity-service-deployment.md
+    - Document Google OAuth setup steps (with screenshots)
+    - Document service account creation for Directory API
+    - Document environment variables reference (complete list)
+    - Document service API keys generation and configuration
+    - Document Kubernetes manifests (with examples)
+    - Document Docker Compose setup for local development
+    - Document database migration steps
+    - Document Redis setup (2 DBs: sessions + blacklist)
+    - Document Kafka setup (audit.events topic)
+    - _Requirements: 14.5, 14.6_
 
-  - [ ] 7.4 Prepare Docker images
-    - Build Identity Service Docker image
-    - Build Audit Consumer Docker image
-    - Optimize image size (multi-stage build)
-    - Tag images with version
-    - Push to container registry
+  - [ ] 5.1.4 Write troubleshooting guide
+    - Create documents/identity-service-troubleshooting.md
+    - Document common issues and solutions:
+      * OAuth callback errors
+      * JWT verification failures
+      * Google Directory API connection issues
+      * Redis connection issues
+      * Kafka connection issues
+      * Session management issues
+      * Token blacklist issues
+    - Document debugging techniques
+    - Document log analysis (what to look for)
+    - Document health check interpretation
+    - Include diagnostic commands (curl, redis-cli, etc.)
+    - _Requirements: 14.8_
 
-  - [ ] 7.5 Prepare Kubernetes manifests
-    - Create deployment manifests for Identity Service
-    - Create deployment manifests for Audit Consumer
-    - Create service manifests
-    - Create ConfigMap for auth-config.yaml
-    - Create Secrets for sensitive data
-    - Create Ingress for external access
-
-  - [ ] 7.6 Prepare deployment documentation
-    - Document deployment steps
+  **5.2 Service Integration Documentation**
+  
+  - [ ] 5.2.1 Write service integration guide (Project Service)
+    - Create documents/service-integration-guide.md
+    - Section 1: Project Service Integration
+    - Document step-by-step integration:
+      * Add pkg/auth dependency to go.mod
+      * Initialize JWT verifier with JWKS endpoint
+      * Create middleware instance
+      * Apply Authenticate() to all routes
+      * Add role-based authorization (RequireRole, RequireAnyRole)
+      * Update error handling for 401/403
+      * Configure SERVICE_KEY environment variable
+      * Add X-Service-Key header for internal API calls
+    - Provide complete code examples (copy-paste ready)
+    - Document testing steps
     - Document rollback procedure
-    - Document monitoring setup
-    - Document alerting setup
-    - Document backup and restore
+    - _Requirements: 8.1, 8.5, 8.6, 10.10_
 
-  - [ ] 7.7 Final review and handoff
-    - Review all code changes
-    - Review all documentation
-    - Review all test results
-    - Prepare demo for stakeholders
-    - Hand off to operations team
+  - [ ] 5.2.2 Write service integration guide (Ingest Service)
+    - Add to documents/service-integration-guide.md
+    - Section 2: Ingest Service Integration
+    - Document step-by-step integration (similar to Project Service)
+    - Specific role requirements for data ingestion endpoints
+    - Code examples for Ingest Service
+    - _Requirements: 8.2, 8.7_
+
+  - [ ] 5.2.3 Write service integration guide (Knowledge Service)
+    - Add to documents/service-integration-guide.md
+    - Section 3: Knowledge Service Integration
+    - Document step-by-step integration
+    - Specific role requirements (VIEWER for GET, ANALYST for POST)
+    - Code examples for Knowledge Service
+    - _Requirements: 8.3, 8.8_
+
+  - [ ] 5.2.4 Write service integration guide (Notification Service)
+    - Add to documents/service-integration-guide.md
+    - Section 4: Notification Service Integration (WebSocket)
+    - Document WebSocket authentication flow
+    - Code examples for JWT extraction from query param/cookie
+    - Code examples for WebSocket upgrade with auth
+    - Document error handling for WebSocket auth failures
+    - _Requirements: 8.4_
+
+  - [ ] 5.2.5 Write audit event publishing guide
+    - Add to documents/service-integration-guide.md
+    - Section 5: Audit Event Publishing
+    - Document how to add audit publisher to each service
+    - List of audit events to publish:
+      * CREATE_PROJECT, DELETE_PROJECT
+      * CREATE_SOURCE, DELETE_SOURCE
+      * EXPORT_DATA
+    - Code examples for publishing audit events
+    - Document metadata structure
+    - _Requirements: 5.1_
+
+  **5.3 Frontend Integration Documentation**
+  
+  - [ ] 5.3.1 Write frontend migration guide
+    - Create documents/frontend-oauth-migration.md
+    - Document changes from email/password to OAuth
+    - Section 1: Login Page Migration
+      * Remove email/password form
+      * Add "Login with Google" button
+      * Redirect to /auth/login
+      * Handle OAuth callback redirect
+      * Remove localStorage token management
+    - Section 2: Axios Configuration
+      * Ensure withCredentials: true
+      * Verify CORS configuration
+      * Test cookie handling
+    - Section 3: Authentication State Management
+      * Call GET /auth/me on app load
+      * Store user info in React context/state
+      * Redirect to login on 401
+      * Display user info in header
+    - Section 4: Error Handling
+      * Add axios interceptor for 401 (redirect to login)
+      * Add axios interceptor for 403 (show permission denied)
+    - Section 5: Logout Implementation
+      * Call POST /auth/logout
+      * Clear user context/state
+      * Redirect to login page
+    - Section 6: Role-Based UI Rendering
+      * Hide/show UI elements based on role
+      * Disable buttons for insufficient permissions
+      * Show role badge in user profile
+    - Provide complete code examples (React/Vue)
+    - Document testing steps
+    - _Requirements: 12.1-12.8, 14.7_
+
+  - [ ] 5.3.2 Write frontend testing guide
+    - Add to documents/frontend-oauth-migration.md
+    - Section 7: Testing Checklist
+    - Document manual testing steps:
+      * Test login flow end-to-end
+      * Verify cookies are set correctly
+      * Verify API requests include cookies
+      * Test logout flow
+      * Test 401 redirect to login
+      * Test 403 permission denied message
+      * Test role-based UI rendering
+    - Document automated testing approach
+    - _Requirements: 12.1-12.8_
+
+  - [ ] 5.4 Checkpoint - Documentation complete
+    - Review all documentation for completeness
+    - Verify all code examples are correct
+    - Verify all links work
+    - Ask user if questions arise
 
 - [ ] 8. Comprehensive Testing Suite (After Code Review & Approval)
   - [ ] 8.1 Unit Tests - Core Authentication

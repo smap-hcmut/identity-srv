@@ -60,9 +60,40 @@ func (sm *SessionManager) CreateSession(ctx context.Context, userID, jti string,
 	}
 
 	// Also store user-to-session mapping for logout all functionality
-	// Key: user_sessions:{userID}, Value: set of JTIs
+	// Key: user_sessions:{userID}, Value: JSON array of JTIs
 	userSessionsKey := fmt.Sprintf("user_sessions:%s", userID)
-	if err := sm.redis.Set(ctx, userSessionsKey, jti, ttl); err != nil {
+
+	// Get existing JTIs
+	existingJTIs := []string{}
+	existingData, err := sm.redis.Get(ctx, userSessionsKey)
+	if err == nil && existingData != "" {
+		// Parse existing JTIs
+		if err := json.Unmarshal([]byte(existingData), &existingJTIs); err == nil {
+			// Filter out expired/invalid JTIs by checking if session still exists
+			validJTIs := []string{}
+			for _, existingJTI := range existingJTIs {
+				sessionKey := fmt.Sprintf("session:%s", existingJTI)
+				exists, _ := sm.redis.Exists(ctx, sessionKey)
+				if exists {
+					validJTIs = append(validJTIs, existingJTI)
+				}
+			}
+			existingJTIs = validJTIs
+		}
+	}
+
+	// Add new JTI
+	existingJTIs = append(existingJTIs, jti)
+
+	// Store updated JTIs list
+	jtisData, err := json.Marshal(existingJTIs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JTIs: %w", err)
+	}
+
+	// Use longest TTL for the mapping (7 days for remember me)
+	mappingTTL := 7 * 24 * time.Hour
+	if err := sm.redis.Set(ctx, userSessionsKey, jtisData, mappingTTL); err != nil {
 		return fmt.Errorf("failed to store user session mapping: %w", err)
 	}
 
@@ -94,23 +125,42 @@ func (sm *SessionManager) DeleteSession(ctx context.Context, jti string) error {
 	return nil
 }
 
+// GetAllUserSessions retrieves all JTIs for a user
+func (sm *SessionManager) GetAllUserSessions(ctx context.Context, userID string) ([]string, error) {
+	userSessionsKey := fmt.Sprintf("user_sessions:%s", userID)
+	data, err := sm.redis.Get(ctx, userSessionsKey)
+	if err != nil {
+		// No sessions found, not an error
+		return []string{}, nil
+	}
+
+	var jtis []string
+	if err := json.Unmarshal([]byte(data), &jtis); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JTIs: %w", err)
+	}
+
+	return jtis, nil
+}
+
 // DeleteUserSessions deletes all sessions for a user
 func (sm *SessionManager) DeleteUserSessions(ctx context.Context, userID string) error {
 	// Get all JTIs for the user
-	userSessionsKey := fmt.Sprintf("user_sessions:%s", userID)
-	jti, err := sm.redis.Get(ctx, userSessionsKey)
+	jtis, err := sm.GetAllUserSessions(ctx, userID)
 	if err != nil {
-		// No sessions found, not an error
-		return nil
+		return fmt.Errorf("failed to get user sessions: %w", err)
 	}
 
-	// Delete the session
-	sessionKey := fmt.Sprintf("session:%s", jti)
-	if err := sm.redis.Delete(ctx, sessionKey); err != nil {
-		return fmt.Errorf("failed to delete user session: %w", err)
+	// Delete each session
+	for _, jti := range jtis {
+		sessionKey := fmt.Sprintf("session:%s", jti)
+		if err := sm.redis.Delete(ctx, sessionKey); err != nil {
+			// Log error but continue deleting other sessions
+			continue
+		}
 	}
 
 	// Delete user sessions mapping
+	userSessionsKey := fmt.Sprintf("user_sessions:%s", userID)
 	if err := sm.redis.Delete(ctx, userSessionsKey); err != nil {
 		return fmt.Errorf("failed to delete user sessions mapping: %w", err)
 	}

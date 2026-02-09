@@ -180,11 +180,12 @@ func main() {
 		PostgresDB: postgresDB,
 
 		// Authentication & Security Configuration
-		Config:       cfg,
-		JWTManager:   jwtManager,
-		RedisClient:  redisClient,
-		CookieConfig: cfg.Cookie,
-		Encrypter:    encrypterInstance,
+		Config:         cfg,
+		JWTManager:     jwtManager,
+		RedisClient:    redisClient,
+		BlacklistRedis: blacklistRedis,
+		CookieConfig:   cfg.Cookie,
+		Encrypter:      encrypterInstance,
 
 		// Google Workspace Integration
 		GoogleClient: googleClient,

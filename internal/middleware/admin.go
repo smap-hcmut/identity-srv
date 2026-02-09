@@ -33,6 +33,11 @@ func (m Middleware) AdminOnly() gin.HandlerFunc {
 	}
 }
 
+// Admin is an alias for AdminOnly for convenience
+func (m Middleware) Admin() gin.HandlerFunc {
+	return m.AdminOnly()
+}
+
 // OptionalAdmin is a middleware that sets isAdmin flag but doesn't block non-admin users
 // Useful for endpoints that have different behavior for admin vs regular users
 func (m Middleware) OptionalAdmin() gin.HandlerFunc {

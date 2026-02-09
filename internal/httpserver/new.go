@@ -34,14 +34,15 @@ type HTTPServer struct {
 	// minio miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	config         *config.Config
-	jwtManager     *pkgJWT.Manager
-	redisClient    *pkgRedis.Client
-	sessionManager *usecase.SessionManager
-	groupsManager  *usecase.GroupsManager
-	roleMapper     *usecase.RoleMapper
-	cookieConfig   config.CookieConfig
-	encrypter      encrypter.Encrypter
+	config           *config.Config
+	jwtManager       *pkgJWT.Manager
+	redisClient      *pkgRedis.Client
+	sessionManager   *usecase.SessionManager
+	blacklistManager *usecase.BlacklistManager
+	groupsManager    *usecase.GroupsManager
+	roleMapper       *usecase.RoleMapper
+	cookieConfig     config.CookieConfig
+	encrypter        encrypter.Encrypter
 
 	// Google Workspace Integration
 	googleClient *pkgGoogle.Client
@@ -68,11 +69,12 @@ type Config struct {
 	// MinIO miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	Config       *config.Config
-	JWTManager   *pkgJWT.Manager
-	RedisClient  *pkgRedis.Client
-	CookieConfig config.CookieConfig
-	Encrypter    encrypter.Encrypter
+	Config         *config.Config
+	JWTManager     *pkgJWT.Manager
+	RedisClient    *pkgRedis.Client
+	BlacklistRedis *pkgRedis.Client
+	CookieConfig   config.CookieConfig
+	Encrypter      encrypter.Encrypter
 
 	// Google Workspace Integration
 	GoogleClient *pkgGoogle.Client
@@ -91,6 +93,9 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 	// Initialize session manager
 	sessionTTL := time.Duration(cfg.Config.Session.TTL) * time.Second
 	sessionManager := usecase.NewSessionManager(cfg.RedisClient, sessionTTL)
+
+	// Initialize blacklist manager
+	blacklistManager := usecase.NewBlacklistManager(cfg.BlacklistRedis)
 
 	// Initialize groups manager
 	groupsManager := usecase.NewGroupsManager(cfg.GoogleClient, cfg.RedisClient)
@@ -114,14 +119,15 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		// minio: cfg.MinIO,
 
 		// Authentication & Security Configuration
-		config:         cfg.Config,
-		jwtManager:     cfg.JWTManager,
-		redisClient:    cfg.RedisClient,
-		sessionManager: sessionManager,
-		groupsManager:  groupsManager,
-		roleMapper:     roleMapper,
-		cookieConfig:   cfg.CookieConfig,
-		encrypter:      cfg.Encrypter,
+		config:           cfg.Config,
+		jwtManager:       cfg.JWTManager,
+		redisClient:      cfg.RedisClient,
+		sessionManager:   sessionManager,
+		blacklistManager: blacklistManager,
+		groupsManager:    groupsManager,
+		roleMapper:       roleMapper,
+		cookieConfig:     cfg.CookieConfig,
+		encrypter:        cfg.Encrypter,
 
 		// Google Workspace Integration
 		googleClient: cfg.GoogleClient,
@@ -171,6 +177,9 @@ func (srv HTTPServer) validate() error {
 	}
 	if srv.sessionManager == nil {
 		return errors.New("sessionManager is required")
+	}
+	if srv.blacklistManager == nil {
+		return errors.New("blacklistManager is required")
 	}
 	if srv.encrypter == nil {
 		return errors.New("encrypter is required")

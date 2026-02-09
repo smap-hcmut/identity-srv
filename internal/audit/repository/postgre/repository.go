@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"smap-api/internal/audit"
 	"smap-api/internal/audit/repository"
+	"smap-api/internal/model"
 	"strings"
 	"time"
 )
@@ -126,4 +127,107 @@ func (r *auditRepository) DeleteExpired(ctx context.Context) (int64, error) {
 	}
 
 	return rowsAffected, nil
+}
+
+// Query retrieves audit logs with pagination and filters
+func (r *auditRepository) Query(ctx context.Context, opts repository.QueryOptions) ([]model.AuditLog, int, error) {
+	// Build WHERE clause
+	whereClauses := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	if opts.UserID != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("user_id = $%d", argIndex))
+		args = append(args, opts.UserID)
+		argIndex++
+	}
+
+	if opts.Action != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("action = $%d", argIndex))
+		args = append(args, opts.Action)
+		argIndex++
+	}
+
+	if opts.From != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("created_at >= $%d", argIndex))
+		args = append(args, *opts.From)
+		argIndex++
+	}
+
+	if opts.To != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("created_at <= $%d", argIndex))
+		args = append(args, *opts.To)
+		argIndex++
+	}
+
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Get total count
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM audit_logs %s", whereClause)
+	var totalCount int
+	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count audit logs: %w", err)
+	}
+
+	// Get paginated results
+	offset := (opts.Page - 1) * opts.Limit
+	query := fmt.Sprintf(`
+		SELECT id, user_id, action, resource_type, resource_id, 
+		       metadata, ip_address, user_agent, created_at, expires_at
+		FROM audit_logs
+		%s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argIndex, argIndex+1)
+
+	args = append(args, opts.Limit, offset)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query audit logs: %w", err)
+	}
+	defer rows.Close()
+
+	logs := []model.AuditLog{}
+	for rows.Next() {
+		var log model.AuditLog
+		var metadataJSON []byte
+
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.Action,
+			&log.ResourceType,
+			&log.ResourceID,
+			&metadataJSON,
+			&log.IPAddress,
+			&log.UserAgent,
+			&log.CreatedAt,
+			&log.ExpiresAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan audit log: %w", err)
+		}
+
+		// Unmarshal metadata
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &log.Metadata); err != nil {
+				log.Metadata = make(map[string]interface{})
+			}
+		} else {
+			log.Metadata = make(map[string]interface{})
+		}
+
+		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating audit logs: %w", err)
+	}
+
+	return logs, totalCount, nil
 }

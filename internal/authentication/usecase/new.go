@@ -12,13 +12,15 @@ import (
 )
 
 type implUsecase struct {
-	l              pkgLog.Logger
-	scope          scope.Manager
-	encrypt        encrypter.Encrypter
-	userUC         user.UseCase
-	db             *sql.DB
-	clock          func() time.Time
-	auditPublisher audit.Publisher
+	l                pkgLog.Logger
+	scope            scope.Manager
+	encrypt          encrypter.Encrypter
+	userUC           user.UseCase
+	db               *sql.DB
+	clock            func() time.Time
+	auditPublisher   audit.Publisher
+	sessionManager   *SessionManager
+	blacklistManager *BlacklistManager
 }
 
 func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) authentication.UseCase {
@@ -39,4 +41,14 @@ func (u *implUsecase) SetDB(db *sql.DB) {
 // SetAuditPublisher sets the audit publisher (called after initialization)
 func (u *implUsecase) SetAuditPublisher(publisher audit.Publisher) {
 	u.auditPublisher = publisher
+}
+
+// SetSessionManager sets the session manager (called after initialization)
+func (u *implUsecase) SetSessionManager(manager *SessionManager) {
+	u.sessionManager = manager
+}
+
+// SetBlacklistManager sets the blacklist manager (called after initialization)
+func (u *implUsecase) SetBlacklistManager(manager *BlacklistManager) {
+	u.blacklistManager = manager
 }
