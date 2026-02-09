@@ -300,8 +300,8 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Verify documentation is complete
     - Ask user if questions arise
 
-- [ ] 4. Day 4: Security Enhancements (Identity Service)
-  - [ ] 4.1 Implement redirect URL validation
+- [x] 4. Day 4: Security Enhancements (Identity Service)
+  - [x] 4.1 Implement redirect URL validation
     - Create internal/authentication/usecase/redirect.go
     - Validate redirect URLs against allowed list from config
     - Prevent open redirect attacks
@@ -310,8 +310,8 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 15.4_
     - _Pattern: Follow existing usecase pattern_
 
-  - [ ] 4.2 Implement login rate limiting
-    - Create internal/middleware/ratelimit.go
+  - [x] 4.2 Implement login rate limiting
+    - Create internal/authentication/usecase/ratelimit.go
     - Track failed login attempts by IP address
     - Block login attempts after 5 failures in 15 minutes
     - Return 429 Too Many Requests when rate limited
@@ -319,9 +319,9 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Use Redis for storage
     - Apply to /auth/login and /auth/callback endpoints
     - _Requirements: 15.5_
-    - _Pattern: Create new middleware_
+    - _Pattern: Create new usecase component_
 
-  - [ ] 4.3 Verify secure JTI generation
+  - [x] 4.3 Verify secure JTI generation
     - Review pkg/jwt/jwt.go JTI generation
     - Confirm using crypto/rand via uuid.New()
     - Verify UUID v4 implementation
@@ -329,7 +329,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 15.7_
     - _Pattern: Code review + documentation_
 
-  - [ ] 4.4 Implement configuration validation
+  - [x] 4.4 Implement configuration validation
     - Update config/config.go validate() function
     - Add validation for all required fields
     - Test missing config fails startup with clear error
@@ -338,7 +338,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - _Requirements: 11.3, 11.10_
     - _Pattern: Extend existing validate() function_
 
-  - [ ] 4.5 Checkpoint - Security features complete
+  - [x] 4.5 Checkpoint - Security features complete
     - Test redirect URL validation with various URLs
     - Test rate limiting with multiple failed attempts
     - Verify JTI randomness (visual inspection)
