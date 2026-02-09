@@ -349,7 +349,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
   
   **5.1 Identity Service Documentation**
   
-  - [ ] 5.1.1 Write Identity Service API documentation
+  - [x] 5.1.1 Write Identity Service API documentation
     - Create documents/identity-service-api.md
     - Document all public endpoints with examples:
       * GET /auth/login - OAuth redirect
@@ -363,7 +363,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Include curl examples for each endpoint
     - _Requirements: 14.1, 14.2, 14.3_
 
-  - [ ] 5.1.2 Write Internal API documentation
+  - [x] 5.1.2 Write Internal API documentation
     - Add to documents/identity-service-api.md
     - Document internal endpoints:
       * POST /internal/validate - Token validation
@@ -374,7 +374,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Include code examples for calling internal APIs
     - _Requirements: 10.7, 10.8, 10.10, 10.11, 10.12_
 
-  - [ ] 5.1.3 Write deployment guide
+  - [x] 5.1.3 Write deployment guide
     - Create documents/identity-service-deployment.md
     - Document Google OAuth setup steps (with screenshots)
     - Document service account creation for Directory API
@@ -387,7 +387,7 @@ This implementation plan covers the migration from Identity Service to Auth Serv
     - Document Kafka setup (audit.events topic)
     - _Requirements: 14.5, 14.6_
 
-  - [ ] 5.1.4 Write troubleshooting guide
+  - [x] 5.1.4 Write troubleshooting guide
     - Create documents/identity-service-troubleshooting.md
     - Document common issues and solutions:
       * OAuth callback errors
