@@ -70,10 +70,11 @@ type GoogleWorkspaceConfig struct {
 
 // AccessControlConfig is the configuration for access control
 type AccessControlConfig struct {
-	AllowedDomains []string
-	BlockedEmails  []string
-	RoleMapping    map[string][]string
-	DefaultRole    string
+	AllowedDomains      []string
+	BlockedEmails       []string
+	AllowedRedirectURLs []string
+	RoleMapping         map[string][]string
+	DefaultRole         string
 }
 
 // SessionConfig is the configuration for session management
@@ -359,6 +360,7 @@ func setDefaults() {
 
 	// Access Control
 	viper.SetDefault("access_control.default_role", "VIEWER")
+	viper.SetDefault("access_control.allowed_redirect_urls", []string{"/dashboard", "/", "http://localhost:3000", "http://localhost:5173"})
 
 	// Session
 	viper.SetDefault("session.ttl", 28800)              // 8 hours
@@ -382,6 +384,10 @@ func validate(cfg *Config) error {
 	if cfg.OAuth2.RedirectURI == "" {
 		return fmt.Errorf("oauth2.redirect_uri is required")
 	}
+	// Validate redirect URI format (Task 4.4)
+	if !strings.HasPrefix(cfg.OAuth2.RedirectURI, "http://") && !strings.HasPrefix(cfg.OAuth2.RedirectURI, "https://") {
+		return fmt.Errorf("oauth2.redirect_uri must be a valid HTTP/HTTPS URL")
+	}
 
 	// Validate JWT fields
 	if cfg.JWT.PrivateKeyPath == "" {
@@ -389,6 +395,15 @@ func validate(cfg *Config) error {
 	}
 	if cfg.JWT.PublicKeyPath == "" {
 		return fmt.Errorf("jwt.public_key_path is required")
+	}
+	if cfg.JWT.Issuer == "" {
+		return fmt.Errorf("jwt.issuer is required")
+	}
+	if len(cfg.JWT.Audience) == 0 {
+		return fmt.Errorf("jwt.audience must have at least one value")
+	}
+	if cfg.JWT.TTL <= 0 {
+		return fmt.Errorf("jwt.ttl must be greater than 0")
 	}
 
 	// Validate Google Workspace fields
@@ -398,6 +413,10 @@ func validate(cfg *Config) error {
 	if cfg.GoogleWorkspace.AdminEmail == "" {
 		return fmt.Errorf("google_workspace.admin_email is required")
 	}
+	// Validate admin email format (Task 4.4)
+	if !strings.Contains(cfg.GoogleWorkspace.AdminEmail, "@") {
+		return fmt.Errorf("google_workspace.admin_email must be a valid email address")
+	}
 	if cfg.GoogleWorkspace.Domain == "" {
 		return fmt.Errorf("google_workspace.domain is required")
 	}
@@ -406,10 +425,60 @@ func validate(cfg *Config) error {
 	if len(cfg.AccessControl.AllowedDomains) == 0 {
 		return fmt.Errorf("access_control.allowed_domains must have at least one domain")
 	}
+	// Validate domain format (Task 4.4)
+	for _, domain := range cfg.AccessControl.AllowedDomains {
+		if domain == "" {
+			return fmt.Errorf("access_control.allowed_domains contains empty domain")
+		}
+	}
+	// Validate default role (Task 4.4)
+	validRoles := map[string]bool{"ADMIN": true, "ANALYST": true, "VIEWER": true}
+	if !validRoles[cfg.AccessControl.DefaultRole] {
+		return fmt.Errorf("access_control.default_role must be one of: ADMIN, ANALYST, VIEWER")
+	}
 
 	// Validate Encrypter
 	if cfg.Encrypter.Key == "" {
 		return fmt.Errorf("encrypter.key is required")
+	}
+	// Validate encrypter key length (Task 4.4)
+	if len(cfg.Encrypter.Key) < 32 {
+		return fmt.Errorf("encrypter.key must be at least 32 characters for security")
+	}
+
+	// Validate Database Configuration (Task 4.4)
+	if cfg.Postgres.Host == "" {
+		return fmt.Errorf("postgres.host is required")
+	}
+	if cfg.Postgres.Port == 0 {
+		return fmt.Errorf("postgres.port is required")
+	}
+	if cfg.Postgres.DBName == "" {
+		return fmt.Errorf("postgres.db_name is required")
+	}
+	if cfg.Postgres.User == "" {
+		return fmt.Errorf("postgres.user is required")
+	}
+
+	// Validate Redis Configuration (Task 4.4)
+	if cfg.Redis.Host == "" {
+		return fmt.Errorf("redis.host is required")
+	}
+	if cfg.Redis.Port == 0 {
+		return fmt.Errorf("redis.port is required")
+	}
+
+	// Validate Session Configuration (Task 4.4)
+	if cfg.Session.TTL <= 0 {
+		return fmt.Errorf("session.ttl must be greater than 0")
+	}
+	if cfg.Session.RememberMeTTL <= 0 {
+		return fmt.Errorf("session.remember_me_ttl must be greater than 0")
+	}
+
+	// Validate Cookie Configuration (Task 4.4)
+	if cfg.Cookie.Name == "" {
+		return fmt.Errorf("cookie.name is required")
 	}
 
 	return nil

@@ -41,10 +41,29 @@ func (h *handler) InitOAuth2Config(cfg OAuthConfig) {
 // @Success 302 {string} string "Redirect to Google OAuth"
 // @Router /authentication/login [get]
 func (h *handler) OAuthLogin(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get redirect URL from query parameter
+	redirectURL := c.Query("redirect")
+
+	// Validate redirect URL (Task 4.1 - prevent open redirect attacks)
+	if h.redirectValidator != nil && redirectURL != "" {
+		if err := h.redirectValidator.ValidateRedirectURL(redirectURL); err != nil {
+			h.l.Warnf(ctx, "Invalid redirect URL: %s, error: %v", redirectURL, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{
+					"code":    "INVALID_REDIRECT",
+					"message": "Invalid redirect URL.",
+				},
+			})
+			return
+		}
+	}
+
 	// Generate random state for CSRF protection
 	state := generateRandomState()
 
-	// Store state in session/cookie for validation
+	// Store state and redirect URL in session/cookie for validation
 	c.SetCookie(
 		"oauth_state",
 		state,
@@ -54,6 +73,18 @@ func (h *handler) OAuthLogin(c *gin.Context) {
 		h.config.Cookie.Secure,
 		true, // HttpOnly
 	)
+
+	if redirectURL != "" {
+		c.SetCookie(
+			"oauth_redirect",
+			redirectURL,
+			300, // 5 minutes
+			"/",
+			h.config.Cookie.Domain,
+			h.config.Cookie.Secure,
+			true, // HttpOnly
+		)
+	}
 
 	// Redirect to Google OAuth2 authorization page
 	authURL := h.oauth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
@@ -135,6 +166,13 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 	if !h.isAllowedDomain(userInfo.Email) {
 		h.l.Warnf(ctx, "Domain not allowed: %s", userInfo.Email)
 
+		// Record failed login attempt (Task 4.2)
+		if h.rateLimiter != nil {
+			if err := h.rateLimiter.RecordFailedAttempt(ctx, c.ClientIP()); err != nil {
+				h.l.Warnf(ctx, "Failed to record rate limit: %v", err)
+			}
+		}
+
 		// Publish audit event for failed login
 		h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
 			UserID:       userInfo.Email, // Use email since user not created yet
@@ -165,6 +203,13 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 	// Check blocklist
 	if h.isBlockedEmail(userInfo.Email) {
 		h.l.Warnf(ctx, "Account blocked: %s", userInfo.Email)
+
+		// Record failed login attempt (Task 4.2)
+		if h.rateLimiter != nil {
+			if err := h.rateLimiter.RecordFailedAttempt(ctx, c.ClientIP()); err != nil {
+				h.l.Warnf(ctx, "Failed to record rate limit: %v", err)
+			}
+		}
 
 		// Publish audit event for failed login
 		h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
@@ -246,6 +291,13 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 	// Set JWT as HttpOnly cookie (Task 1.7)
 	h.setAuthCookie(c, jwtToken)
 
+	// Clear failed login attempts on successful login (Task 4.2)
+	if h.rateLimiter != nil {
+		if err := h.rateLimiter.ClearFailedAttempts(ctx, c.ClientIP()); err != nil {
+			h.l.Warnf(ctx, "Failed to clear rate limit: %v", err)
+		}
+	}
+
 	// Publish audit log event (Task 2.6)
 	h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
 		UserID:       user.ID,
@@ -260,8 +312,17 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		UserAgent: c.Request.UserAgent(),
 	})
 
-	// Redirect to dashboard
-	c.Redirect(http.StatusTemporaryRedirect, "/dashboard")
+	// Get redirect URL from cookie (Task 4.1)
+	redirectURL, err := c.Cookie("oauth_redirect")
+	if err != nil || redirectURL == "" {
+		redirectURL = "/dashboard" // Default redirect
+	}
+
+	// Clear redirect cookie
+	c.SetCookie("oauth_redirect", "", -1, "/", h.config.Cookie.Domain, h.config.Cookie.Secure, true)
+
+	// Redirect to target URL
+	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
 // extractDomain extracts domain from email address

@@ -10,6 +10,7 @@ import (
 	_ "smap-api/docs" // Import swagger docs
 	auditPostgre "smap-api/internal/audit/repository/postgre"
 	"smap-api/internal/audit/usecase"
+	authUsecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
@@ -142,6 +143,19 @@ func main() {
 		}
 	}
 
+	// Initialize Redirect Validator (Task 4.1)
+	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
+	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
+
+	// Initialize Rate Limiter (Task 4.2)
+	rateLimiter := authUsecase.NewRateLimiter(
+		redisClient.GetClient(),
+		5,              // Max 5 failed attempts
+		15*time.Minute, // Within 15 minutes
+		30*time.Minute, // Block for 30 minutes
+	)
+	logger.Infof(ctx, "Rate limiter initialized (max 5 attempts per 15 minutes)")
+
 	// Initialize Kafka producer
 	kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{
 		Brokers: cfg.Kafka.Brokers,
@@ -180,12 +194,14 @@ func main() {
 		PostgresDB: postgresDB,
 
 		// Authentication & Security Configuration
-		Config:         cfg,
-		JWTManager:     jwtManager,
-		RedisClient:    redisClient,
-		BlacklistRedis: blacklistRedis,
-		CookieConfig:   cfg.Cookie,
-		Encrypter:      encrypterInstance,
+		Config:            cfg,
+		JWTManager:        jwtManager,
+		RedisClient:       redisClient,
+		BlacklistRedis:    blacklistRedis,
+		RedirectValidator: redirectValidator,
+		RateLimiter:       rateLimiter,
+		CookieConfig:      cfg.Cookie,
+		Encrypter:         encrypterInstance,
 
 		// Google Workspace Integration
 		GoogleClient: googleClient,

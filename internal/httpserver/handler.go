@@ -42,7 +42,7 @@ func (srv HTTPServer) mapHandlers() error {
 	}
 
 	// Initialize HTTP handlers with new dependencies
-	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo)
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo, srv.redirectValidator, srv.rateLimiter)
 
 	// Initialize OAuth2 config
 	authHandler.InitOAuth2Config(authhttp.OAuthConfig{
@@ -59,7 +59,7 @@ func (srv HTTPServer) mapHandlers() error {
 	auditHandler := audithttp.New(srv.l, auditRepo, srv.discord)
 
 	// Map routes (no prefix)
-	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
+	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw, srv.rateLimiter)
 	audithttp.MapAuditRoutes(srv.gin.Group("/audit-logs"), auditHandler, mw)
 	// userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw) // Temporarily disabled for Task 1.9
 

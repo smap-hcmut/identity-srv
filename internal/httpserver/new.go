@@ -34,15 +34,17 @@ type HTTPServer struct {
 	// minio miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	config           *config.Config
-	jwtManager       *pkgJWT.Manager
-	redisClient      *pkgRedis.Client
-	sessionManager   *usecase.SessionManager
-	blacklistManager *usecase.BlacklistManager
-	groupsManager    *usecase.GroupsManager
-	roleMapper       *usecase.RoleMapper
-	cookieConfig     config.CookieConfig
-	encrypter        encrypter.Encrypter
+	config            *config.Config
+	jwtManager        *pkgJWT.Manager
+	redisClient       *pkgRedis.Client
+	sessionManager    *usecase.SessionManager
+	blacklistManager  *usecase.BlacklistManager
+	groupsManager     *usecase.GroupsManager
+	roleMapper        *usecase.RoleMapper
+	redirectValidator *usecase.RedirectValidator
+	rateLimiter       *usecase.RateLimiter
+	cookieConfig      config.CookieConfig
+	encrypter         encrypter.Encrypter
 
 	// Google Workspace Integration
 	googleClient *pkgGoogle.Client
@@ -69,12 +71,14 @@ type Config struct {
 	// MinIO miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	Config         *config.Config
-	JWTManager     *pkgJWT.Manager
-	RedisClient    *pkgRedis.Client
-	BlacklistRedis *pkgRedis.Client
-	CookieConfig   config.CookieConfig
-	Encrypter      encrypter.Encrypter
+	Config            *config.Config
+	JWTManager        *pkgJWT.Manager
+	RedisClient       *pkgRedis.Client
+	BlacklistRedis    *pkgRedis.Client
+	RedirectValidator *usecase.RedirectValidator
+	RateLimiter       *usecase.RateLimiter
+	CookieConfig      config.CookieConfig
+	Encrypter         encrypter.Encrypter
 
 	// Google Workspace Integration
 	GoogleClient *pkgGoogle.Client
@@ -119,15 +123,17 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		// minio: cfg.MinIO,
 
 		// Authentication & Security Configuration
-		config:           cfg.Config,
-		jwtManager:       cfg.JWTManager,
-		redisClient:      cfg.RedisClient,
-		sessionManager:   sessionManager,
-		blacklistManager: blacklistManager,
-		groupsManager:    groupsManager,
-		roleMapper:       roleMapper,
-		cookieConfig:     cfg.CookieConfig,
-		encrypter:        cfg.Encrypter,
+		config:            cfg.Config,
+		jwtManager:        cfg.JWTManager,
+		redisClient:       cfg.RedisClient,
+		sessionManager:    sessionManager,
+		blacklistManager:  blacklistManager,
+		groupsManager:     groupsManager,
+		roleMapper:        roleMapper,
+		redirectValidator: cfg.RedirectValidator,
+		rateLimiter:       cfg.RateLimiter,
+		cookieConfig:      cfg.CookieConfig,
+		encrypter:         cfg.Encrypter,
 
 		// Google Workspace Integration
 		googleClient: cfg.GoogleClient,

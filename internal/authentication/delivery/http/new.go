@@ -14,35 +14,39 @@ import (
 )
 
 type handler struct {
-	l                pkgLog.Logger
-	uc               authentication.UseCase
-	discord          *discord.Discord
-	cookieConfig     config.CookieConfig
-	config           *config.Config
-	oauth2Config     *oauth2.Config
-	jwtManager       *pkgJWT.Manager
-	sessionManager   *usecase.SessionManager
-	blacklistManager *usecase.BlacklistManager
-	googleClient     *pkgGoogle.Client
-	groupsManager    *usecase.GroupsManager
-	roleMapper       *usecase.RoleMapper
-	userRepo         userrepo.Repository
+	l                 pkgLog.Logger
+	uc                authentication.UseCase
+	discord           *discord.Discord
+	cookieConfig      config.CookieConfig
+	config            *config.Config
+	oauth2Config      *oauth2.Config
+	jwtManager        *pkgJWT.Manager
+	sessionManager    *usecase.SessionManager
+	blacklistManager  *usecase.BlacklistManager
+	googleClient      *pkgGoogle.Client
+	groupsManager     *usecase.GroupsManager
+	roleMapper        *usecase.RoleMapper
+	userRepo          userrepo.Repository
+	redirectValidator *usecase.RedirectValidator
+	rateLimiter       *usecase.RateLimiter
 }
 
-func New(l pkgLog.Logger, uc authentication.UseCase, discord *discord.Discord, cfg *config.Config, jwtManager *pkgJWT.Manager, sessionManager *usecase.SessionManager, blacklistManager *usecase.BlacklistManager, googleClient *pkgGoogle.Client, groupsManager *usecase.GroupsManager, roleMapper *usecase.RoleMapper, userRepo userrepo.Repository) handler {
+func New(l pkgLog.Logger, uc authentication.UseCase, discord *discord.Discord, cfg *config.Config, jwtManager *pkgJWT.Manager, sessionManager *usecase.SessionManager, blacklistManager *usecase.BlacklistManager, googleClient *pkgGoogle.Client, groupsManager *usecase.GroupsManager, roleMapper *usecase.RoleMapper, userRepo userrepo.Repository, redirectValidator *usecase.RedirectValidator, rateLimiter *usecase.RateLimiter) handler {
 	return handler{
-		l:                l,
-		uc:               uc,
-		discord:          discord,
-		cookieConfig:     cfg.Cookie,
-		config:           cfg,
-		oauth2Config:     nil, // Will be initialized via InitOAuth2Config
-		jwtManager:       jwtManager,
-		sessionManager:   sessionManager,
-		blacklistManager: blacklistManager,
-		googleClient:     googleClient,
-		groupsManager:    groupsManager,
-		roleMapper:       roleMapper,
-		userRepo:         userRepo,
+		l:                 l,
+		uc:                uc,
+		discord:           discord,
+		cookieConfig:      cfg.Cookie,
+		config:            cfg,
+		oauth2Config:      nil, // Will be initialized via InitOAuth2Config
+		jwtManager:        jwtManager,
+		sessionManager:    sessionManager,
+		blacklistManager:  blacklistManager,
+		googleClient:      googleClient,
+		groupsManager:     groupsManager,
+		roleMapper:        roleMapper,
+		userRepo:          userRepo,
+		redirectValidator: redirectValidator,
+		rateLimiter:       rateLimiter,
 	}
 }

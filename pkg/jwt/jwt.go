@@ -33,6 +33,8 @@ func (m *Manager) GenerateToken(userID, email, role string, groups []string) (st
 	expiresAt := now.Add(m.ttl)
 
 	// Generate unique JTI (JWT ID) for token tracking and revocation
+	// SECURITY: Uses uuid.New() which internally uses crypto/rand for secure random generation (Task 4.3)
+	// This ensures JTI values are cryptographically secure and unpredictable
 	jti := uuid.New().String()
 
 	claims := Claims{
