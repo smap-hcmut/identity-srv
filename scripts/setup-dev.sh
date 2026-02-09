@@ -51,12 +51,15 @@ else
     echo -e "${YELLOW}⚠ auth-config.yaml already exists, skipping...${NC}"
 fi
 
-# Create .env file if not exists
+# Create .env file for SQLBoiler (code generation only)
 if [ ! -f ".env" ]; then
-    echo "📝 Creating .env file..."
+    echo "📝 Creating .env file for SQLBoiler..."
     ENCRYPT_KEY=$(cat secrets/encrypt.key)
     cat > .env << EOF
-# Database Configuration
+# NOTE: This file is ONLY used by SQLBoiler for code generation
+# The actual service uses config/auth-config.yaml
+
+# Database Configuration (for SQLBoiler)
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -65,25 +68,14 @@ DB_NAME=smap_auth
 DB_SSL_MODE=disable
 DB_SCHEMA=public
 
-# Encryption Key
+# Encryption Key (for reference)
 ENCRYPT_KEY=${ENCRYPT_KEY}
 
-# Google OAuth (Update these with your credentials)
+# Google OAuth (Update these in auth-config.yaml instead)
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
-
-# Redis
-REDIS_PASSWORD=
-
-# PostgreSQL Password
-POSTGRES_PASSWORD=postgres
-
-# Discord Webhook (Optional)
-DISCORD_WEBHOOK_ID=
-DISCORD_WEBHOOK_TOKEN=
 EOF
-    echo -e "${GREEN}✓ .env file created${NC}"
-    echo -e "${YELLOW}⚠ Please update .env with your Google OAuth credentials${NC}"
+    echo -e "${GREEN}✓ .env file created (for SQLBoiler only)${NC}"
 else
     echo -e "${YELLOW}⚠ .env already exists, skipping...${NC}"
 fi
@@ -116,10 +108,9 @@ echo ""
 echo "✅ Development environment setup complete!"
 echo ""
 echo "📋 Next steps:"
-echo "1. Update auth-config.yaml with your Google OAuth credentials"
-echo "2. Update .env with your Google OAuth credentials"
-echo "3. Run: make models (to generate SQLBoiler models)"
-echo "4. Run: make run-api (to start the API server)"
+echo "1. Update config/auth-config.yaml with your Google OAuth credentials"
+echo "2. Run: make models (to generate SQLBoiler models)"
+echo "3. Run: make run-api (to start the API server)"
 echo ""
 echo "🔗 Useful commands:"
 echo "  - View logs: docker-compose -f docker-compose.dev.yml logs -f"

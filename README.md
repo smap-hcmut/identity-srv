@@ -1,818 +1,302 @@
-# SMAP Identity Service
+# SMAP Auth Service
 
-> Authentication and subscription management service for the SMAP project
+> Enterprise-grade authentication and authorization service for the SMAP platform
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [API Documentation](#api-documentation)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [Deployment](#deployment)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
 ## Overview
 
-**SMAP Identity Service** is a comprehensive authentication and subscription management system built with Go. It provides secure user authentication, subscription-based access control, and asynchronous task processing for the SMAP platform.
+**SMAP Auth Service** is a production-ready authentication service built with Go, providing secure OAuth2/OIDC integration, JWT-based authentication, and role-based access control for the SMAP ecosystem.
 
-### Key Capabilities
+### Key Features
 
-- **User Authentication**: Registration, email verification via OTP, and JWT-based login
-- **Subscription Management**: Plan-based subscription system with trial periods
-- **Automatic Free Trial**: 14-day free trial subscription upon email verification
-- **Async Task Processing**: Email sending via RabbitMQ and SMTP
-- **RESTful API**: Clean and well-documented HTTP APIs
-- **Scalable Architecture**: Microservice-ready with separate API and consumer services
+- **OAuth2/OIDC Integration**: Google Workspace (Azure AD, Okta support planned)
+- **JWT Authentication**: RS256 asymmetric signing with public key distribution
+- **HttpOnly Cookie Auth**: XSS-protected token storage
+- **Role-Based Access Control**: ADMIN, ANALYST, VIEWER roles
+- **Group-Based Permissions**: Fine-grained access via Google Groups
+- **Token Blacklist**: Instant revocation capability
+- **Audit Logging**: Kafka-based async event tracking
+- **Key Rotation**: Support for zero-downtime key rotation (planned)
 
 ---
 
-## Features
+## Quick Start
 
-### Authentication
+### Prerequisites
 
-- User registration with email and password
-- OTP-based email verification
-- Secure password hashing (bcrypt)
-- JWT token-based authentication
-- Automatic account activation
+- Go 1.25+
+- PostgreSQL 15+
+- Redis 6+
+- Docker (optional)
 
-### Subscription System
+### Installation
 
-- Multiple subscription plans (Free, Premium, etc.)
-- Automatic free trial creation (14 days)
-- Subscription status management (trialing, active, cancelled, expired)
-- User-to-plan mapping with usage limits
-- Subscription cancellation support
+```bash
+# Clone repository
+git clone <repository-url>
+cd identity-srv
 
-### Asynchronous Email
+# Copy configuration template
+cp config/auth-config.example.yaml config/auth-config.yaml
 
-- Email verification with OTP
-- Localized email templates (EN, VI)
-- RabbitMQ-based message queue
-- SMTP integration (Gmail, SendGrid, custom)
-- Separate consumer service for email processing
+# Edit configuration with your credentials
+nano config/auth-config.yaml
 
-### Additional Features
+# Run with Docker Compose (recommended)
+docker-compose up -d
 
-- Pagination and filtering support
-- Soft delete for data retention
-- Comprehensive error handling
-- Request validation
-- Swagger API documentation
-- Health check endpoints
-- CORS support
-- Graceful shutdown
+# Or run locally
+make run-api
+```
+
+### First API Call
+
+```bash
+# Check health
+curl http://localhost:8080/health
+
+# View API documentation
+open http://localhost:8080/swagger/index.html
+
+# Login (returns HttpOnly cookie)
+curl -X POST http://localhost:8080/authentication/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password"}' \
+  --cookie-jar cookies.txt
+
+# Get current user
+curl http://localhost:8080/authentication/me \
+  --cookie cookies.txt
+```
 
 ---
 
 ## Architecture
 
-### System Overview
+### High-Level Overview
 
 ```
-┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
-│   API Service   │ ──────► │   RabbitMQ   │ ──────► │ Consumer Service│
-│   (Port 8080)   │ Publish │   (Queue)    │ Consume │  (Email, etc.)  │
-└────────┬────────┘         └──────────────┘         └─────────────────┘
-         │
-         │ Read/Write
-         ▼
-┌─────────────────┐
-│   PostgreSQL    │
-│   (Database)    │
-└─────────────────┘
+┌─────────────┐         ┌──────────────┐         ┌─────────────┐
+│   Browser   │ Cookie  │ Auth Service │  JWKS   │   Other     │
+│             │────────►│              │────────►│  Services   │
+│             │         │  - OAuth2    │         │             │
+└─────────────┘         │  - JWT       │         └─────────────┘
+                        │  - RBAC      │
+                        └──────┬───────┘
+                               │
+                    ┌──────────┼──────────┐
+                    ▼          ▼          ▼
+              ┌──────────┐ ┌──────┐ ┌────────┐
+              │PostgreSQL│ │Redis │ │ Kafka  │
+              └──────────┘ └──────┘ └────────┘
 ```
 
-### Clean Architecture
+### Tech Stack
 
-The service follows **Clean Architecture** principles with clear separation of concerns:
-
-```
-├── cmd/                    # Application entry points
-│   ├── api/               # API server
-│   └── consumer/          # Consumer service
-├── internal/              # Business logic
-│   ├── authentication/    # Auth domain
-│   ├── plan/             # Plan domain
-│   ├── subscription/     # Subscription domain
-│   ├── user/             # User domain
-│   ├── smtp/             # Email domain
-│   └── httpserver/       # HTTP server setup
-├── pkg/                   # Shared packages
-└── config/               # Configuration
-```
-
-**Layers:**
-
-1. **Delivery Layer**: HTTP handlers, RabbitMQ consumers
-2. **UseCase Layer**: Business logic and orchestration
-3. **Repository Layer**: Data access and persistence
-4. **Domain Layer**: Entities and interfaces
+| Component         | Technology    | Purpose                         |
+| ----------------- | ------------- | ------------------------------- |
+| **Language**      | Go 1.25       | High performance, strong typing |
+| **Framework**     | Gin           | HTTP routing and middleware     |
+| **Database**      | PostgreSQL 15 | User data, audit logs, JWT keys |
+| **Cache**         | Redis 6       | Token blacklist, session store  |
+| **Message Queue** | Kafka         | Async audit event publishing    |
+| **Auth**          | OAuth2/OIDC   | Google Workspace integration    |
+| **JWT**           | RS256         | Asymmetric token signing        |
+| **Container**     | Docker        | Deployment and orchestration    |
 
 ---
 
-## Tech Stack
+## Configuration
 
-### Core
+### Configuration File
 
-- **Language**: Go 1.25+
-- **Framework**: Gin Web Framework
-- **Database**: PostgreSQL 15
-- **Message Queue**: RabbitMQ 3.x
-- **Authentication**: JWT (golang-jwt)
-- **Email**: SMTP (go-mail)
+All configuration is managed through `config/auth-config.yaml`. Key options:
 
-### Infrastructure
+```yaml
+# HTTP Server
+http_server:
+  host: 0.0.0.0
+  port: 8080
+  mode: release
 
-- **Containerization**: Docker with multi-stage builds
-- **Runtime**: Distroless (secure, minimal)
-- **Build System**: BuildKit with cache optimization
-- **Orchestration**: Docker Compose (development)
+# PostgreSQL
+postgres:
+  host: localhost
+  port: 5432
+  db_name: smap_auth
+  user: postgres
+  password: <password>
 
-### Libraries
+# Redis
+redis:
+  host: localhost
+  port: 6379
+  db: 0  # DB 1 used for blacklist
 
-- **ORM**: SQLBoiler (type-safe, code generation)
-- **Validation**: go-playground/validator
-- **Logging**: Uber Zap
-- **Configuration**: caarlos0/env
-- **Password**: bcrypt
-- **UUID**: gofrs/uuid
-- **API Docs**: Swaggo/swag
+# OAuth2 (Google Workspace)
+oauth2:
+  client_id: <your-client-id>
+  client_secret: <your-client-secret>
+  redirect_uri: http://localhost:8080/authentication/callback
 
----
+# JWT
+jwt:
+  algorithm: RS256
+  private_key_path: ./keys/jwt-private.pem
+  public_key_path: ./keys/jwt-public.pem
+  issuer: smap-auth-service
+  audience: [smap-api]
+  ttl: 28800  # 8 hours
 
-## Getting Started
+# Cookie
+cookie:
+  domain: .smap.com
+  secure: true
+  same_site: Lax
+  name: smap_auth_token
 
-### Prerequisites
+# Google Workspace
+google_workspace:
+  service_account_key: /keys/google-sa.json
+  admin_email: admin@yourdomain.com
+  domain: yourdomain.com
 
-- **Go**: 1.25 or higher
-- **PostgreSQL**: 15 or higher
-- **RabbitMQ**: 3.x
-- **Docker**: 20.10+ (optional, for containerized setup)
-- **Make**: For using Makefile commands
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd smap-api/identity
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   go mod download
-   ```
-
-3. **Setup PostgreSQL**
-
-   ```bash
-   # Using Docker
-   docker run -d \
-     --name postgres \
-     -e POSTGRES_USER=postgres \
-     -e POSTGRES_PASSWORD=password \
-     -e POSTGRES_DB=smap_identity \
-     -p 5432:5432 \
-     postgres:15-alpine
-
-   # Run migrations
-   make migrate-up
-   ```
-
-4. **Setup RabbitMQ**
-
-   ```bash
-   docker run -d \
-     --name rabbitmq \
-     -p 5672:5672 \
-     -p 15672:15672 \
-     rabbitmq:3-management-alpine
-   ```
-
-5. **Configure environment**
-
-   ```bash
-   cp template.env .env
-   # Edit .env with your configuration
-   ```
-
-6. **Generate Swagger docs**
-   ```bash
-   make swagger
-   ```
-
-### Running the Services
-
-#### Option 1: Local Development
-
-```bash
-# Terminal 1: Run API server
-make run-api
-
-# Terminal 2: Run consumer service
-make run-consumer
+# Access Control
+access_control:
+  allowed_domains:
+    - yourdomain.com
+  default_role: VIEWER
 ```
 
-#### Option 2: Docker
+See `config/auth-config.example.yaml` for complete configuration options.
 
-```bash
-# Build and run API server
-make docker-run
+### Google OAuth Setup
 
-# Build and run consumer service
-make consumer-run
-```
-
-#### Option 3: Docker Compose (Full Stack)
-
-```bash
-docker-compose up -d
-```
-
-### Verify Installation
-
-```bash
-# Check API health
-curl http://localhost:8080/health
-
-# Check Swagger documentation
-open http://localhost:8080/swagger/index.html
-
-# Check RabbitMQ management
-open http://localhost:15672  # guest/guest
-```
+See [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md) for detailed instructions.
 
 ---
 
 ## API Documentation
 
-### Base URL
+### Endpoints
 
-```
-http://localhost:8080/identity
-```
+**Authentication**:
 
-### Authentication (HttpOnly Cookie-Based)
+- `GET /authentication/login` - Redirect to OAuth provider
+- `GET /authentication/callback` - OAuth callback handler
+- `POST /authentication/logout` - Logout and expire cookie
+- `GET /authentication/me` - Get current user info
 
-> **BREAKING CHANGE**: The authentication system now uses **HttpOnly cookies** instead of returning JWT tokens in the response body.
+**JWKS** (for other services):
 
-#### Why Cookie-Based Authentication?
+- `GET /.well-known/jwks.json` - Public key distribution
 
-The service has migrated from LocalStorage-based JWT tokens to HttpOnly cookies for enhanced security:
+**Internal** (service-to-service):
 
-- **XSS Protection**: HttpOnly cookies cannot be accessed by JavaScript, preventing token theft via XSS attacks
-- **Automatic Management**: Browsers handle cookie storage and transmission automatically
-- **CSRF Protection**: SameSite=Lax attribute provides built-in CSRF protection
-- **HTTPS-Only**: Secure flag ensures tokens are only transmitted over HTTPS
+- `POST /internal/validate` - Token validation
+- `POST /internal/revoke-token` - Token revocation (admin)
+- `GET /internal/users/:id` - User lookup
 
-#### How It Works
+### Swagger UI
 
-1. **Login**: Call `/authentication/login` with credentials
-   - Server returns user information in JSON response
-   - JWT token is set as HttpOnly cookie in `Set-Cookie` header
-   - Cookie name: `smap_auth_token`
-
-2. **Authenticated Requests**: Include credentials in API calls
-   - Browser automatically sends cookie with each request
-   - No manual token management required
-
-3. **Logout**: Call `/authentication/logout`
-   - Server expires the authentication cookie
-   - User is logged out
-
-#### Frontend Integration
-
-**Axios Example**:
-
-```javascript
-import axios from "axios";
-
-// Configure axios to send credentials (cookies)
-const api = axios.create({
-  baseURL: "https://smap-api.tantai.dev/identity",
-  withCredentials: true, // REQUIRED for cookie authentication
-});
-
-// Login
-const response = await api.post("/authentication/login", {
-  email: "user@example.com",
-  password: "password123",
-  remember: true, // Optional: extends cookie lifetime to 30 days
-});
-
-// Cookie is automatically stored by browser
-console.log(response.data.user);
-
-// Make authenticated requests (cookie sent automatically)
-const currentUser = await api.get("/authentication/me");
-
-// Logout
-await api.post("/authentication/logout");
-```
-
-**Fetch API Example**:
-
-```javascript
-// Login
-const response = await fetch(
-  "https://smap-api.tantai.dev/identity/authentication/login",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include", // REQUIRED for cookie authentication
-    body: JSON.stringify({
-      email: "user@example.com",
-      password: "password123",
-    }),
-  },
-);
-
-// Get current user
-const userResponse = await fetch(
-  "https://smap-api.tantai.dev/identity/authentication/me",
-  {
-    credentials: "include",
-  },
-);
-```
-
-#### Cookie Configuration
-
-Environment variables for cookie customization:
-
-```env
-# Cookie settings
-COOKIE_NAME=smap_auth_token          # Cookie name
-COOKIE_DOMAIN=.smap.com              # Domain (allows subdomain sharing)
-COOKIE_SECURE=true                   # HTTPS only (true for production)
-COOKIE_SAMESITE=Lax                  # CSRF protection (Lax|Strict|None)
-COOKIE_MAX_AGE=7200                  # Normal login: 2 hours
-COOKIE_MAX_AGE_REMEMBER=2592000      # Remember me: 30 days
-```
-
-#### Migration Guide
-
-**Changes Required**:
-
-1. Set `withCredentials: true` (axios) or `credentials: 'include'` (fetch)
-2. Remove manual token storage (localStorage, sessionStorage)
-3. Remove manual Authorization header injection
-4. Call `/authentication/logout` instead of clearing localStorage
-5. Use `/authentication/me` to get current user info
-
-**Backward Compatibility**:
-
-- Authorization header is still supported during migration period
-- Existing clients continue working while you update to cookie-based auth
-- Plan to remove header fallback after all clients migrate
-
-### Accessing API Documentation
-
-The best way to explore and test all available API endpoints is through the **Swagger UI** interface.
-
-#### Step 1: Start the API Service
-
-Choose one of the following methods to start the service:
-
-**Option A: Local Development**
-
-```bash
-make run-api
-```
-
-**Option B: Docker**
-
-```bash
-make docker-run
-```
-
-**Option C: Docker Compose (Full Stack)**
-
-```bash
-docker-compose up -d
-```
-
-#### Step 2: Open Swagger UI
-
-Once the service is running, open your browser and navigate to:
+Interactive API documentation available at:
 
 ```
 http://localhost:8080/swagger/index.html
 ```
 
-#### Step 3: Explore APIs
+### Detailed Documentation
 
-In Swagger UI, you can:
-
-- **Browse all endpoints**: See all available API endpoints organized by category (Authentication, Plans, Subscriptions, Users)
-- **View request/response schemas**: See detailed request body formats and response structures
-- **Test endpoints directly**: Click "Try it out" to test any endpoint with real requests
-- **View authentication requirements**: See which endpoints require authentication
-- **Copy code examples**: Generate code snippets in various languages (cURL, JavaScript, Python, etc.)
-
-#### Available API Categories
-
-- **Authentication**: Registration, login, logout, OTP verification, user profile
-- **Plans**: Subscription plan management (CRUD operations)
-- **Subscriptions**: Subscription lifecycle management, cancellation
-- **Users**: User profile management, admin operations
-
-#### Additional Resources
-
-For detailed implementation guides and migration information:
-
-- **API Documentation**: See `documents/api.md`
-- **Cookie Authentication Guide**: See section above for HttpOnly cookie setup
-
----
-
-## Project Structure
-
-```
-identity/
-├── cmd/                          # Application entry points
-│   ├── api/                     # API server
-│   │   ├── main.go             # API entry point
-│   │   └── Dockerfile          # API Docker image
-│   └── consumer/                # Consumer service
-│       ├── main.go             # Consumer entry point
-│       └── Dockerfile          # Consumer Docker image
-│
-├── internal/                     # Private application code
-│   ├── authentication/          # Authentication domain
-│   │   ├── delivery/
-│   │   │   ├── http/           # HTTP handlers
-│   │   │   └── rabbitmq/       # Message producers
-│   │   ├── usecase/            # Business logic
-│   │   ├── interface.go        # Domain interfaces
-│   │   ├── type.go             # DTOs
-│   │   └── error.go            # Domain errors
-│   │
-│   ├── plan/                    # Plan domain
-│   │   ├── delivery/http/      # HTTP handlers
-│   │   ├── repository/         # Data access
-│   │   ├── usecase/            # Business logic
-│   │   └── ...
-│   │
-│   ├── subscription/            # Subscription domain
-│   │   └── ...
-│   │
-│   ├── user/                    # User domain
-│   │   └── ...
-│   │
-│   ├── smtp/                    # Email domain
-│   │   ├── rabbitmq/consumer/  # Email consumer
-│   │   └── usecase/            # Email sending logic
-│   │
-│   ├── consumer/                # Consumer orchestration
-│   │   ├── consumer.go         # Service coordinator
-│   │   └── new.go              # Dependency injection
-│   │
-│   ├── httpserver/              # HTTP server setup
-│   │   ├── httpserver.go       # Server initialization
-│   │   └── handler.go          # Route mapping
-│   │
-│   ├── middleware/              # HTTP middlewares
-│   │   ├── cors.go
-│   │   ├── errors.go
-│   │   └── locale.go
-│   │
-│   ├── model/                   # Domain models
-│   │   ├── user.go
-│   │   ├── plan.go
-│   │   └── subscription.go
-│   │
-│   └── sqlboiler/              # Generated DB models
-│
-├── pkg/                         # Public packages
-│   ├── log/                    # Logging
-│   ├── email/                  # Email utilities
-│   ├── encrypter/              # Password hashing
-│   ├── rabbitmq/               # RabbitMQ client
-│   ├── scope/                  # JWT management
-│   ├── response/               # HTTP responses
-│   └── ...
-│
-├── config/                      # Configuration
-│   ├── config.go               # Config loader
-│   └── postgre/                # PostgreSQL setup
-│
-├── documents/                    # Documentation
-│   ├── api.md
-│   ├── consumer.md
-│   ├── cookie_and_cors_env_guide.md
-│   ├── cors-standardization-proposal.md
-│   └── ...
-│
-├── migration/                   # Database migrations
-│   └── 01_add_user_indexes.sql
-│
-├── .env                         # Environment variables (not in git)
-├── template.env                 # Environment template
-├── go.mod                       # Go dependencies
-├── Makefile                     # Build automation
-├── docker-compose.yml           # Full stack setup
-└── README.md                    # This file
-```
+- **API Reference**: [documents/api-reference.md](documents/api-reference.md)
+- **Integration Guide**: [documents/auth-service-integration.md](documents/auth-service-integration.md)
+- **Deployment Guide**: [documents/deployment-guide.md](documents/deployment-guide.md)
 
 ---
 
 ## Development
 
-### Available Make Commands
+### Available Commands
 
 ```bash
 # Development
 make run-api              # Run API server locally
-make run-consumer         # Run consumer service locally
 make swagger              # Generate Swagger docs
 make lint                 # Run linter
 make test                 # Run tests
 
 # Database
-make migrate-up           # Run database migrations
+make migrate-up           # Run migrations
 make migrate-down         # Rollback migrations
-make sqlboiler            # Generate SQLBoiler models
 
-# Docker - API
-make docker-build         # Build API Docker image (local platform)
-make docker-build-amd64   # Build API for AMD64 servers
-make docker-run           # Build and run API in Docker
-make docker-clean         # Remove API Docker images
-
-# Docker - Consumer
-make consumer-build       # Build consumer Docker image
-make consumer-run         # Build and run consumer in Docker
-make consumer-clean       # Remove consumer Docker images
-
-# Utilities
-make help                 # Show all available commands
+# Docker
+make docker-build         # Build Docker image
+make docker-run           # Build and run in Docker
+make docker-clean         # Remove Docker images
 ```
 
-### Environment Variables
+### Project Structure
 
-Key environment variables (see `template.env` for complete list):
-
-```bash
-# Environment Configuration (NEW)
-ENV=production              # Values: production | staging | dev
-                           # Controls CORS behavior and security settings
-                           # Default: production (strict origins)
-
-# Server
-API_PORT=8080
-JWT_SECRET_KEY=your-secret-key
-
-# PostgreSQL
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=smap_identity
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-
-# RabbitMQ
-RABBITMQ_URL=amqp://guest:guest@localhost:5672/
-
-# SMTP (Gmail example)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=noreply@smap.com
-
-# Logger
-LOGGER_LEVEL=info
-LOGGER_MODE=production
-LOGGER_ENCODING=json
 ```
-
-#### ENV Configuration
-
-The `ENV` variable controls environment-specific behavior, particularly **CORS validation** for HttpOnly cookie authentication:
-
-| Environment    | CORS Behavior                                         | Use Case                |
-| -------------- | ----------------------------------------------------- | ----------------------- |
-| **production** | Strict origin list (production domains only)          | Production deployments  |
-| **staging**    | Permissive (production + localhost + private subnets) | Staging/QA environments |
-| **dev**        | Permissive (production + localhost + private subnets) | Local development       |
-| _(empty)_      | Defaults to `production` (fail-safe)                  | Security default        |
-
-**Private Subnets** (allowed in dev/staging only):
-
-- `172.16.21.0/24` - K8s cluster subnet
-- `172.16.19.0/24` - Private network 1
-- `192.168.1.0/24` - Private network 2
-
-**Security Notes:**
-
-- **Always** set `ENV=production` in production environments
-- HttpOnly cookies require specific origins (no wildcards)
-- Private subnets are automatically allowed in non-production modes
-- Localhost (any port) is allowed in non-production modes
-- Production origins (`https://smap.tantai.dev`, `https://smap-api.tantai.dev`) are allowed in all modes
-
-### Code Generation
-
-```bash
-# Generate Swagger documentation
-swag init -g cmd/api/main.go
-
-# Generate SQLBoiler models (requires sqlboiler.toml)
-sqlboiler psql
+identity-srv/
+├── cmd/
+│   └── api/              # API server entry point
+├── config/               # Configuration management
+├── internal/             # Private application code
+│   ├── authentication/   # Auth domain logic
+│   ├── audit/           # Audit logging
+│   ├── httpserver/      # HTTP server setup
+│   ├── middleware/      # HTTP middlewares
+│   └── model/           # Domain models
+├── pkg/                  # Public packages
+│   ├── auth/            # JWT verification
+│   ├── jwt/             # JWT generation
+│   ├── redis/           # Redis client
+│   └── kafka/           # Kafka producer
+├── migration/            # Database migrations
+├── docs/                 # Setup guides
+├── documents/            # Technical documentation
+└── te/                   # Requirements & specs
 ```
-
-### Testing
-
-```bash
-# Run all tests
-go test ./...
-
-# Run tests with coverage
-go test -v -cover ./...
-
-# Run specific package tests
-go test ./internal/authentication/usecase/...
-```
-
-### Adding a New Module
-
-1. Create module structure:
-
-   ```
-   internal/
-   └── newmodule/
-       ├── delivery/http/
-       ├── repository/
-       ├── usecase/
-       ├── interface.go
-       ├── type.go
-       └── error.go
-   ```
-
-2. Implement layers (repository → usecase → delivery)
-
-3. Wire up in `internal/httpserver/handler.go`
-
-4. Add routes and Swagger annotations
-
-5. Update documentation
 
 ---
 
 ## Deployment
 
-### Docker Deployment
-
-**Build optimized images:**
+### Docker
 
 ```bash
-# API server (for AMD64 servers)
-make docker-build-amd64
+# Build image
+docker build -t smap-auth-service:latest -f cmd/api/Dockerfile .
 
-# Consumer service
-make consumer-build-amd64
-```
-
-**Push to registry:**
-
-```bash
-export REGISTRY=docker.io/yourname
-make docker-push
-make consumer-push
-```
-
-**Run in production:**
-
-```bash
+# Run container
 docker run -d \
-  --name smap-identity-api \
+  --name smap-auth \
   -p 8080:8080 \
-  --env-file .env \
-  --restart unless-stopped \
-  yourname/smap-identity:latest
-
-docker run -d \
-  --name smap-identity-consumer \
-  --env-file .env \
-  --restart unless-stopped \
-  yourname/smap-consumer:latest
+  -v $(pwd)/config/auth-config.yaml:/app/config/auth-config.yaml \
+  -v $(pwd)/keys:/app/keys \
+  smap-auth-service:latest
 ```
 
 ### Docker Compose
 
-```yaml
-version: "3.8"
+```bash
+# Start all services (PostgreSQL, Redis, Kafka, Auth Service)
+docker-compose up -d
 
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: smap_identity
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+# View logs
+docker-compose logs -f auth-service
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
-  api:
-    build:
-      context: .
-      dockerfile: cmd/api/Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      POSTGRES_HOST: postgres
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-    depends_on:
-      - postgres
-      - rabbitmq
-
-  consumer:
-    build:
-      context: .
-      dockerfile: cmd/consumer/Dockerfile
-    environment:
-      POSTGRES_HOST: postgres
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-    depends_on:
-      - postgres
-      - rabbitmq
-
-volumes:
-  postgres_data:
+# Stop services
+docker-compose down
 ```
 
-### Kubernetes (Example)
+### Kubernetes
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: smap-identity-api
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: smap-identity-api
-  template:
-    spec:
-      containers:
-        - name: api
-          image: yourname/smap-identity:latest
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - secretRef:
-                name: smap-identity-secrets
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "200m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-```
-
----
-
-## Documentation
-
-Comprehensive documentation is available in the `documents/` folder:
-
-### API Documentation
-
-- **[API Documentation](documents/api.md)**: API endpoints and implementation details
-- **[Cookie and CORS Guide](documents/cookie_and_cors_env_guide.md)**: Cookie authentication and CORS configuration
-
-### Consumer Service
-
-- **[Consumer Documentation](documents/consumer.md)**: Consumer service overview and implementation
-
-### Other Documentation
-
-- **[Overview](documents/overview.md)**: Project overview
-- **[CORS Standardization](documents/cors-standardization-proposal.md)**: CORS configuration proposal
-- **[HttpOnly Cookie Migration](documents/httponly_microservice_migration.md)**: Migration guide for HttpOnly cookies
+See [documents/deployment-guide.md](documents/deployment-guide.md) for Kubernetes deployment instructions.
 
 ---
 
@@ -820,25 +304,108 @@ Comprehensive documentation is available in the `documents/` folder:
 
 ### Implemented Security Measures
 
-- Password Hashing: bcrypt with salt
-- JWT Authentication: Token-based access control
-- SQL Injection Prevention: Parameterized queries via SQLBoiler
-- CORS Configuration: Configurable allowed origins
-- Distroless Container: No shell, minimal attack surface
-- Non-root User: Container runs as UID 65532
-- Environment Secrets: No hardcoded credentials
-- Input Validation: Request validation middleware
-- Soft Delete: Data retention for audit
+- **Password Hashing**: bcrypt with salt
+- **JWT Signing**: RS256 asymmetric algorithm
+- **HttpOnly Cookies**: XSS protection
+- **Token Blacklist**: Instant revocation via Redis
+- **Domain Validation**: Email domain whitelist
+- **Role Encryption**: Encrypted role storage in database
+- **CORS Configuration**: Strict origin validation
+- **Rate Limiting**: Login attempt throttling
+- **Audit Logging**: Complete audit trail via Kafka
 
 ### Security Best Practices
 
-1. **Never commit `.env` file** - Use `.env.example` instead
-2. **Rotate JWT secrets** regularly in production
-3. **Use app passwords** for SMTP (not account passwords)
-4. **Enable 2FA** on email accounts used for SMTP
-5. **Use TLS/SSL** for database and RabbitMQ in production
-6. **Monitor logs** for suspicious activities
+1. **Never commit `auth-config.yaml`** - Use `auth-config.example.yaml` as template
+2. **Never commit private keys** - Store in `keys/` directory (gitignored)
+3. **Rotate JWT keys** regularly (30-day rotation recommended)
+4. **Use strong passwords** for database and Redis
+5. **Enable TLS/SSL** for all connections in production
+6. **Monitor audit logs** for suspicious activities
 7. **Keep dependencies updated**: `go get -u ./...`
+8. **Review access control** regularly
+
+---
+
+## Testing
+
+### Run Tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run with coverage
+go test -v -cover ./...
+
+# Run specific package
+go test ./internal/authentication/...
+```
+
+### Integration Testing
+
+```bash
+# Start test environment
+docker-compose -f docker-compose.test.yml up -d
+
+# Run integration tests
+go test -tags=integration ./...
+
+# Cleanup
+docker-compose -f docker-compose.test.yml down
+```
+
+---
+
+## Documentation
+
+### Available Documentation
+
+| Document                                                         | Description                          |
+| ---------------------------------------------------------------- | ------------------------------------ |
+| [API Reference](documents/api-reference.md)                      | Complete API endpoint documentation  |
+| [Integration Guide](documents/auth-service-integration.md)       | Guide for integrating other services |
+| [Deployment Guide](documents/deployment-guide.md)                | Production deployment instructions   |
+| [Troubleshooting](documents/identity-service-troubleshooting.md) | Common issues and solutions          |
+| [Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)                 | OAuth2 configuration guide           |
+| [Quick Start](docs/QUICK_START.md)                               | 5-minute setup guide                 |
+| [Gaps Proposal](documents/auth-service-gaps-proposal.md)         | Future enhancements roadmap          |
+
+### Requirements & Specs
+
+| Document                                                  | Description                  |
+| --------------------------------------------------------- | ---------------------------- |
+| [Auth Flow Diagram](te/auth-flow-diagram.md)              | Authentication flow diagrams |
+| [Security Enhancements](te/auth-security-enhancements.md) | Enterprise security features |
+| [Migration Plan](te/migration-plan-v2.md)                 | Complete migration plan v2.9 |
+
+---
+
+## Roadmap
+
+### Current Status (v1.0)
+
+- ✅ OAuth2/OIDC with Google Workspace
+- ✅ JWT RS256 authentication
+- ✅ HttpOnly cookie support
+- ✅ Role-based access control
+- ✅ Token blacklist
+- ✅ Audit logging via Kafka
+- ✅ JWKS endpoint for public key distribution
+
+### Planned Features (v2.0)
+
+See [documents/auth-service-gaps-proposal.md](documents/auth-service-gaps-proposal.md) for details:
+
+- ⏳ **Token Blacklist Enforcement** (2 hours) - CRITICAL
+- ⏳ **Identity Provider Abstraction** (7 hours) - CRITICAL
+  - Azure AD support
+  - Okta support
+  - LDAP support
+- ⏳ **Automatic Key Rotation** (10 hours) - MEDIUM
+  - 30-day rotation cycle
+  - Zero-downtime rotation
+  - Grace period handling
 
 ---
 
@@ -846,20 +413,11 @@ Comprehensive documentation is available in the `documents/` folder:
 
 Contributions are welcome! Please follow these guidelines:
 
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Commit your changes**
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-4. **Push to the branch**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. **Open a Pull Request**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ### Development Guidelines
 
@@ -868,7 +426,48 @@ Contributions are welcome! Please follow these guidelines:
 - Add **Swagger annotations** for new endpoints
 - Update **documentation** for significant changes
 - Use **conventional commits**: `feat:`, `fix:`, `docs:`, etc.
-- Ensure **linter passes**: `make lint`
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Cannot connect to PostgreSQL**:
+
+```bash
+# Check if PostgreSQL is running
+docker ps | grep postgres
+
+# Test connection
+psql -h localhost -U postgres -d smap_auth
+```
+
+**JWT verification fails**:
+
+```bash
+# Check JWKS endpoint
+curl http://localhost:8080/.well-known/jwks.json
+
+# Verify public key
+cat secrets/jwt-public.pem
+```
+
+**Cookie not being set**:
+
+- Check `COOKIE_SECURE=false` for HTTP (dev only)
+- Verify `COOKIE_DOMAIN` matches your domain
+- Check CORS `Access-Control-Allow-Credentials: true`
+
+See [documents/identity-service-troubleshooting.md](documents/identity-service-troubleshooting.md) for more solutions.
+
+---
+
+## Support
+
+- **Documentation**: See `documents/` folder
+- **Issues**: Open an issue on GitHub
+- **Email**: support@smap.com
 
 ---
 
@@ -878,74 +477,16 @@ This project is part of the SMAP graduation project.
 
 ---
 
-## Support
+## Acknowledgments
 
-### Common Issues
+Built with ❤️ using:
 
-**Issue: Cannot connect to PostgreSQL**
-
-```bash
-# Check if PostgreSQL is running
-docker ps | grep postgres
-
-# Check connection
-psql -h localhost -U postgres -d smap_identity
-```
-
-**Issue: Email not sent**
-
-```bash
-# For Gmail, enable 2FA and use App Password
-# https://myaccount.google.com/apppasswords
-
-# Check RabbitMQ logs
-docker logs rabbitmq
-
-# Check consumer logs
-docker logs smap-consumer-dev
-```
-
-**Issue: "Port already in use"**
-
-```bash
-# Find process using port 8080
-lsof -i :8080
-
-# Kill process
-kill -9 <PID>
-```
-
-### Get Help
-
-- Email: support@smap.com
-- Documentation: See `document/` folder
-- Issues: Open an issue on GitHub
+- [Gin Web Framework](https://github.com/gin-gonic/gin)
+- [golang-jwt](https://github.com/golang-jwt/jwt)
+- [SQLBoiler](https://github.com/volatiletech/sqlboiler)
+- [Swagger](https://github.com/swaggo/swag)
 
 ---
 
-## About SMAP
-
-SMAP is a graduation project focused on building a scalable, production-ready subscription management platform with modern architecture and best practices.
-
-**Project Goals:**
-
-- Demonstrate **Clean Architecture** in practice
-- Implement **microservices** patterns
-- Apply **DevOps** best practices (Docker, CI/CD)
-- Build **production-grade** APIs
-- Practice **async processing** patterns
-
----
-
-## Quick Links
-
-- **Swagger UI**: http://localhost:8080/swagger/index.html
-- **Health Check**: http://localhost:8080/health
-- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **API Documentation**: [documents/api.md](documents/api.md)
-
----
-
-**Built with love for SMAP Graduation Project**
-
-_Last updated: November 2025_
+**Last Updated**: 09/02/2026  
+**Version**: 1.0.0

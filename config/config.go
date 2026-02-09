@@ -170,8 +170,8 @@ func Load() (*Config, error) {
 	// Set config file name and paths
 	viper.SetConfigName("auth-config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
+	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/smap/")
 
 	// Enable environment variable override
