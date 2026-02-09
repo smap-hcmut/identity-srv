@@ -6,75 +6,6 @@ import (
 	"smap-api/internal/authentication"
 )
 
-// Register API Request
-type registerReq struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
-func (r registerReq) validate() error {
-	if err := util.IsEmail(r.Email); err != nil {
-		return errWrongBody
-	}
-	if err := util.IsPassword(r.Password); err != nil {
-		return errWrongBody
-	}
-	return nil
-}
-
-func (r registerReq) toInput() authentication.RegisterInput {
-	return authentication.RegisterInput{
-		Email:    r.Email,
-		Password: r.Password,
-	}
-}
-
-// Send OTP API Request
-type sendOTPReq struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
-func (r sendOTPReq) validate() error {
-	if err := util.IsEmail(r.Email); err != nil {
-		return errWrongBody
-	}
-	if err := util.IsPassword(r.Password); err != nil {
-		return errWrongBody
-	}
-	return nil
-}
-
-func (r sendOTPReq) toInput() authentication.SendOTPInput {
-	return authentication.SendOTPInput{
-		Email:    r.Email,
-		Password: r.Password,
-	}
-}
-
-// Verify OTP API Request
-type verifyOTPReq struct {
-	Email string `json:"email" binding:"required,email"`
-	OTP   string `json:"otp" binding:"required,min=6"`
-}
-
-func (r verifyOTPReq) validate() error {
-	if err := util.IsEmail(r.Email); err != nil {
-		return errWrongBody
-	}
-	if err := util.IsOTP(r.OTP); err != nil {
-		return errWrongBody
-	}
-	return nil
-}
-
-func (r verifyOTPReq) toInput() authentication.VerifyOTPInput {
-	return authentication.VerifyOTPInput{
-		Email: r.Email,
-		OTP:   r.OTP,
-	}
-}
-
 // Login API Request
 type loginReq struct {
 	Email      string `json:"email" binding:"required,email"`
@@ -125,8 +56,8 @@ func (h handler) newLoginResp(o authentication.LoginOutput) *loginResp {
 	return &loginResp{
 		User: userObj{
 			ID:       o.User.ID,
-			Email:    o.User.Username,
-			FullName: o.User.FullName,
+			Email:    o.User.Email,
+			FullName: o.User.Name,
 		},
 	}
 }
@@ -140,7 +71,7 @@ type getMeResp struct {
 func (h handler) newGetMeResp(o authentication.GetCurrentUserOutput) *getMeResp {
 	return &getMeResp{
 		ID:       o.User.ID,
-		Email:    o.User.Username,
-		FullName: o.User.FullName,
+		Email:    o.User.Email,
+		FullName: o.User.Name,
 	}
 }

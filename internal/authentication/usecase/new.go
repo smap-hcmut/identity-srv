@@ -1,10 +1,9 @@
 package usecase
 
 import (
+	"database/sql"
+	"smap-api/internal/audit"
 	"smap-api/internal/authentication"
-	"smap-api/internal/authentication/delivery/rabbitmq/producer"
-	"smap-api/internal/plan"
-	"smap-api/internal/subscription"
 	"smap-api/internal/user"
 	"smap-api/pkg/encrypter"
 	pkgLog "smap-api/pkg/log"
@@ -14,24 +13,30 @@ import (
 
 type implUsecase struct {
 	l              pkgLog.Logger
-	prod           producer.Producer
 	scope          scope.Manager
 	encrypt        encrypter.Encrypter
 	userUC         user.UseCase
-	planUC         plan.UseCase
-	subscriptionUC subscription.UseCase
+	db             *sql.DB
 	clock          func() time.Time
+	auditPublisher audit.Publisher
 }
 
-func New(l pkgLog.Logger, prod producer.Producer, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase, planUC plan.UseCase, subscriptionUC subscription.UseCase) authentication.UseCase {
+func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) authentication.UseCase {
 	return &implUsecase{
-		l:              l,
-		prod:           prod,
-		scope:          scope,
-		encrypt:        encrypt,
-		userUC:         userUC,
-		planUC:         planUC,
-		subscriptionUC: subscriptionUC,
-		clock:          time.Now,
+		l:       l,
+		scope:   scope,
+		encrypt: encrypt,
+		userUC:  userUC,
+		clock:   time.Now,
 	}
+}
+
+// SetDB sets the database connection (called after initialization)
+func (u *implUsecase) SetDB(db *sql.DB) {
+	u.db = db
+}
+
+// SetAuditPublisher sets the audit publisher (called after initialization)
+func (u *implUsecase) SetAuditPublisher(publisher audit.Publisher) {
+	u.auditPublisher = publisher
 }

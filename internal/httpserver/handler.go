@@ -2,33 +2,23 @@ package httpserver
 
 import (
 	"context"
+	"database/sql"
 
 	authhttp "smap-api/internal/authentication/delivery/http"
-	authproducer "smap-api/internal/authentication/delivery/rabbitmq/producer"
 	authusecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/middleware"
-	planhttp "smap-api/internal/plan/delivery/http"
-	planrepository "smap-api/internal/plan/repository/postgre"
-	planusecase "smap-api/internal/plan/usecase"
-	subscriptionhttp "smap-api/internal/subscription/delivery/http"
-	subscriptionrepository "smap-api/internal/subscription/repository/postgre"
-	subscriptionusecase "smap-api/internal/subscription/usecase"
-	userhttp "smap-api/internal/user/delivery/http"
 	userrepository "smap-api/internal/user/repository/postgre"
 	userusecase "smap-api/internal/user/usecase"
 	"smap-api/pkg/i18n"
 	"smap-api/pkg/scope"
-
-	// Import this to execute the init function in docs.go which setups the Swagger docs.
-	_ "smap-api/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (srv HTTPServer) mapHandlers() error {
-	scopeManager := scope.New(srv.jwtSecretKey)
-	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, srv.internalKey)
+	scopeManager := scope.New("temporary-secret-not-used-in-oauth") // Legacy scope manager - not used in OAuth flow
+	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, "")
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
@@ -37,34 +27,34 @@ func (srv HTTPServer) mapHandlers() error {
 
 	// Initialize repositories
 	userRepo := userrepository.New(srv.l, srv.postgresDB)
-	planRepo := planrepository.New(srv.l, srv.postgresDB)
-	subscriptionRepo := subscriptionrepository.New(srv.l, srv.postgresDB)
 
 	// Initialize usecases
 	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
-	planUC := planusecase.New(srv.l, planRepo)
-	subscriptionUC := subscriptionusecase.New(srv.l, subscriptionRepo, planUC)
 
-	// Initialize authentication producer
-	authProd := authproducer.New(srv.l, srv.amqpConn)
-	if err := authProd.Run(); err != nil {
-		return err
+	// Initialize authentication usecase
+	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
+
+	// Set database connection for direct user operations (bypassing legacy user usecase)
+	if authUCWithDB, ok := authUC.(interface{ SetDB(*sql.DB) }); ok {
+		authUCWithDB.SetDB(srv.postgresDB)
 	}
 
-	// Initialize authentication usecase with plan and subscription dependencies
-	authUC := authusecase.New(srv.l, authProd, scopeManager, srv.encrypter, userUC, planUC, subscriptionUC)
+	// Initialize HTTP handlers with new dependencies
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.googleClient, srv.groupsManager, srv.roleMapper)
 
-	// Initialize HTTP handlers
-	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.cookieConfig)
-	planHandler := planhttp.New(srv.l, planUC, srv.discord)
-	subscriptionHandler := subscriptionhttp.New(srv.l, subscriptionUC, srv.discord)
-	userHandler := userhttp.New(srv.l, userUC, srv.discord)
+	// Initialize OAuth2 config
+	authHandler.InitOAuth2Config(authhttp.OAuthConfig{
+		ClientID:     srv.config.OAuth2.ClientID,
+		ClientSecret: srv.config.OAuth2.ClientSecret,
+		RedirectURI:  srv.config.OAuth2.RedirectURI,
+		Scopes:       srv.config.OAuth2.Scopes,
+	})
+
+	// userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
 	// Map routes (no prefix)
 	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
-	planhttp.MapPlanRoutes(srv.gin.Group("/plans"), planHandler, mw)
-	subscriptionhttp.MapSubscriptionRoutes(srv.gin.Group("/subscriptions"), subscriptionHandler, mw)
-	userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw)
+	// userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw) // Temporarily disabled for Task 1.9
 
 	return nil
 }

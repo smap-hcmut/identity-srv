@@ -3,122 +3,12 @@ package http
 import (
 	"slices"
 
+	"smap-api/internal/audit"
 	"smap-api/pkg/response"
 	"smap-api/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )
-
-// @Summary Register
-// @Description Register
-// @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param registerReq body registerReq true "Register"
-// @Success 200 {object} response.Resp "Success"
-// @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errEmailExisted(110004)"
-// @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /authentication/register [POST]
-func (h handler) Register(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req, sc, err := h.processRegisterRequest(c)
-	if err != nil {
-		h.l.Errorf(ctx, "authentication.http.Register.processRegisterRequest: %v", err)
-		response.Error(c, err, h.discord)
-		return
-	}
-
-	_, err = h.uc.Register(ctx, sc, req.toInput())
-	if err != nil {
-		err = h.mapErrorCode(err)
-		if !slices.Contains(NotFound, err) {
-			h.l.Errorf(ctx, "authentication.http.Register.Register: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		} else {
-			h.l.Warnf(ctx, "authentication.http.Register.Register: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		}
-	}
-
-	response.OK(c, nil)
-}
-
-// @Summary Send OTP
-// @Description Send OTP
-// @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param sendOTPReq body sendOTPReq true "Send OTP"
-// @Success 200 {object} response.Resp "Success"
-// @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
-// @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /authentication/send-otp [POST]
-func (h handler) SendOTP(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req, sc, err := h.processSendOTPRequest(c)
-	if err != nil {
-		h.l.Errorf(ctx, "authentication.http.SendOTP.processSendOTPRequest: %v", err)
-		response.Error(c, err, h.discord)
-		return
-	}
-
-	err = h.uc.SendOTP(ctx, sc, req.toInput())
-	if err != nil {
-		err = h.mapErrorCode(err)
-		if !slices.Contains(NotFound, err) {
-			h.l.Errorf(ctx, "authentication.http.SendOTP.SendOTP: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		} else {
-			h.l.Warnf(ctx, "authentication.http.SendOTP.SendOTP: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		}
-	}
-
-	response.OK(c, nil)
-}
-
-// @Summary Verify OTP
-// @Description Verify OTP
-// @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param verifyOTPReq body verifyOTPReq true "Verify OTP"
-// @Success 200 {object} response.Resp "Success"
-// @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errOTPExpired(110006), errOTPNotMatch(110007)"
-// @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /authentication/verify-otp [POST]
-func (h handler) VerifyOTP(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req, sc, err := h.processVerifyOTPRequest(c)
-	if err != nil {
-		h.l.Errorf(ctx, "authentication.http.VerifyOTP.processVerifyOTPRequest: %v", err)
-		response.Error(c, err, h.discord)
-		return
-	}
-
-	err = h.uc.VerifyOTP(ctx, sc, req.toInput())
-	if err != nil {
-		err = h.mapErrorCode(err)
-		if !slices.Contains(NotFound, err) {
-			h.l.Errorf(ctx, "authentication.http.VerifyOTP.VerifyOTP: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		} else {
-			h.l.Warnf(ctx, "authentication.http.VerifyOTP.VerifyOTP: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		}
-	}
-
-	response.OK(c, nil)
-}
 
 // @Summary Login
 // @Description Login with email and password. Returns user information and sets authentication token as HttpOnly cookie.
@@ -207,6 +97,18 @@ func (h handler) Logout(c *gin.Context) {
 		response.Error(c, err, h.discord)
 		return
 	}
+
+	// Publish audit log event for logout
+	h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
+		UserID:       sc.UserID,
+		Action:       audit.ActionLogout,
+		ResourceType: "authentication",
+		Metadata: map[string]string{
+			"role": sc.Role,
+		},
+		IPAddress: c.ClientIP(),
+		UserAgent: c.Request.UserAgent(),
+	})
 
 	// Expire authentication cookie by setting MaxAge to -1
 	c.SetCookie(

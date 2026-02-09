@@ -3,20 +3,21 @@ package authentication
 import (
 	"context"
 
+	"smap-api/internal/audit"
 	"smap-api/internal/model"
 )
 
 //go:generate mockery --name UseCase
 type UseCase interface {
-	Producer
-	Register(ctx context.Context, sc model.Scope, ip RegisterInput) (RegisterOutput, error)
-	SendOTP(ctx context.Context, sc model.Scope, ip SendOTPInput) error
-	VerifyOTP(ctx context.Context, sc model.Scope, ip VerifyOTPInput) error
+	// Legacy methods (will be removed)
 	Login(ctx context.Context, sc model.Scope, ip LoginInput) (LoginOutput, error)
 	Logout(ctx context.Context, sc model.Scope) error
 	GetCurrentUser(ctx context.Context, sc model.Scope) (GetCurrentUserOutput, error)
-}
 
-type Producer interface {
-	PublishSendEmail(ctx context.Context, sc model.Scope, ip PublishSendEmailMsgInput) error
+	// New OAuth2 methods
+	CreateOrUpdateUser(ctx context.Context, email, name, avatarURL string) (*model.User, error)
+	UpdateUserRole(ctx context.Context, userID, role string) error
+
+	// Audit logging
+	PublishAuditEvent(ctx context.Context, event audit.AuditEvent)
 }

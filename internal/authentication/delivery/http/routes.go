@@ -7,10 +7,12 @@ import (
 )
 
 func MapAuthRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
-	r.POST("/register", h.Register)
-	r.POST("/send-otp", h.SendOTP)
-	r.POST("/verify-otp", h.VerifyOTP)
-	r.POST("/login", h.Login)
+	// Public routes
+	r.GET("/login", h.OAuthLogin)
+	r.GET("/callback", h.OAuthCallback)
+
+	// JWKS endpoint (public - for JWT verification by other services)
+	r.GET("/.well-known/jwks.json", h.JWKS)
 
 	// Protected routes (require authentication)
 	r.POST("/logout", mw.Auth(), h.Logout)

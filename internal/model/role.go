@@ -15,7 +15,7 @@ var (
 // This prevents direct string comparison and obfuscates the role value
 func EncryptRole(role string) (string, error) {
 	// Validate role
-	if role != RoleUser && role != RoleAdmin {
+	if role != RoleAdmin && role != RoleAnalyst && role != RoleViewer {
 		return "", ErrInvalidRole
 	}
 
@@ -29,7 +29,7 @@ func EncryptRole(role string) (string, error) {
 // VerifyRole verifies if a roleHash matches the given plaintext role
 func VerifyRole(roleHash, plainRole string) bool {
 	// Validate plainRole
-	if plainRole != RoleUser && plainRole != RoleAdmin {
+	if plainRole != RoleAdmin && plainRole != RoleAnalyst && plainRole != RoleViewer {
 		return false
 	}
 
@@ -50,12 +50,20 @@ func (u *User) IsAdmin() bool {
 	return VerifyRole(*u.RoleHash, RoleAdmin)
 }
 
-// IsUser checks if a user has user role
-func (u *User) IsUser() bool {
+// IsAnalyst checks if a user has analyst role
+func (u *User) IsAnalyst() bool {
 	if u.RoleHash == nil {
 		return false
 	}
-	return VerifyRole(*u.RoleHash, RoleUser)
+	return VerifyRole(*u.RoleHash, RoleAnalyst)
+}
+
+// IsViewer checks if a user has viewer role
+func (u *User) IsViewer() bool {
+	if u.RoleHash == nil {
+		return false
+	}
+	return VerifyRole(*u.RoleHash, RoleViewer)
 }
 
 // GetRole returns the decrypted role string
@@ -68,8 +76,11 @@ func (u *User) GetRole() string {
 	if VerifyRole(*u.RoleHash, RoleAdmin) {
 		return RoleAdmin
 	}
-	if VerifyRole(*u.RoleHash, RoleUser) {
-		return RoleUser
+	if VerifyRole(*u.RoleHash, RoleAnalyst) {
+		return RoleAnalyst
+	}
+	if VerifyRole(*u.RoleHash, RoleViewer) {
+		return RoleViewer
 	}
 
 	return ""
@@ -83,4 +94,25 @@ func (u *User) SetRole(role string) error {
 	}
 	u.RoleHash = &encrypted
 	return nil
+}
+
+// HasRole checks if user has the specified role
+func (u *User) HasRole(role string) bool {
+	if u.RoleHash == nil {
+		return false
+	}
+	return VerifyRole(*u.RoleHash, role)
+}
+
+// HasAnyRole checks if user has any of the specified roles
+func (u *User) HasAnyRole(roles ...string) bool {
+	if u.RoleHash == nil {
+		return false
+	}
+	for _, role := range roles {
+		if VerifyRole(*u.RoleHash, role) {
+			return true
+		}
+	}
+	return false
 }

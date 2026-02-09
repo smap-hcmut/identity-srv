@@ -19,3 +19,7 @@ docs
 .claude/*
 AGENTS.md
 CLAUDE.md
+
+# Auth config with secrets
+auth-config.yaml
+secrets/

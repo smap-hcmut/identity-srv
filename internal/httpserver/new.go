@@ -5,11 +5,15 @@ import (
 	"errors"
 
 	"smap-api/config"
+	"smap-api/internal/authentication/usecase"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
+	pkgGoogle "smap-api/pkg/google"
+	pkgJWT "smap-api/pkg/jwt"
+	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
-	miniopkg "smap-api/pkg/minio"
-	pkgRabbitMQ "smap-api/pkg/rabbitmq"
+	pkgRedis "smap-api/pkg/redis"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,20 +30,24 @@ type HTTPServer struct {
 	// Database Configuration
 	postgresDB *sql.DB
 
-	// Storage Configuration
-	minio miniopkg.MinIO
-
-	// SMTP Configuration
-	smtpConfig config.SMTPConfig
-
-	// Message Queue Configuration
-	amqpConn *pkgRabbitMQ.Connection
+	// Storage Configuration (disabled for OAuth flow)
+	// minio miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	jwtSecretKey string
-	cookieConfig config.CookieConfig
-	encrypter    encrypter.Encrypter
-	internalKey  string
+	config         *config.Config
+	jwtManager     *pkgJWT.Manager
+	redisClient    *pkgRedis.Client
+	sessionManager *usecase.SessionManager
+	groupsManager  *usecase.GroupsManager
+	roleMapper     *usecase.RoleMapper
+	cookieConfig   config.CookieConfig
+	encrypter      encrypter.Encrypter
+
+	// Google Workspace Integration
+	googleClient *pkgGoogle.Client
+
+	// Kafka Integration
+	kafkaProducer *pkgKafka.Producer
 
 	// Monitoring & Notification Configuration
 	discord *discord.Discord
@@ -56,20 +64,21 @@ type Config struct {
 	// Database Configuration
 	PostgresDB *sql.DB
 
-	// Storage Configuration
-	MinIO miniopkg.MinIO
-
-	// SMTP Configuration
-	SMTP config.SMTPConfig
-
-	// Message Queue Configuration
-	AmqpConn *pkgRabbitMQ.Connection
+	// Storage Configuration (disabled for OAuth flow)
+	// MinIO miniopkg.MinIO
 
 	// Authentication & Security Configuration
-	JwtSecretKey string
+	Config       *config.Config
+	JWTManager   *pkgJWT.Manager
+	RedisClient  *pkgRedis.Client
 	CookieConfig config.CookieConfig
 	Encrypter    encrypter.Encrypter
-	InternalKey  string
+
+	// Google Workspace Integration
+	GoogleClient *pkgGoogle.Client
+
+	// Kafka Integration
+	KafkaProducer *pkgKafka.Producer
 
 	// Monitoring & Notification Configuration
 	Discord *discord.Discord
@@ -78,6 +87,16 @@ type Config struct {
 // New creates a new HTTPServer instance with the provided configuration.
 func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 	gin.SetMode(cfg.Mode)
+
+	// Initialize session manager
+	sessionTTL := time.Duration(cfg.Config.Session.TTL) * time.Second
+	sessionManager := usecase.NewSessionManager(cfg.RedisClient, sessionTTL)
+
+	// Initialize groups manager
+	groupsManager := usecase.NewGroupsManager(cfg.GoogleClient, cfg.RedisClient)
+
+	// Initialize role mapper
+	roleMapper := usecase.NewRoleMapper(cfg.Config)
 
 	srv := &HTTPServer{
 		// Server Configuration
@@ -91,20 +110,24 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		// Database Configuration
 		postgresDB: cfg.PostgresDB,
 
-		// Storage Configuration
-		minio: cfg.MinIO,
-
-		// SMTP Configuration
-		smtpConfig: cfg.SMTP,
-
-		// Message Queue Configuration
-		amqpConn: cfg.AmqpConn,
+		// Storage Configuration (disabled for OAuth flow)
+		// minio: cfg.MinIO,
 
 		// Authentication & Security Configuration
-		jwtSecretKey: cfg.JwtSecretKey,
-		cookieConfig: cfg.CookieConfig,
-		encrypter:    cfg.Encrypter,
-		internalKey:  cfg.InternalKey,
+		config:         cfg.Config,
+		jwtManager:     cfg.JWTManager,
+		redisClient:    cfg.RedisClient,
+		sessionManager: sessionManager,
+		groupsManager:  groupsManager,
+		roleMapper:     roleMapper,
+		cookieConfig:   cfg.CookieConfig,
+		encrypter:      cfg.Encrypter,
+
+		// Google Workspace Integration
+		googleClient: cfg.GoogleClient,
+
+		// Kafka Integration
+		kafkaProducer: cfg.KafkaProducer,
 
 		// Monitoring & Notification Configuration
 		discord: cfg.Discord,
@@ -126,9 +149,7 @@ func (srv HTTPServer) validate() error {
 	if srv.mode == "" {
 		return errors.New("mode is required")
 	}
-	if srv.host == "" {
-		return errors.New("host is required")
-	}
+	// host can be empty (listen on all interfaces)
 	if srv.port == 0 {
 		return errors.New("port is required")
 	}
@@ -138,26 +159,32 @@ func (srv HTTPServer) validate() error {
 		return errors.New("postgresDB is required")
 	}
 
-	// Message Queue Configuration
-	if srv.amqpConn == nil {
-		return errors.New("amqp connection is required")
-	}
-
 	// Authentication & Security Configuration
-	if srv.jwtSecretKey == "" {
-		return errors.New("jwtSecretKey is required")
+	if srv.config == nil {
+		return errors.New("config is required")
+	}
+	if srv.jwtManager == nil {
+		return errors.New("jwtManager is required")
+	}
+	if srv.redisClient == nil {
+		return errors.New("redisClient is required")
+	}
+	if srv.sessionManager == nil {
+		return errors.New("sessionManager is required")
 	}
 	if srv.encrypter == nil {
 		return errors.New("encrypter is required")
 	}
-	if srv.internalKey == "" {
-		return errors.New("internalKey is required")
-	}
 
-	// Monitoring & Notification Configuration
-	if srv.discord == nil {
-		return errors.New("discord is required")
-	}
+	// Google Workspace Integration (optional - needed for Day 3 Groups RBAC)
+	// if srv.googleClient == nil {
+	// 	return errors.New("googleClient is required")
+	// }
+
+	// Monitoring & Notification Configuration (optional)
+	// if srv.discord == nil {
+	// 	return errors.New("discord is required")
+	// }
 
 	return nil
 }

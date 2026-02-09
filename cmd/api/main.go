@@ -6,13 +6,20 @@ import (
 	"os"
 	"os/signal"
 	"smap-api/config"
-	"smap-api/config/postgre"
+	configPostgre "smap-api/config/postgre"
+	_ "smap-api/docs" // Import swagger docs
+	auditPostgre "smap-api/internal/audit/repository/postgre"
+	"smap-api/internal/audit/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
+	pkgGoogle "smap-api/pkg/google"
+	pkgJWT "smap-api/pkg/jwt"
+	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
-	rabbitmq "smap-api/pkg/rabbitmq"
+	pkgRedis "smap-api/pkg/redis"
 	"syscall"
+	"time"
 )
 
 // @title       SMAP Identity Service API
@@ -55,30 +62,109 @@ func main() {
 
 	// Initialize PostgreSQL
 	ctx := context.Background()
-	postgresDB, err := postgre.Connect(ctx, cfg.Postgres)
+	postgresDB, err := configPostgre.Connect(ctx, cfg.Postgres)
 	if err != nil {
 		logger.Error(ctx, "Failed to connect to PostgreSQL: ", err)
 		return
 	}
-	defer postgre.Disconnect(ctx, postgresDB)
+	defer configPostgre.Disconnect(ctx, postgresDB)
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
-	// Initialize RabbitMQ
-	amqpConn, err := rabbitmq.Dial(cfg.RabbitMQ.URL, true)
-	if err != nil {
-		logger.Error(ctx, "Failed to connect to RabbitMQ: ", err)
-		return
-	}
-	defer amqpConn.Close()
-
-	// Initialize Discord
+	// Initialize Discord (optional)
 	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
 		ID:    cfg.Discord.WebhookID,
 		Token: cfg.Discord.WebhookToken,
 	})
 	if err != nil {
-		logger.Error(ctx, "Failed to initialize Discord: ", err)
+		logger.Warnf(ctx, "Discord webhook not configured (optional): %v", err)
+		discordClient = nil // Continue without Discord
+	} else {
+		logger.Infof(ctx, "Discord webhook initialized successfully")
+	}
+
+	// Initialize Redis
+	redisClient, err := pkgRedis.New(pkgRedis.Config{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+	if err != nil {
+		logger.Error(ctx, "Failed to connect to Redis: ", err)
 		return
+	}
+	logger.Infof(ctx, "Redis connected successfully to %s:%d (DB %d)", cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.DB)
+
+	// Initialize Redis for token blacklist (Task 2.9)
+	// Use separate DB (DB=1) for blacklist to avoid key conflicts
+	blacklistRedis, err := pkgRedis.New(pkgRedis.Config{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       1, // Separate DB for blacklist
+	})
+	if err != nil {
+		logger.Error(ctx, "Failed to connect to Redis for blacklist: ", err)
+		return
+	}
+	logger.Infof(ctx, "Redis blacklist connected successfully to %s:%d (DB 1)", cfg.Redis.Host, cfg.Redis.Port)
+	_ = blacklistRedis // Will be used in Task 3.5 for token blacklist manager
+
+	// Initialize JWT Manager
+	jwtManager, err := pkgJWT.New(pkgJWT.Config{
+		PrivateKeyPath: cfg.JWT.PrivateKeyPath,
+		PublicKeyPath:  cfg.JWT.PublicKeyPath,
+		Issuer:         cfg.JWT.Issuer,
+		Audience:       cfg.JWT.Audience,
+		TTL:            time.Duration(cfg.JWT.TTL) * time.Second,
+	})
+	if err != nil {
+		logger.Error(ctx, "Failed to initialize JWT manager: ", err)
+		return
+	}
+	logger.Infof(ctx, "JWT Manager initialized with algorithm: %s", cfg.JWT.Algorithm)
+
+	// Initialize Google Directory API client (optional - needed for Day 3 Groups RBAC)
+	googleClient, err := pkgGoogle.New(ctx, pkgGoogle.Config{
+		ServiceAccountKey: cfg.GoogleWorkspace.ServiceAccountKey,
+		AdminEmail:        cfg.GoogleWorkspace.AdminEmail,
+		Domain:            cfg.GoogleWorkspace.Domain,
+	})
+	if err != nil {
+		logger.Warnf(ctx, "Google Directory API not configured (needed for Day 3 Groups RBAC): %v", err)
+		googleClient = nil // Continue without Google Directory API
+	} else {
+		// Test connection
+		if err := googleClient.HealthCheck(ctx); err != nil {
+			logger.Warnf(ctx, "Google Directory API health check failed (will retry on demand): %v", err)
+		} else {
+			logger.Infof(ctx, "Google Directory API connected successfully for domain: %s", cfg.GoogleWorkspace.Domain)
+		}
+	}
+
+	// Initialize Kafka producer
+	kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{
+		Brokers: cfg.Kafka.Brokers,
+		Topic:   cfg.Kafka.Topic,
+	})
+	if err != nil {
+		logger.Warnf(ctx, "Failed to initialize Kafka producer (audit logging will be buffered): %v", err)
+		kafkaProducer = nil // Continue without Kafka - will use in-memory buffer
+	} else {
+		logger.Infof(ctx, "Kafka producer initialized successfully for topic: %s", cfg.Kafka.Topic)
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
+	// Initialize audit log cleanup job (Task 2.8)
+	auditRepo := auditPostgre.New(postgresDB)
+	cleanupJob := usecase.NewCleanupJob(auditRepo, logger)
+	if err := cleanupJob.Start(); err != nil {
+		logger.Warnf(ctx, "Failed to start audit cleanup job: %v", err)
+	} else {
+		logger.Infof(ctx, "Audit log cleanup job started (runs daily at 2 AM)")
+		defer cleanupJob.Stop()
 	}
 
 	// Initialize HTTP server
@@ -93,17 +179,18 @@ func main() {
 		// Database Configuration
 		PostgresDB: postgresDB,
 
-		// SMTP Configuration
-		SMTP: cfg.SMTP,
-
-		// Message Queue Configuration
-		AmqpConn: amqpConn,
-
 		// Authentication & Security Configuration
-		JwtSecretKey: cfg.JWT.SecretKey,
+		Config:       cfg,
+		JWTManager:   jwtManager,
+		RedisClient:  redisClient,
 		CookieConfig: cfg.Cookie,
 		Encrypter:    encrypterInstance,
-		InternalKey:  cfg.InternalConfig.InternalKey,
+
+		// Google Workspace Integration
+		GoogleClient: googleClient,
+
+		// Kafka Integration
+		KafkaProducer: kafkaProducer,
 
 		// Monitoring & Notification Configuration
 		Discord: discordClient,

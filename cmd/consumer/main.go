@@ -6,18 +6,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"smap-api/config"
-	"smap-api/config/postgre"
-	"smap-api/internal/consumer"
+	configPostgre "smap-api/config/postgre"
+	"smap-api/internal/audit/consumer"
+	auditPostgre "smap-api/internal/audit/repository/postgre"
+	pkgKafka "smap-api/pkg/kafka"
 	pkgLog "smap-api/pkg/log"
-	pkgRabbitMQ "smap-api/pkg/rabbitmq"
 
 	_ "github.com/lib/pq"
 )
 
 // @Name SMAP Consumer Service
-// @description Consumer service for processing async tasks (Email, Notifications, etc.)
+// @description Consumer service for processing async tasks (Audit Logging, etc.)
 // @version 1.0
 func main() {
 	// Load configuration
@@ -39,44 +41,60 @@ func main() {
 	registerGracefulShutdown(logger)
 
 	// Initialize PostgreSQL
-	postgresDB, err := postgre.Connect(ctx, cfg.Postgres)
+	postgresDB, err := configPostgre.Connect(ctx, cfg.Postgres)
 	if err != nil {
 		logger.Errorf(ctx, "Failed to connect to PostgreSQL: %v", err)
 		os.Exit(1)
 	}
-	defer postgre.Disconnect(ctx, postgresDB)
+	defer configPostgre.Disconnect(ctx, postgresDB)
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s",
 		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
-	// Initialize RabbitMQ
-	amqpConn, err := pkgRabbitMQ.Dial(cfg.RabbitMQ.URL, true)
-	if err != nil {
-		logger.Errorf(ctx, "Failed to connect to RabbitMQ: %v", err)
-		os.Exit(1)
-	}
-	defer amqpConn.Close()
-	logger.Infof(ctx, "RabbitMQ connected successfully")
-
-	// Initialize Consumer Service
-	srv, err := consumer.New(consumer.Config{
-		Logger:     logger,
-		PostgresDB: postgresDB,
-		AMQPConn:   amqpConn,
-		SMTPConfig: cfg.SMTP,
+	// Initialize Kafka consumer for audit logging (Task 2.7)
+	kafkaConsumer, err := pkgKafka.NewConsumerGroup(pkgKafka.ConsumerConfig{
+		Brokers: cfg.Kafka.Brokers,
+		GroupID: "audit-consumer-group",
 	})
 	if err != nil {
-		logger.Errorf(ctx, "Failed to initialize consumer service: %v", err)
+		logger.Errorf(ctx, "Failed to create Kafka consumer: %v", err)
 		os.Exit(1)
 	}
+	defer kafkaConsumer.Close()
+	logger.Infof(ctx, "Kafka consumer connected successfully to %v", cfg.Kafka.Brokers)
 
-	logger.Info(ctx, srv.String())
+	// Initialize audit repository
+	auditRepo := auditPostgre.New(postgresDB)
 
-	// Run consumer service (blocks until shutdown)
-	if err := srv.Run(); err != nil {
-		logger.Errorf(ctx, "Consumer service error: %v", err)
-		os.Exit(1)
-	}
+	// Initialize audit consumer
+	auditConsumer := consumer.New(
+		kafkaConsumer,
+		auditRepo,
+		consumer.Config{
+			Topic:        "audit.events",
+			GroupID:      "audit-consumer-group",
+			BatchSize:    100,
+			BatchTimeout: 5 * time.Second,
+		},
+		logger,
+	)
 
+	// Start consuming in a goroutine
+	go func() {
+		logger.Info(ctx, "Starting audit consumer...")
+		if err := auditConsumer.Start(ctx); err != nil {
+			logger.Errorf(ctx, "Audit consumer error: %v", err)
+		}
+	}()
+
+	logger.Info(ctx, "Consumer service ready - processing audit events")
+
+	// Wait for shutdown signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
+
+	logger.Info(ctx, "Shutting down consumer service...")
+	auditConsumer.Close()
 	logger.Info(ctx, "Consumer service stopped gracefully")
 }
 

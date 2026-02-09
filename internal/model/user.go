@@ -1,107 +1,109 @@
 package model
 
 import (
-	"time"
-
 	"smap-api/internal/sqlboiler"
+	"time"
 
 	"github.com/aarondl/null/v8"
 )
 
 // User role constants
 const (
-	RoleUser  = "USER"
-	RoleAdmin = "ADMIN"
+	RoleAdmin   = "ADMIN"
+	RoleAnalyst = "ANALYST"
+	RoleViewer  = "VIEWER"
 )
 
 // User represents a user entity in the domain layer.
 // This is a safe type model that doesn't depend on database-specific types.
+// Users are created automatically on first OAuth2 login.
 type User struct {
-	ID           string     `json:"id"`
-	Username     string     `json:"username"`
-	FullName     *string    `json:"full_name,omitempty"`
-	PasswordHash *string    `json:"password_hash,omitempty"`
-	RoleHash     *string    `json:"role_hash,omitempty"` // Encrypted role value
-	AvatarURL    *string    `json:"avatar_url,omitempty"`
-	IsActive     *bool      `json:"is_active,omitempty"`
-	OTP          *string    `json:"otp,omitempty"`
-	OTPExpiredAt *time.Time `json:"otp_expired_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+	ID          string     `json:"id"`
+	Email       string     `json:"email"`
+	Name        *string    `json:"name,omitempty"`
+	AvatarURL   *string    `json:"avatar_url,omitempty"`
+	RoleHash    *string    `json:"-"` // Encrypted role stored in database
+	IsActive    bool       `json:"is_active"`
+	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-// NewUserFromDB converts a SQLBoiler User model to a domain User model.
-// It safely handles null values from the database.
-func NewUserFromDB(dbUser *sqlboiler.User) *User {
+// NewUser creates a new User with default values
+func NewUser(email, name string) *User {
 	user := &User{
-		ID:        dbUser.ID,
-		Username:  dbUser.Username,
-		CreatedAt: dbUser.CreatedAt.Time,
-		UpdatedAt: dbUser.UpdatedAt.Time,
+		Email:    email,
+		Name:     &name,
+		IsActive: true,
+	}
+	// Set default role as VIEWER
+	_ = user.SetRole(RoleViewer)
+	return user
+}
+
+// UpdateLastLogin updates the last login timestamp
+func (u *User) UpdateLastLogin() {
+	now := time.Now()
+	u.LastLoginAt = &now
+}
+
+// NewUserFromDB converts a SQLBoiler User to domain User
+func NewUserFromDB(dbUser *sqlboiler.User) *User {
+	if dbUser == nil {
+		return nil
 	}
 
-	// Handle nullable fields safely
-	if dbUser.FullName.Valid {
-		user.FullName = &dbUser.FullName.String
+	user := &User{
+		ID:        dbUser.ID,
+		Email:     dbUser.Email,
+		RoleHash:  &dbUser.RoleHash,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
 	}
-	if dbUser.PasswordHash.Valid {
-		user.PasswordHash = &dbUser.PasswordHash.String
-	}
-	if dbUser.RoleHash.Valid {
-		user.RoleHash = &dbUser.RoleHash.String
+
+	// Handle nullable fields
+	if dbUser.Name.Valid {
+		user.Name = &dbUser.Name.String
 	}
 	if dbUser.AvatarURL.Valid {
 		user.AvatarURL = &dbUser.AvatarURL.String
 	}
 	if dbUser.IsActive.Valid {
-		user.IsActive = &dbUser.IsActive.Bool
+		user.IsActive = dbUser.IsActive.Bool
+	} else {
+		user.IsActive = true // Default to true if not set
 	}
-	if dbUser.Otp.Valid {
-		user.OTP = &dbUser.Otp.String
-	}
-	if dbUser.OtpExpiredAt.Valid {
-		user.OTPExpiredAt = &dbUser.OtpExpiredAt.Time
-	}
-	if dbUser.DeletedAt.Valid {
-		user.DeletedAt = &dbUser.DeletedAt.Time
+	if dbUser.LastLoginAt.Valid {
+		user.LastLoginAt = &dbUser.LastLoginAt.Time
 	}
 
 	return user
 }
 
-// ToDBUser converts a domain User model to a SQLBoiler User model for database operations.
-// Note: This is typically used in repository layer, not in domain logic.
+// ToDBUser converts domain User to SQLBoiler User
 func (u *User) ToDBUser() *sqlboiler.User {
 	dbUser := &sqlboiler.User{
-		ID:       u.ID,
-		Username: u.Username,
+		ID:        u.ID,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 	}
 
-	// Convert nullable fields
-	if u.FullName != nil {
-		dbUser.FullName = null.StringFrom(*u.FullName)
-	}
-	if u.PasswordHash != nil {
-		dbUser.PasswordHash = null.StringFrom(*u.PasswordHash)
-	}
+	// Handle RoleHash
 	if u.RoleHash != nil {
-		dbUser.RoleHash = null.StringFrom(*u.RoleHash)
+		dbUser.RoleHash = *u.RoleHash
+	}
+
+	// Handle nullable fields
+	if u.Name != nil {
+		dbUser.Name = null.StringFrom(*u.Name)
 	}
 	if u.AvatarURL != nil {
 		dbUser.AvatarURL = null.StringFrom(*u.AvatarURL)
 	}
-	if u.IsActive != nil {
-		dbUser.IsActive = null.BoolFrom(*u.IsActive)
-	}
-	if u.OTP != nil {
-		dbUser.Otp = null.StringFrom(*u.OTP)
-	}
-	if u.OTPExpiredAt != nil {
-		dbUser.OtpExpiredAt = null.TimeFrom(*u.OTPExpiredAt)
-	}
-	if u.DeletedAt != nil {
-		dbUser.DeletedAt = null.TimeFrom(*u.DeletedAt)
+	dbUser.IsActive = null.BoolFrom(u.IsActive)
+	if u.LastLoginAt != nil {
+		dbUser.LastLoginAt = null.TimeFrom(*u.LastLoginAt)
 	}
 
 	return dbUser
