@@ -5,13 +5,13 @@ import (
 	"smap-api/internal/audit/repository"
 )
 
-type auditRepository struct {
+type implRepository struct {
 	db *sql.DB
 }
 
 // New creates a new audit repository
 func New(db *sql.DB) repository.Repository {
-	return &auditRepository{
+	return &implRepository{
 		db: db,
 	}
 }

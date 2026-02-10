@@ -2,45 +2,111 @@ package usecase
 
 import (
 	"context"
-
+	"fmt"
+	"smap-api/internal/audit"
 	"smap-api/internal/authentication"
 	"smap-api/internal/model"
-	"smap-api/internal/user"
 )
 
-// GetCurrentUser - Extract user info from JWT claims
-func (u *implUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (authentication.GetCurrentUserOutput, error) {
-	// Get user from user usecase
-	user, err := u.userUC.Detail(ctx, sc.UserID)
+// GetCurrentUser gets current user from scope
+func (u *implUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (*model.User, error) {
+	usr, err := u.userUC.Detail(ctx, sc.UserID)
 	if err != nil {
-		u.l.Errorf(ctx, "authentication.usecase.GetCurrentUser: %v", err)
-		return authentication.GetCurrentUserOutput{}, err
+		u.l.Errorf(ctx, "authentication.usecase.GetCurrentUser.Detail: %v", err)
+		return nil, authentication.ErrUserNotFound
+	}
+	return &usr, nil
+}
+
+// GetUserByID gets a user by ID (for internal service calls)
+func (u *implUsecase) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
+	usr, err := u.userUC.Detail(ctx, userID)
+	if err != nil {
+		u.l.Errorf(ctx, "authentication.usecase.GetUserByID.Detail: %v", err)
+		return nil, authentication.ErrUserNotFound
+	}
+	return &usr, nil
+}
+
+// GetJWKS returns the JSON Web Key Set
+func (u *implUsecase) GetJWKS(ctx context.Context) (interface{}, error) {
+	if u.jwtManager == nil {
+		return nil, fmt.Errorf("jwt manager not configured")
+	}
+	return u.jwtManager.GetJWKS(), nil
+}
+
+// Logout invalidates the current session
+func (u *implUsecase) Logout(ctx context.Context, sc model.Scope) error {
+	if u.sessionManager == nil {
+		return nil
 	}
 
-	return authentication.GetCurrentUserOutput{
-		User: user,
+	if err := u.sessionManager.DeleteSession(ctx, sc.JTI); err != nil {
+		u.l.Errorf(ctx, "authentication.usecase.Logout.DeleteSession: %v", err)
+		return err
+	}
+
+	u.PublishAuditEvent(ctx, audit.AuditEvent{
+		UserID:       sc.UserID,
+		Action:       audit.ActionLogout,
+		ResourceType: "authentication",
+	})
+
+	return nil
+}
+
+// ValidateToken verifies a JWT token
+func (u *implUsecase) ValidateToken(ctx context.Context, token string) (*authentication.TokenValidationResult, error) {
+	if u.jwtManager == nil {
+		return nil, fmt.Errorf("jwt manager not configured")
+	}
+
+	claims, err := u.jwtManager.VerifyToken(token)
+	if err != nil {
+		return &authentication.TokenValidationResult{Valid: false}, nil
+	}
+
+	if u.blacklistManager != nil {
+		isBlacklisted, err := u.blacklistManager.IsBlacklisted(ctx, claims.ID)
+		if err != nil {
+			u.l.Errorf(ctx, "authentication.usecase.ValidateToken.IsBlacklisted: %v", err)
+			return nil, err
+		}
+		if isBlacklisted {
+			return &authentication.TokenValidationResult{Valid: false}, nil
+		}
+	}
+
+	return &authentication.TokenValidationResult{
+		Valid:     true,
+		UserID:    claims.Subject,
+		Email:     claims.Email,
+		Role:      claims.Role,
+		Groups:    claims.Groups,
+		ExpiresAt: claims.ExpiresAt.Time,
 	}, nil
 }
 
-// CreateOrUpdateUser creates a new user or updates existing user on OAuth2 login
-func (u *implUsecase) CreateOrUpdateUser(ctx context.Context, ip authentication.CreateOrUpdateUserInput) (model.User, error) {
-	return u.userUC.Create(ctx, user.CreateInput{
-		Email:     ip.Email,
-		Name:      ip.Name,
-		AvatarURL: ip.AvatarURL,
-	})
+// RevokeToken revokes a specific token
+func (u *implUsecase) RevokeToken(ctx context.Context, jti string) error {
+	if u.sessionManager == nil || u.blacklistManager == nil {
+		return fmt.Errorf("session/blacklist manager not configured")
+	}
+
+	session, err := u.sessionManager.GetSession(ctx, jti)
+	if err != nil {
+		return err
+	}
+
+	if err := u.blacklistManager.AddToken(ctx, jti, session.ExpiresAt); err != nil {
+		return err
+	}
+
+	return u.sessionManager.DeleteSession(ctx, jti)
 }
 
-// UpdateUserRole updates the user's role in the database
-func (u *implUsecase) UpdateUserRole(ctx context.Context, ip authentication.UpdateUserRoleInput) error {
-	return u.userUC.Update(ctx, user.UpdateInput{
-		UserID: ip.UserID,
-		Role:   ip.Role,
-	})
-}
-
-// Logout - Delete session from Redis
-func (u *implUsecase) Logout(ctx context.Context, sc model.Scope) error {
-	u.l.Infof(ctx, "User %s logged out", sc.UserID)
-	return nil
+// RevokeAllUserTokens revokes all tokens for a user
+func (u *implUsecase) RevokeAllUserTokens(ctx context.Context, userID string) error {
+	return u.revokeAllUserTokensInternal(ctx, userID)
 }

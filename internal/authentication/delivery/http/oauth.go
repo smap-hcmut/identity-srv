@@ -1,16 +1,11 @@
 package http
 
 import (
-	"context"
-	"fmt"
 	"net/http"
-	"smap-api/internal/audit"
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
-	"time"
+
+	"smap-api/pkg/response"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/oauth2"
 )
 
 // OAuthLogin redirects user to OAuth2 authorization page
@@ -18,57 +13,29 @@ import (
 // @Description Redirects to OAuth2 authorization page (Google, Azure AD, or Okta)
 // @Tags Authentication
 // @Produce json
+// @Param redirect query string false "URL to redirect to after login"
 // @Success 302 {string} string "Redirect to OAuth provider"
 // @Router /authentication/login [get]
-func (h *handler) OAuthLogin(c *gin.Context) {
+func (h handler) OAuthLogin(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get redirect URL from query parameter
-	redirectURL := c.Query("redirect")
+	// 1. Process Request
+	input := h.processLoginRequest(c)
 
-	// Validate redirect URL (prevent open redirect attacks)
-	if h.redirectValidator != nil && redirectURL != "" {
-		if err := h.redirectValidator.ValidateRedirectURL(redirectURL); err != nil {
-			h.l.Warnf(ctx, "Invalid redirect URL: %s, error: %v", redirectURL, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": gin.H{
-					"code":    "INVALID_REDIRECT",
-					"message": "Invalid redirect URL.",
-				},
-			})
-			return
-		}
+	// 2. Call UseCase
+	output, err := h.uc.InitiateOAuthLogin(ctx, input)
+	if err != nil {
+		h.l.Errorf(ctx, "uc.InitiateOAuthLogin: %v", err)
+		response.Error(c, h.mapError(err), h.discord)
+		return
 	}
 
-	// Generate random state for CSRF protection
-	state := generateRandomState()
-
-	// Store state and redirect URL in session/cookie for validation
-	c.SetCookie(
-		"oauth_state",
-		state,
-		300, // 5 minutes
-		"/",
-		h.config.Cookie.Domain,
-		h.config.Cookie.Secure,
-		true, // HttpOnly
-	)
-
-	if redirectURL != "" {
-		c.SetCookie(
-			"oauth_redirect",
-			redirectURL,
-			300, // 5 minutes
-			"/",
-			h.config.Cookie.Domain,
-			h.config.Cookie.Secure,
-			true, // HttpOnly
-		)
+	// 3. Response
+	h.setStateCookie(c, output.State)
+	if input.RedirectURL != "" {
+		h.setRedirectCookie(c, input.RedirectURL)
 	}
-
-	// Redirect to OAuth2 authorization page using provider
-	authURL := h.oauthProvider.GetAuthCodeURL(state, oauth2.AccessTypeOffline)
-	c.Redirect(http.StatusTemporaryRedirect, authURL)
+	c.Redirect(http.StatusTemporaryRedirect, output.AuthURL)
 }
 
 // OAuthCallback handles OAuth2 callback from identity provider
@@ -79,328 +46,46 @@ func (h *handler) OAuthLogin(c *gin.Context) {
 // @Param code query string true "Authorization code from provider"
 // @Param state query string true "State parameter for CSRF protection"
 // @Success 302 {string} string "Redirect to dashboard"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
-// @Failure 403 {object} map[string]interface{} "Domain not allowed or account blocked"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Failure 400 {object} response.Resp "Invalid request"
+// @Failure 403 {object} response.Resp "Domain not allowed or account blocked"
+// @Failure 500 {object} response.Resp "Internal server error"
 // @Router /authentication/callback [get]
-func (h *handler) OAuthCallback(c *gin.Context) {
-	ctx := context.Background()
+func (h handler) OAuthCallback(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	// Validate state parameter (CSRF protection)
+	// 1. Validate CSRF state (HTTP transport concern)
 	state := c.Query("state")
 	storedState, err := c.Cookie("oauth_state")
 	if err != nil || state != storedState {
-		h.l.Error(ctx, "Invalid OAuth state parameter")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "INVALID_STATE",
-				"message": "Invalid state parameter. Please try again.",
-			},
-		})
+		h.l.Error(ctx, "OAuthCallback: invalid state")
+		response.Error(c, errInvalidState, h.discord)
 		return
 	}
+	h.clearStateCookie(c)
 
-	// Clear state cookie
-	c.SetCookie("oauth_state", "", -1, "/", h.config.Cookie.Domain, h.config.Cookie.Secure, true)
-
-	// Get authorization code
-	code := c.Query("code")
-	if code == "" {
-		h.l.Error(ctx, "Missing authorization code")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "MISSING_CODE",
-				"message": "Authorization code is missing.",
-			},
-		})
-		return
-	}
-
-	// Exchange code for token using provider
-	token, err := h.oauthProvider.ExchangeCode(ctx, code)
+	// 2. Process Request
+	input, err := h.processCallbackRequest(c)
 	if err != nil {
-		h.l.Errorf(ctx, "Failed to exchange code for token: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    "OAUTH_EXCHANGE_FAILED",
-				"message": "Failed to exchange authorization code. Please try again.",
-			},
-		})
+		response.Error(c, err, h.discord)
 		return
 	}
 
-	// Get user info from provider
-	userInfo, err := h.oauthProvider.GetUserInfo(ctx, token)
+	// 3. Call UseCase
+	output, err := h.uc.ProcessOAuthCallback(ctx, input)
 	if err != nil {
-		h.l.Errorf(ctx, "Failed to get user info from provider: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    "USER_INFO_FAILED",
-				"message": "Failed to retrieve user information from identity provider.",
-			},
-		})
+		h.l.Errorf(ctx, "uc.ProcessOAuthCallback: %v", err)
+		response.Error(c, h.mapError(err), h.discord)
 		return
 	}
 
-	// Validate domain
-	if !h.isAllowedDomain(userInfo.Email) {
-		h.l.Warnf(ctx, "Domain not allowed: %s", userInfo.Email)
+	// 4. Response
+	h.setAuthCookie(c, output.Token)
 
-		// Record failed login attempt (Task 4.2)
-		if h.rateLimiter != nil {
-			if err := h.rateLimiter.RecordFailedAttempt(ctx, c.ClientIP()); err != nil {
-				h.l.Warnf(ctx, "Failed to record rate limit: %v", err)
-			}
-		}
-
-		// Publish audit event for failed login
-		h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
-			UserID:       userInfo.Email, // Use email since user not created yet
-			Action:       audit.ActionLoginFailed,
-			ResourceType: "authentication",
-			Metadata: map[string]string{
-				"provider": h.oauthProvider.GetProviderName(),
-				"reason":   "domain_not_allowed",
-				"domain":   extractDomain(userInfo.Email),
-			},
-			IPAddress: c.ClientIP(),
-			UserAgent: c.Request.UserAgent(),
-		})
-
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": gin.H{
-				"code":    "DOMAIN_NOT_ALLOWED",
-				"message": "Your email domain is not allowed to access this system. Please contact admin.",
-				"details": gin.H{
-					"email":  userInfo.Email,
-					"domain": extractDomain(userInfo.Email),
-				},
-			},
-		})
-		return
+	redirectURL, cookieErr := c.Cookie("oauth_redirect")
+	if cookieErr != nil || redirectURL == "" {
+		redirectURL = "/dashboard"
 	}
+	h.clearRedirectCookie(c)
 
-	// Check blocklist
-	if h.isBlockedEmail(userInfo.Email) {
-		h.l.Warnf(ctx, "Account blocked: %s", userInfo.Email)
-
-		// Record failed login attempt (Task 4.2)
-		if h.rateLimiter != nil {
-			if err := h.rateLimiter.RecordFailedAttempt(ctx, c.ClientIP()); err != nil {
-				h.l.Warnf(ctx, "Failed to record rate limit: %v", err)
-			}
-		}
-
-		// Publish audit event for failed login
-		h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
-			UserID:       userInfo.Email,
-			Action:       audit.ActionLoginFailed,
-			ResourceType: "authentication",
-			Metadata: map[string]string{
-				"provider": h.oauthProvider.GetProviderName(),
-				"reason":   "account_blocked",
-			},
-			IPAddress: c.ClientIP(),
-			UserAgent: c.Request.UserAgent(),
-		})
-
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": gin.H{
-				"code":    "ACCOUNT_BLOCKED",
-				"message": "Your account has been blocked. Please contact admin for assistance.",
-			},
-		})
-		return
-	}
-
-	// Create or update user
-	user, err := h.uc.CreateOrUpdateUser(ctx, authentication.CreateOrUpdateUserInput{
-		Email:     userInfo.Email,
-		Name:      userInfo.Name,
-		AvatarURL: userInfo.Picture,
-	})
-	if err != nil {
-		h.l.Errorf(ctx, "Failed to create/update user: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    "USER_CREATE_FAILED",
-				"message": "Failed to create user account.",
-			},
-		})
-		return
-	}
-
-	// Fetch Google Groups (Task 2.2)
-	groups, err := h.groupsManager.GetUserGroups(ctx, userInfo.Email)
-	if err != nil {
-		h.l.Warnf(ctx, "Failed to fetch user groups (using default role): %v", err)
-		groups = []string{} // Use empty groups if fetch fails
-	}
-
-	// Map groups to role (Task 2.3)
-	role := h.roleMapper.MapGroupsToRole(groups)
-
-	// Update user role in database
-	user.SetRole(role)
-	if err := h.uc.UpdateUserRole(ctx, authentication.UpdateUserRoleInput{
-		UserID: user.ID,
-		Role:   role,
-	}); err != nil {
-		h.l.Warnf(ctx, "Failed to update user role (continuing with role from groups): %v", err)
-	}
-
-	// Generate JWT token with role and groups (Task 1.4, 2.4)
-	jwtToken, jti, err := h.generateJWTWithRoleAndGroups(user, role, groups)
-	if err != nil {
-		h.l.Errorf(ctx, "Failed to generate JWT: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    "JWT_GENERATION_FAILED",
-				"message": "Failed to generate authentication token.",
-			},
-		})
-		return
-	}
-
-	// Create session in Redis (Task 1.6)
-	rememberMe := c.Query("remember_me") == "true"
-	if err := h.createSession(ctx, user.ID, jti, rememberMe); err != nil {
-		h.l.Errorf(ctx, "Failed to create session: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    "SESSION_CREATE_FAILED",
-				"message": "Failed to create session.",
-			},
-		})
-		return
-	}
-
-	// Set JWT as HttpOnly cookie (Task 1.7)
-	h.setAuthCookie(c, jwtToken)
-
-	// Clear failed login attempts on successful login (Task 4.2)
-	if h.rateLimiter != nil {
-		if err := h.rateLimiter.ClearFailedAttempts(ctx, c.ClientIP()); err != nil {
-			h.l.Warnf(ctx, "Failed to clear rate limit: %v", err)
-		}
-	}
-
-	// Publish audit log event
-	h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
-		UserID:       user.ID,
-		Action:       audit.ActionLogin,
-		ResourceType: "authentication",
-		Metadata: map[string]string{
-			"provider": h.oauthProvider.GetProviderName(),
-			"role":     role,
-			"groups":   fmt.Sprintf("%v", groups),
-		},
-		IPAddress: c.ClientIP(),
-		UserAgent: c.Request.UserAgent(),
-	})
-
-	// Get redirect URL from cookie
-	redirectURL, err := c.Cookie("oauth_redirect")
-	if err != nil || redirectURL == "" {
-		redirectURL = "/dashboard" // Default redirect
-	}
-
-	// Clear redirect cookie
-	c.SetCookie("oauth_redirect", "", -1, "/", h.config.Cookie.Domain, h.config.Cookie.Secure, true)
-
-	// Redirect to target URL
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
-}
-
-// extractDomain extracts domain from email address
-func extractDomain(email string) string {
-	for i := len(email) - 1; i >= 0; i-- {
-		if email[i] == '@' {
-			return email[i+1:]
-		}
-	}
-	return ""
-}
-
-// generateRandomState generates a random state for CSRF protection
-func generateRandomState() string {
-	return fmt.Sprintf("state-%d", time.Now().UnixNano())
-}
-
-// Helper methods for handler
-
-func (h *handler) isAllowedDomain(email string) bool {
-	domain := extractDomain(email)
-	for _, allowedDomain := range h.config.AccessControl.AllowedDomains {
-		if domain == allowedDomain {
-			return true
-		}
-	}
-	return false
-}
-
-func (h *handler) isBlockedEmail(email string) bool {
-	for _, blockedEmail := range h.config.AccessControl.BlockedEmails {
-		if email == blockedEmail {
-			return true
-		}
-	}
-	return false
-}
-
-func (h *handler) generateJWT(user model.User) (string, string, error) {
-	// Get user role (decrypted from RoleHash)
-	role := user.GetRole()
-
-	// TODO: Fetch Google Groups in Task 2.2
-	groups := []string{}
-
-	// Generate JWT token with RS256
-	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, role, groups)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Extract JTI from token for session management
-	claims, err := h.jwtManager.VerifyToken(token)
-	if err != nil {
-		return "", "", err
-	}
-
-	return token, claims.ID, nil
-}
-
-func (h *handler) generateJWTWithRoleAndGroups(user model.User, role string, groups []string) (string, string, error) {
-	// Generate JWT token with RS256, including role and groups
-	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, role, groups)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Extract JTI from token for session management
-	claims, err := h.jwtManager.VerifyToken(token)
-	if err != nil {
-		return "", "", err
-	}
-
-	return token, claims.ID, nil
-}
-
-func (h *handler) createSession(ctx context.Context, userID, jti string, rememberMe bool) error {
-	return h.sessionManager.CreateSession(ctx, userID, jti, rememberMe)
-}
-
-func (h *handler) setAuthCookie(c *gin.Context, token string) {
-	c.SetCookie(
-		h.config.Cookie.Name,
-		token,
-		h.config.Cookie.MaxAge,
-		"/",
-		h.config.Cookie.Domain,
-		h.config.Cookie.Secure,
-		true, // HttpOnly
-	)
-
-	// Add SameSite attribute
-	h.addSameSiteAttribute(c, h.config.Cookie.SameSite)
 }
