@@ -24,6 +24,10 @@ run-consumer:
 	@echo "Running the consumer"
 	@go run cmd/consumer/main.go
 
+run-scheduler:
+	@echo "Running the scheduler"
+	@go run cmd/scheduler/main.go
+
 build-docker-compose:
 	@echo "make models first"
 	@make models
@@ -33,52 +37,77 @@ build-docker-compose:
 # Docker build targets (using optimized Dockerfile)
 docker-build:
 	@echo "Building Docker image for local platform"
-	@./build.sh local
+	@./scripts/build-api.sh local
 
 docker-build-amd64:
 	@echo "Building Docker image for AMD64"
-	@./build.sh amd64
+	@./scripts/build-api.sh amd64
 
 docker-build-multi:
 	@echo "Building multi-platform Docker image (requires REGISTRY)"
-	@./build.sh multi
+	@./scripts/build-api.sh multi
 
 docker-run:
 	@echo "Building and running Docker container"
-	@./build.sh run
+	@./scripts/build-api.sh run
 
 docker-clean:
 	@echo "Cleaning Docker images"
-	@./build.sh clean
+	@./scripts/build-api.sh clean
 
 docker-push:
 	@echo "Building and pushing to registry (requires REGISTRY)"
-	@./build.sh push
+	@./scripts/build-api.sh push
 
 # Consumer Docker build targets (using optimized Dockerfile)
 consumer-build:
 	@echo "Building Consumer Docker image for local platform"
-	@./build-consumer.sh local
+	@./scripts/build-consumer.sh local
 
 consumer-build-amd64:
 	@echo "Building Consumer Docker image for AMD64"
-	@./build-consumer.sh amd64
+	@./scripts/build-consumer.sh amd64
 
 consumer-build-multi:
 	@echo "Building multi-platform Consumer Docker image (requires REGISTRY)"
-	@./build-consumer.sh multi
+	@./scripts/build-consumer.sh multi
 
 consumer-run:
 	@echo "Building and running Consumer Docker container"
-	@./build-consumer.sh run
+	@./scripts/build-consumer.sh run
 
 consumer-clean:
 	@echo "Cleaning Consumer Docker images"
-	@./build-consumer.sh clean
+	@./scripts/build-consumer.sh clean
 
 consumer-push:
 	@echo "Building and pushing Consumer to registry (requires REGISTRY)"
-	@./build-consumer.sh push
+	@./scripts/build-consumer.sh push
+
+# Scheduler Docker build targets (using optimized Dockerfile)
+scheduler-build:
+	@echo "Building Scheduler Docker image for local platform"
+	@./scripts/build-scheduler.sh local
+
+scheduler-build-amd64:
+	@echo "Building Scheduler Docker image for AMD64"
+	@./scripts/build-scheduler.sh amd64
+
+scheduler-build-multi:
+	@echo "Building multi-platform Scheduler Docker image (requires REGISTRY)"
+	@./scripts/build-scheduler.sh multi
+
+scheduler-run:
+	@echo "Building and running Scheduler Docker container"
+	@./scripts/build-scheduler.sh run
+
+scheduler-clean:
+	@echo "Cleaning Scheduler Docker images"
+	@./scripts/build-scheduler.sh clean
+
+scheduler-push:
+	@echo "Building and pushing Scheduler to registry (requires REGISTRY)"
+	@./scripts/build-scheduler.sh push
 
 # Show all available targets
 help:
@@ -89,6 +118,7 @@ help:
 	@echo "  swagger             - Generate Swagger documentation"
 	@echo "  run-api             - Run API server locally"
 	@echo "  run-consumer        - Run consumer locally"
+	@echo "  run-scheduler       - Run scheduler locally"
 	@echo "  build-docker-compose - Build with docker-compose"
 	@echo ""
 	@echo "Docker - API Server:"
@@ -107,6 +137,14 @@ help:
 	@echo "  consumer-clean      - Remove all consumer Docker images"
 	@echo "  consumer-push       - Build and push consumer to registry"
 	@echo ""
+	@echo "Docker - Scheduler Service:"
+	@echo "  scheduler-build     - Build scheduler for local platform"
+	@echo "  scheduler-build-amd64 - Build scheduler for AMD64 servers"
+	@echo "  scheduler-build-multi - Build multi-platform (requires REGISTRY env)"
+	@echo "  scheduler-run       - Build and run scheduler container locally"
+	@echo "  scheduler-clean     - Remove all scheduler Docker images"
+	@echo "  scheduler-push      - Build and push scheduler to registry"
+	@echo ""
 	@echo "Examples:"
 	@echo "  make docker-build"
 	@echo "  make docker-run"
@@ -115,8 +153,10 @@ help:
 	@echo "  REGISTRY=docker.io/username make docker-push"
 	@echo "  REGISTRY=docker.io/username make consumer-push"
 
-.PHONY: models swagger run-api run-consumer build-docker-compose \
+.PHONY: models swagger run-api run-consumer run-scheduler build-docker-compose \
         docker-build docker-build-amd64 docker-build-multi \
         docker-run docker-clean docker-push \
         consumer-build consumer-build-amd64 consumer-build-multi \
-        consumer-run consumer-clean consumer-push help
+        consumer-run consumer-clean consumer-push \
+        scheduler-build scheduler-build-amd64 scheduler-build-multi \
+        scheduler-run scheduler-clean scheduler-push help

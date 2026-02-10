@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smap-scheduler
+  namespace: default
+spec:
+  replicas: 1  # Only 1 replica for scheduler to avoid duplicate cron jobs
+  selector:
+    matchLabels:
+      app: smap-scheduler
+  template:
+    metadata:
+      labels:
+        app: smap-scheduler
+    spec:
+      containers:
+      - name: scheduler
+        image: smap-scheduler:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ENVIRONMENT_NAME
+          value: "production"
+        
+        # Logger Configuration
+        - name: LOGGER_LEVEL
+          value: "info"
+        - name: LOGGER_MODE
+          value: "production"
+        - name: LOGGER_ENCODING
+          value: "json"
+        - name: LOGGER_COLOR_ENABLED
+          value: "false"
+        
+        # PostgreSQL Configuration
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: smap-config
+              key: postgres.host
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: smap-config
+              key: postgres.port
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: smap-secrets
+              key: postgres.user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smap-secrets
+              key: postgres.password
+        - name: POSTGRES_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: smap-config
+              key: postgres.dbname
+        - name: POSTGRES_SSLMODE
+          value: "require"
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        
+        # Health check (optional - scheduler doesn't expose HTTP)
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep scheduler | grep -v grep"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      
+      restartPolicy: Always

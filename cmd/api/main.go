@@ -8,8 +8,6 @@ import (
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
 	_ "smap-api/docs" // Import swagger docs
-	auditPostgre "smap-api/internal/audit/repository/postgre"
-	"smap-api/internal/audit/usecase"
 	authUsecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
@@ -40,14 +38,15 @@ import (
 // @name Authorization
 // @description Legacy Bearer token authentication (deprecated - use cookie authentication instead). Format: "Bearer {token}"
 func main() {
-	// Load configuration
+	// 1. Load configuration
+	// Reads config from YAML file and environment variables
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Println("Failed to load config: ", err)
 		return
 	}
 
-	// Initialize logger
+	// 2. Initialize logger
 	logger := log.Init(log.ZapConfig{
 		Level:        cfg.Logger.Level,
 		Mode:         cfg.Logger.Mode,
@@ -55,13 +54,13 @@ func main() {
 		ColorEnabled: cfg.Logger.ColorEnabled,
 	})
 
-	// Register graceful shutdown
+	// 3. Register graceful shutdown
 	registerGracefulShutdown(logger)
 
-	// Initialize encrypter
+	// 4. Initialize encrypter
 	encrypterInstance := encrypter.New(cfg.Encrypter.Key)
 
-	// Initialize PostgreSQL
+	// 5. Initialize PostgreSQL
 	ctx := context.Background()
 	postgresDB, err := configPostgre.Connect(ctx, cfg.Postgres)
 	if err != nil {
@@ -71,7 +70,7 @@ func main() {
 	defer configPostgre.Disconnect(ctx, postgresDB)
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
-	// Initialize Discord (optional)
+	// 6. Initialize Discord (optional)
 	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
 		ID:    cfg.Discord.WebhookID,
 		Token: cfg.Discord.WebhookToken,
@@ -83,7 +82,7 @@ func main() {
 		logger.Infof(ctx, "Discord webhook initialized successfully")
 	}
 
-	// Initialize Redis
+	// 7. Initialize Redis
 	redisClient, err := pkgRedis.New(pkgRedis.Config{
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
@@ -96,8 +95,7 @@ func main() {
 	}
 	logger.Infof(ctx, "Redis connected successfully to %s:%d (DB %d)", cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.DB)
 
-	// Initialize Redis for token blacklist (Task 2.9)
-	// Use separate DB (DB=1) for blacklist to avoid key conflicts
+	// 8. Initialize Redis for token blacklist
 	blacklistRedis, err := pkgRedis.New(pkgRedis.Config{
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
@@ -109,9 +107,8 @@ func main() {
 		return
 	}
 	logger.Infof(ctx, "Redis blacklist connected successfully to %s:%d (DB 1)", cfg.Redis.Host, cfg.Redis.Port)
-	_ = blacklistRedis // Will be used in Task 3.5 for token blacklist manager
 
-	// Initialize JWT Manager
+	// 9. Initialize JWT Manager
 	jwtManager, err := pkgJWT.New(pkgJWT.Config{
 		PrivateKeyPath: cfg.JWT.PrivateKeyPath,
 		PublicKeyPath:  cfg.JWT.PublicKeyPath,
@@ -125,38 +122,42 @@ func main() {
 	}
 	logger.Infof(ctx, "JWT Manager initialized with algorithm: %s", cfg.JWT.Algorithm)
 
-	// Initialize Google Directory API client (optional - needed for Day 3 Groups RBAC)
+	// 10. Initialize Google Directory API client
 	googleClient, err := pkgGoogle.New(ctx, pkgGoogle.Config{
 		ServiceAccountKey: cfg.GoogleWorkspace.ServiceAccountKey,
 		AdminEmail:        cfg.GoogleWorkspace.AdminEmail,
 		Domain:            cfg.GoogleWorkspace.Domain,
 	})
 	if err != nil {
-		logger.Warnf(ctx, "Google Directory API not configured (needed for Day 3 Groups RBAC): %v", err)
-		googleClient = nil // Continue without Google Directory API
+		logger.Warnf(ctx, "Google Directory API not configured: %v", err)
+		googleClient = nil
 	} else {
 		// Test connection
 		if err := googleClient.HealthCheck(ctx); err != nil {
-			logger.Warnf(ctx, "Google Directory API health check failed (will retry on demand): %v", err)
+			logger.Warnf(ctx, "Google Directory API health check failed: %v", err)
 		} else {
 			logger.Infof(ctx, "Google Directory API connected successfully for domain: %s", cfg.GoogleWorkspace.Domain)
 		}
 	}
 
-	// Initialize Redirect Validator (Task 4.1)
+	// 11. Initialize Redirect Validator
+	// Validates OAuth redirect URLs against whitelist to prevent open redirect attacks
 	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
 	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
 
-	// Initialize Rate Limiter (Task 4.2)
+	// 12. Initialize Rate Limiter
+	// Prevents brute force attacks by limiting failed login attempts per IP
 	rateLimiter := authUsecase.NewRateLimiter(
 		redisClient.GetClient(),
-		5,              // Max 5 failed attempts
-		15*time.Minute, // Within 15 minutes
-		30*time.Minute, // Block for 30 minutes
+		cfg.RateLimit.MaxAttempts,
+		time.Duration(cfg.RateLimit.WindowMinutes)*time.Minute,
+		time.Duration(cfg.RateLimit.BlockMinutes)*time.Minute,
 	)
-	logger.Infof(ctx, "Rate limiter initialized (max 5 attempts per 15 minutes)")
+	logger.Infof(ctx, "Rate limiter initialized (max %d attempts per %d minutes, block for %d minutes)",
+		cfg.RateLimit.MaxAttempts, cfg.RateLimit.WindowMinutes, cfg.RateLimit.BlockMinutes)
 
-	// Initialize Kafka producer
+	// 13. Initialize Kafka producer
+	// Publishes audit events to Kafka for async processing and long-term storage
 	kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{
 		Brokers: cfg.Kafka.Brokers,
 		Topic:   cfg.Kafka.Topic,
@@ -171,17 +172,8 @@ func main() {
 		defer kafkaProducer.Close()
 	}
 
-	// Initialize audit log cleanup job (Task 2.8)
-	auditRepo := auditPostgre.New(postgresDB)
-	cleanupJob := usecase.NewCleanupJob(auditRepo, logger)
-	if err := cleanupJob.Start(); err != nil {
-		logger.Warnf(ctx, "Failed to start audit cleanup job: %v", err)
-	} else {
-		logger.Infof(ctx, "Audit log cleanup job started (runs daily at 2 AM)")
-		defer cleanupJob.Stop()
-	}
-
-	// Initialize HTTP server
+	// 14. Initialize HTTP server
+	// Main application server that handles all HTTP requests and routes
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
 		Logger:      logger,

@@ -1,4 +1,4 @@
-package consumer
+package kafka
 
 import (
 	"context"
@@ -12,9 +12,7 @@ import (
 
 // Consumer consumes audit events from Kafka and stores them in database
 type Consumer struct {
-	consumer     sarama.ConsumerGroup
 	repo         repository.Repository
-	topic        string
 	logger       Logger
 	batchSize    int
 	batchTimeout time.Duration
@@ -29,14 +27,12 @@ type Logger interface {
 
 // Config holds consumer configuration
 type Config struct {
-	Topic        string
-	GroupID      string
 	BatchSize    int
 	BatchTimeout time.Duration
 }
 
 // New creates a new audit consumer
-func New(consumer sarama.ConsumerGroup, repo repository.Repository, cfg Config, logger Logger) *Consumer {
+func New(repo repository.Repository, cfg Config, logger Logger) *Consumer {
 	if cfg.BatchSize == 0 {
 		cfg.BatchSize = 100
 	}
@@ -45,40 +41,31 @@ func New(consumer sarama.ConsumerGroup, repo repository.Repository, cfg Config, 
 	}
 
 	return &Consumer{
-		consumer:     consumer,
 		repo:         repo,
-		topic:        cfg.Topic,
 		logger:       logger,
 		batchSize:    cfg.BatchSize,
 		batchTimeout: cfg.BatchTimeout,
 	}
 }
 
-// Start starts consuming audit events
-func (c *Consumer) Start(ctx context.Context) error {
-	handler := &consumerGroupHandler{
-		consumer: c,
-		logger:   c.logger,
-	}
-
-	topics := []string{c.topic}
-
-	for {
-		if err := c.consumer.Consume(ctx, topics, handler); err != nil {
-			c.logger.Errorf(ctx, "Error from consumer: %v", err)
-			return err
-		}
-
-		// Check if context was cancelled
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-	}
+// GetTopics returns the topics this consumer wants to subscribe to
+func (c *Consumer) GetTopics() []string {
+	return []string{"audit.events"}
 }
 
-// Close closes the consumer
-func (c *Consumer) Close() error {
-	return c.consumer.Close()
+// GetGroupID returns the consumer group ID
+func (c *Consumer) GetGroupID() string {
+	return "audit-consumer-group"
+}
+
+// CreateHandler creates a Sarama consumer group handler
+func (c *Consumer) CreateHandler() sarama.ConsumerGroupHandler {
+	return &consumerGroupHandler{
+		consumer:  c,
+		logger:    c.logger,
+		batch:     make([]audit.AuditEvent, 0, c.batchSize),
+		lastFlush: time.Now(),
+	}
 }
 
 // consumerGroupHandler implements sarama.ConsumerGroupHandler

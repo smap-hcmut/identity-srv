@@ -43,6 +43,9 @@ type Config struct {
 	// Token Blacklist
 	Blacklist BlacklistConfig
 
+	// Rate Limiting Configuration
+	RateLimit RateLimitConfig
+
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
 }
@@ -89,6 +92,13 @@ type BlacklistConfig struct {
 	Enabled   bool
 	Backend   string
 	KeyPrefix string
+}
+
+// RateLimitConfig is the configuration for rate limiting
+type RateLimitConfig struct {
+	MaxAttempts   int // Maximum failed login attempts
+	WindowMinutes int // Time window in minutes
+	BlockMinutes  int // Block duration in minutes
 }
 
 // KafkaConfig is the configuration for Kafka
@@ -299,6 +309,11 @@ func Load() (*Config, error) {
 	cfg.Discord.WebhookID = viper.GetString("discord.webhook_id")
 	cfg.Discord.WebhookToken = viper.GetString("discord.webhook_token")
 
+	// Rate Limit
+	cfg.RateLimit.MaxAttempts = viper.GetInt("rate_limit.max_attempts")
+	cfg.RateLimit.WindowMinutes = viper.GetInt("rate_limit.window_minutes")
+	cfg.RateLimit.BlockMinutes = viper.GetInt("rate_limit.block_minutes")
+
 	// Validate required fields
 	if err := validate(cfg); err != nil {
 		return nil, err
@@ -371,6 +386,11 @@ func setDefaults() {
 	viper.SetDefault("blacklist.enabled", true)
 	viper.SetDefault("blacklist.backend", "redis")
 	viper.SetDefault("blacklist.key_prefix", "blacklist:")
+
+	// Rate Limit
+	viper.SetDefault("rate_limit.max_attempts", 5)
+	viper.SetDefault("rate_limit.window_minutes", 15)
+	viper.SetDefault("rate_limit.block_minutes", 30)
 }
 
 func validate(cfg *Config) error {
