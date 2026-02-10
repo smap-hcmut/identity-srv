@@ -4,27 +4,19 @@ import (
 	"smap-api/internal/model"
 )
 
-// Login
-type LoginInput struct {
-	Email      string
-	Password   string
-	Remember   bool
-	UserAgent  string
-	IPAddress  string
-	DeviceName string
-}
-
-type LoginOutput struct {
-	User  model.User
-	Token TokenOutput
-}
-
-type TokenOutput struct {
-	AccessToken string
-	TokenType   string
-}
-
 // GetCurrentUser
 type GetCurrentUserOutput struct {
 	User model.User
+}
+
+// OAuth user operations Input structs
+type CreateOrUpdateUserInput struct {
+	Email     string
+	Name      string
+	AvatarURL string
+}
+
+type UpdateUserRoleInput struct {
+	UserID string
+	Role   string
 }

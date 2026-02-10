@@ -2,43 +2,23 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"smap-api/internal/audit"
+	"smap-api/internal/authentication"
 	"smap-api/internal/model"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
-// OAuthConfig holds OAuth2 configuration
-type OAuthConfig struct {
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-	Scopes       []string
-}
-
-// InitOAuth2Config initializes OAuth2 configuration
-func (h *handler) InitOAuth2Config(cfg OAuthConfig) {
-	h.oauth2Config = &oauth2.Config{
-		ClientID:     cfg.ClientID,
-		ClientSecret: cfg.ClientSecret,
-		RedirectURL:  cfg.RedirectURI,
-		Scopes:       cfg.Scopes,
-		Endpoint:     google.Endpoint,
-	}
-}
-
-// OAuthLogin redirects user to Google OAuth2 authorization page
-// @Summary Login with Google OAuth2
-// @Description Redirects to Google OAuth2 authorization page
+// OAuthLogin redirects user to OAuth2 authorization page
+// @Summary Login with OAuth2
+// @Description Redirects to OAuth2 authorization page (Google, Azure AD, or Okta)
 // @Tags Authentication
 // @Produce json
-// @Success 302 {string} string "Redirect to Google OAuth"
+// @Success 302 {string} string "Redirect to OAuth provider"
 // @Router /authentication/login [get]
 func (h *handler) OAuthLogin(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -46,7 +26,7 @@ func (h *handler) OAuthLogin(c *gin.Context) {
 	// Get redirect URL from query parameter
 	redirectURL := c.Query("redirect")
 
-	// Validate redirect URL (Task 4.1 - prevent open redirect attacks)
+	// Validate redirect URL (prevent open redirect attacks)
 	if h.redirectValidator != nil && redirectURL != "" {
 		if err := h.redirectValidator.ValidateRedirectURL(redirectURL); err != nil {
 			h.l.Warnf(ctx, "Invalid redirect URL: %s, error: %v", redirectURL, err)
@@ -86,17 +66,17 @@ func (h *handler) OAuthLogin(c *gin.Context) {
 		)
 	}
 
-	// Redirect to Google OAuth2 authorization page
-	authURL := h.oauth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	// Redirect to OAuth2 authorization page using provider
+	authURL := h.oauthProvider.GetAuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, authURL)
 }
 
-// OAuthCallback handles OAuth2 callback from Google
+// OAuthCallback handles OAuth2 callback from identity provider
 // @Summary OAuth2 callback handler
 // @Description Handles OAuth2 callback, exchanges code for token, creates user session
 // @Tags Authentication
 // @Produce json
-// @Param code query string true "Authorization code from Google"
+// @Param code query string true "Authorization code from provider"
 // @Param state query string true "State parameter for CSRF protection"
 // @Success 302 {string} string "Redirect to dashboard"
 // @Failure 400 {object} map[string]interface{} "Invalid request"
@@ -136,8 +116,8 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	// Exchange code for token
-	token, err := h.oauth2Config.Exchange(ctx, code)
+	// Exchange code for token using provider
+	token, err := h.oauthProvider.ExchangeCode(ctx, code)
 	if err != nil {
 		h.l.Errorf(ctx, "Failed to exchange code for token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -149,14 +129,14 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	// Get user info from Google
-	userInfo, err := h.getUserInfoFromGoogle(ctx, token.AccessToken)
+	// Get user info from provider
+	userInfo, err := h.oauthProvider.GetUserInfo(ctx, token)
 	if err != nil {
-		h.l.Errorf(ctx, "Failed to get user info from Google: %v", err)
+		h.l.Errorf(ctx, "Failed to get user info from provider: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
 				"code":    "USER_INFO_FAILED",
-				"message": "Failed to retrieve user information from Google.",
+				"message": "Failed to retrieve user information from identity provider.",
 			},
 		})
 		return
@@ -179,7 +159,7 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 			Action:       audit.ActionLoginFailed,
 			ResourceType: "authentication",
 			Metadata: map[string]string{
-				"provider": "google",
+				"provider": h.oauthProvider.GetProviderName(),
 				"reason":   "domain_not_allowed",
 				"domain":   extractDomain(userInfo.Email),
 			},
@@ -217,7 +197,7 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 			Action:       audit.ActionLoginFailed,
 			ResourceType: "authentication",
 			Metadata: map[string]string{
-				"provider": "google",
+				"provider": h.oauthProvider.GetProviderName(),
 				"reason":   "account_blocked",
 			},
 			IPAddress: c.ClientIP(),
@@ -234,7 +214,11 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 	}
 
 	// Create or update user
-	user, err := h.uc.CreateOrUpdateUser(ctx, userInfo.Email, userInfo.Name, userInfo.Picture)
+	user, err := h.uc.CreateOrUpdateUser(ctx, authentication.CreateOrUpdateUserInput{
+		Email:     userInfo.Email,
+		Name:      userInfo.Name,
+		AvatarURL: userInfo.Picture,
+	})
 	if err != nil {
 		h.l.Errorf(ctx, "Failed to create/update user: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -258,7 +242,10 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 
 	// Update user role in database
 	user.SetRole(role)
-	if err := h.uc.UpdateUserRole(ctx, user.ID, role); err != nil {
+	if err := h.uc.UpdateUserRole(ctx, authentication.UpdateUserRoleInput{
+		UserID: user.ID,
+		Role:   role,
+	}); err != nil {
 		h.l.Warnf(ctx, "Failed to update user role (continuing with role from groups): %v", err)
 	}
 
@@ -298,13 +285,13 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		}
 	}
 
-	// Publish audit log event (Task 2.6)
+	// Publish audit log event
 	h.uc.PublishAuditEvent(ctx, audit.AuditEvent{
 		UserID:       user.ID,
 		Action:       audit.ActionLogin,
 		ResourceType: "authentication",
 		Metadata: map[string]string{
-			"provider": "google",
+			"provider": h.oauthProvider.GetProviderName(),
 			"role":     role,
 			"groups":   fmt.Sprintf("%v", groups),
 		},
@@ -312,7 +299,7 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		UserAgent: c.Request.UserAgent(),
 	})
 
-	// Get redirect URL from cookie (Task 4.1)
+	// Get redirect URL from cookie
 	redirectURL, err := c.Cookie("oauth_redirect")
 	if err != nil || redirectURL == "" {
 		redirectURL = "/dashboard" // Default redirect
@@ -337,49 +324,7 @@ func extractDomain(email string) string {
 
 // generateRandomState generates a random state for CSRF protection
 func generateRandomState() string {
-	// TODO: Implement secure random state generation using crypto/rand
-	// For now, use a simple UUID
 	return fmt.Sprintf("state-%d", time.Now().UnixNano())
-}
-
-// getUserInfoFromGoogle fetches user information from Google UserInfo API
-func (h *handler) getUserInfoFromGoogle(ctx context.Context, accessToken string) (*GoogleUserInfo, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	// Call Google UserInfo API
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call UserInfo API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("UserInfo API returned status %d", resp.StatusCode)
-	}
-
-	// Parse response
-	var userInfo GoogleUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return nil, fmt.Errorf("failed to decode UserInfo response: %w", err)
-	}
-
-	return &userInfo, nil
-}
-
-// GoogleUserInfo represents user information from Google
-type GoogleUserInfo struct {
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
 }
 
 // Helper methods for handler
@@ -403,7 +348,7 @@ func (h *handler) isBlockedEmail(email string) bool {
 	return false
 }
 
-func (h *handler) generateJWT(user *model.User) (string, string, error) {
+func (h *handler) generateJWT(user model.User) (string, string, error) {
 	// Get user role (decrypted from RoleHash)
 	role := user.GetRole()
 
@@ -425,7 +370,7 @@ func (h *handler) generateJWT(user *model.User) (string, string, error) {
 	return token, claims.ID, nil
 }
 
-func (h *handler) generateJWTWithRoleAndGroups(user *model.User, role string, groups []string) (string, string, error) {
+func (h *handler) generateJWTWithRoleAndGroups(user model.User, role string, groups []string) (string, string, error) {
 	// Generate JWT token with RS256, including role and groups
 	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, role, groups)
 	if err != nil {

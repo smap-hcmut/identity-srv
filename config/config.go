@@ -46,6 +46,9 @@ type Config struct {
 	// Rate Limiting Configuration
 	RateLimit RateLimitConfig
 
+	// Key Rotation Configuration
+	KeyRotation KeyRotationConfig
+
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
 }
@@ -62,6 +65,7 @@ type OAuth2Config struct {
 	ClientSecret string
 	RedirectURI  string
 	Scopes       []string
+	OktaDomain   string // Only for Okta provider
 }
 
 // GoogleWorkspaceConfig is the configuration for Google Workspace integration
@@ -99,6 +103,13 @@ type RateLimitConfig struct {
 	MaxAttempts   int // Maximum failed login attempts
 	WindowMinutes int // Time window in minutes
 	BlockMinutes  int // Block duration in minutes
+}
+
+// KeyRotationConfig is the configuration for JWT key rotation
+type KeyRotationConfig struct {
+	Enabled      bool
+	RotationDays int // Default: 30
+	GraceDays    int // Default: 7
 }
 
 // KafkaConfig is the configuration for Kafka
@@ -239,6 +250,7 @@ func Load() (*Config, error) {
 	cfg.OAuth2.ClientSecret = viper.GetString("oauth2.client_secret")
 	cfg.OAuth2.RedirectURI = viper.GetString("oauth2.redirect_uri")
 	cfg.OAuth2.Scopes = viper.GetStringSlice("oauth2.scopes")
+	cfg.OAuth2.OktaDomain = viper.GetString("oauth2.okta_domain")
 
 	// Google Workspace
 	cfg.GoogleWorkspace.ServiceAccountKey = viper.GetString("google_workspace.service_account_key")
@@ -313,6 +325,11 @@ func Load() (*Config, error) {
 	cfg.RateLimit.MaxAttempts = viper.GetInt("rate_limit.max_attempts")
 	cfg.RateLimit.WindowMinutes = viper.GetInt("rate_limit.window_minutes")
 	cfg.RateLimit.BlockMinutes = viper.GetInt("rate_limit.block_minutes")
+
+	// Key Rotation
+	cfg.KeyRotation.Enabled = viper.GetBool("key_rotation.enabled")
+	cfg.KeyRotation.RotationDays = viper.GetInt("key_rotation.rotation_days")
+	cfg.KeyRotation.GraceDays = viper.GetInt("key_rotation.grace_days")
 
 	// Validate required fields
 	if err := validate(cfg); err != nil {
@@ -391,6 +408,11 @@ func setDefaults() {
 	viper.SetDefault("rate_limit.max_attempts", 5)
 	viper.SetDefault("rate_limit.window_minutes", 15)
 	viper.SetDefault("rate_limit.block_minutes", 30)
+
+	// Key Rotation
+	viper.SetDefault("key_rotation.enabled", true)
+	viper.SetDefault("key_rotation.rotation_days", 30)
+	viper.SetDefault("key_rotation.grace_days", 7)
 }
 
 func validate(cfg *Config) error {

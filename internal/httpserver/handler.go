@@ -2,7 +2,7 @@ package httpserver
 
 import (
 	"context"
-	"database/sql"
+	"fmt"
 
 	audithttp "smap-api/internal/audit/delivery/http"
 	auditPostgre "smap-api/internal/audit/repository/postgre"
@@ -12,6 +12,7 @@ import (
 	userrepository "smap-api/internal/user/repository/postgre"
 	userusecase "smap-api/internal/user/usecase"
 	"smap-api/pkg/i18n"
+	"smap-api/pkg/oauth"
 	"smap-api/pkg/scope"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -36,21 +37,14 @@ func (srv HTTPServer) mapHandlers() error {
 	// Initialize authentication usecase
 	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
 
-	// Set database connection for direct user operations (bypassing legacy user usecase)
-	if authUCWithDB, ok := authUC.(interface{ SetDB(*sql.DB) }); ok {
-		authUCWithDB.SetDB(srv.postgresDB)
+	// Initialize OAuth provider
+	oauthProvider, err := srv.initOAuthProvider()
+	if err != nil {
+		return fmt.Errorf("failed to initialize OAuth provider: %w", err)
 	}
 
 	// Initialize HTTP handlers with new dependencies
-	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo, srv.redirectValidator, srv.rateLimiter)
-
-	// Initialize OAuth2 config
-	authHandler.InitOAuth2Config(authhttp.OAuthConfig{
-		ClientID:     srv.config.OAuth2.ClientID,
-		ClientSecret: srv.config.OAuth2.ClientSecret,
-		RedirectURI:  srv.config.OAuth2.RedirectURI,
-		Scopes:       srv.config.OAuth2.Scopes,
-	})
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo, srv.redirectValidator, srv.rateLimiter, oauthProvider)
 
 	// userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
@@ -95,4 +89,26 @@ func (srv HTTPServer) registerSystemRoutes() {
 		ginSwagger.URL("doc.json"), // Use relative path
 		ginSwagger.DefaultModelsExpandDepth(-1),
 	))
+}
+
+// initOAuthProvider initializes the OAuth provider based on configuration
+func (srv HTTPServer) initOAuthProvider() (oauth.Provider, error) {
+	oauthCfg := oauth.Config{
+		ClientID:     srv.config.OAuth2.ClientID,
+		ClientSecret: srv.config.OAuth2.ClientSecret,
+		RedirectURI:  srv.config.OAuth2.RedirectURI,
+		Scopes:       srv.config.OAuth2.Scopes,
+		ProviderType: srv.config.OAuth2.Provider,
+		OktaDomain:   srv.config.OAuth2.OktaDomain,
+	}
+
+	provider, err := oauth.NewProvider(oauthCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	srv.l.Infof(ctx, "OAuth provider initialized: %s", provider.GetProviderName())
+
+	return provider, nil
 }

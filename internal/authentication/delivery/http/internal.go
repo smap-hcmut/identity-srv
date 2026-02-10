@@ -3,7 +3,6 @@ package http
 import (
 	"time"
 
-	"smap-api/internal/model"
 	"smap-api/internal/user/repository"
 	"smap-api/pkg/errors"
 	"smap-api/pkg/response"
@@ -220,12 +219,12 @@ func (h handler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	// Get user from database using GetOne with empty scope (internal service call)
-	user, err := h.userRepo.GetOne(ctx, model.Scope{}, repository.GetOneOptions{
-		ID: userID,
+	// Get user from database using Detail (internal service call)
+	user, err := h.userRepo.Detail(ctx, repository.DetailOptions{
+		UserID: userID,
 	})
 	if err != nil {
-		h.l.Errorf(ctx, "authentication.http.GetUserByID.GetOne: %v", err)
+		h.l.Errorf(ctx, "authentication.http.GetUserByID: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}

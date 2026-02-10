@@ -13,5 +13,4 @@ var (
 	ErrInvalidProvider = errors.New("invalid provider")
 	ErrInvalidEmail    = errors.New("invalid email")
 	ErrUserVerified    = errors.New("user verified")
-	ErrNotImplemented  = errors.New("not implemented - OAuth2 migration in progress")
 )

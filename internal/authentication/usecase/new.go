@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"database/sql"
 	"smap-api/internal/audit"
 	"smap-api/internal/authentication"
 	"smap-api/internal/user"
@@ -16,7 +15,6 @@ type implUsecase struct {
 	scope            scope.Manager
 	encrypt          encrypter.Encrypter
 	userUC           user.UseCase
-	db               *sql.DB
 	clock            func() time.Time
 	auditPublisher   audit.Publisher
 	sessionManager   *SessionManager
@@ -31,11 +29,6 @@ func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, user
 		userUC:  userUC,
 		clock:   time.Now,
 	}
-}
-
-// SetDB sets the database connection (called after initialization)
-func (u *implUsecase) SetDB(db *sql.DB) {
-	u.db = db
 }
 
 // SetAuditPublisher sets the audit publisher (called after initialization)

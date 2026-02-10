@@ -2,71 +2,12 @@ package http
 
 import (
 	"slices"
-
 	"smap-api/internal/audit"
 	"smap-api/pkg/response"
 	"smap-api/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )
-
-// @Summary Login
-// @Description Login with email and password. Returns user information and sets authentication token as HttpOnly cookie.
-// @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param loginReq body loginReq true "Login credentials"
-// @Success 200 {object} response.Resp{data=loginResp} "Success - Authentication cookie set in Set-Cookie header (smap_auth_token)"
-// @Header 200 {string} Set-Cookie "smap_auth_token=<JWT>; Path=/; Domain=.tantai.dev; HttpOnly; Secure; SameSite=Lax; Max-Age=7200"
-// @Failure 400 {object} response.Resp "Bad Request, Error errWrongBody(110002), errUserNotFound(110003), errWrongPassword(110005)"
-// @Failure 500 {object} response.Resp "Internal Server Error"
-// @Router /authentication/login [POST]
-func (h handler) Login(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req, sc, err := h.processLoginRequest(c)
-	if err != nil {
-		h.l.Errorf(ctx, "authentication.http.Login.processLoginRequest: %v", err)
-		response.Error(c, err, h.discord)
-		return
-	}
-
-	o, err := h.uc.Login(ctx, sc, req.toInput())
-	if err != nil {
-		err = h.mapErrorCode(err)
-		if !slices.Contains(NotFound, err) {
-			h.l.Errorf(ctx, "authentication.http.Login.Login: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		} else {
-			h.l.Warnf(ctx, "authentication.http.Login.Login: %v", err)
-			response.Error(c, err, h.discord)
-			return
-		}
-	}
-
-	// Calculate Max-Age based on "Remember Me" flag
-	maxAge := h.cookieConfig.MaxAge
-	if req.Remember {
-		maxAge = h.cookieConfig.MaxAgeRemember
-	}
-
-	// Set HttpOnly cookie with JWT token
-	c.SetCookie(
-		h.cookieConfig.Name,
-		o.Token.AccessToken,
-		maxAge,
-		"/",
-		h.cookieConfig.Domain,
-		h.cookieConfig.Secure,
-		true, // HttpOnly - always true for security
-	)
-
-	// Manually add SameSite attribute (Gin doesn't support it directly)
-	h.addSameSiteAttribute(c, h.cookieConfig.SameSite)
-
-	response.OK(c, h.newLoginResp(o))
-}
 
 // @Summary Logout
 // @Description Logout by expiring the authentication cookie. Requires authentication via cookie.

@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
+	"smap-api/config"
+	"smap-api/internal/audit"
+	"smap-api/internal/authentication/repository"
+	"smap-api/pkg/jwt/rotation"
 	pkgLog "smap-api/pkg/log"
 )
 
@@ -15,23 +19,35 @@ type Job interface {
 
 // Scheduler represents the scheduler service
 type Scheduler struct {
-	logger     pkgLog.Logger
-	postgresDB *sql.DB
-	jobs       []Job
+	logger          pkgLog.Logger
+	postgresDB      *sql.DB
+	config          *config.Config
+	jwtKeysRepo     *repository.JWTKeysRepository
+	rotationManager *rotation.Manager
+	auditPublisher  audit.Publisher
+	jobs            []Job
 }
 
 // Config holds scheduler service configuration
 type Config struct {
-	Logger     pkgLog.Logger
-	PostgresDB *sql.DB
+	Logger          pkgLog.Logger
+	PostgresDB      *sql.DB
+	Config          *config.Config
+	JWTKeysRepo     *repository.JWTKeysRepository
+	RotationManager *rotation.Manager
+	AuditPublisher  audit.Publisher
 }
 
 // New creates a new scheduler service
 func New(logger pkgLog.Logger, cfg Config) (*Scheduler, error) {
 	srv := &Scheduler{
-		logger:     logger,
-		postgresDB: cfg.PostgresDB,
-		jobs:       make([]Job, 0),
+		logger:          logger,
+		postgresDB:      cfg.PostgresDB,
+		config:          cfg.Config,
+		jwtKeysRepo:     cfg.JWTKeysRepo,
+		rotationManager: cfg.RotationManager,
+		auditPublisher:  cfg.AuditPublisher,
+		jobs:            make([]Job, 0),
 	}
 
 	if err := srv.validate(); err != nil {

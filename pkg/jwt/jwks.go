@@ -21,12 +21,18 @@ type JWKS struct {
 	Keys []JWK `json:"keys"`
 }
 
-// GetJWKS returns the JWKS representation of the public key
+// GetJWKS returns the JWKS representation of all public keys
 func (m *Manager) GetJWKS() *JWKS {
-	jwk := publicKeyToJWK(m.publicKey, m.kid)
-	return &JWKS{
-		Keys: []JWK{jwk},
+	jwks := &JWKS{
+		Keys: make([]JWK, 0, len(m.keys)),
 	}
+
+	for kid, keyPair := range m.keys {
+		jwk := publicKeyToJWK(keyPair.publicKey, kid)
+		jwks.Keys = append(jwks.Keys, jwk)
+	}
+
+	return jwks
 }
 
 // publicKeyToJWK converts an RSA public key to JWK format

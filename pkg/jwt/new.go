@@ -21,7 +21,7 @@ type Config struct {
 	TTL            time.Duration
 }
 
-// New creates a new JWT manager
+// New creates a new JWT manager with a single key (legacy mode)
 func New(cfg Config) (*Manager, error) {
 	// Load private key
 	privateKey, err := loadPrivateKey(cfg.PrivateKeyPath)
@@ -38,14 +38,21 @@ func New(cfg Config) (*Manager, error) {
 	// Generate Key ID
 	kid := uuid.New().String()
 
-	return &Manager{
+	// Create manager with single key
+	manager := &Manager{
+		keys:      make(map[string]*keyPair),
+		activeKID: kid,
+		issuer:    cfg.Issuer,
+		audience:  cfg.Audience,
+		ttl:       cfg.TTL,
+	}
+
+	manager.keys[kid] = &keyPair{
 		privateKey: privateKey,
 		publicKey:  publicKey,
-		issuer:     cfg.Issuer,
-		audience:   cfg.Audience,
-		ttl:        cfg.TTL,
-		kid:        kid,
-	}, nil
+	}
+
+	return manager, nil
 }
 
 // GenerateKeyPair generates a new RSA key pair (2048-bit)

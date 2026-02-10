@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
 	_ "smap-api/docs" // Import swagger docs
+	authrepo "smap-api/internal/authentication/repository"
 	authUsecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
@@ -109,13 +111,8 @@ func main() {
 	logger.Infof(ctx, "Redis blacklist connected successfully to %s:%d (DB 1)", cfg.Redis.Host, cfg.Redis.Port)
 
 	// 9. Initialize JWT Manager
-	jwtManager, err := pkgJWT.New(pkgJWT.Config{
-		PrivateKeyPath: cfg.JWT.PrivateKeyPath,
-		PublicKeyPath:  cfg.JWT.PublicKeyPath,
-		Issuer:         cfg.JWT.Issuer,
-		Audience:       cfg.JWT.Audience,
-		TTL:            time.Duration(cfg.JWT.TTL) * time.Second,
-	})
+	// Load keys from database for rotation support, fallback to file-based keys
+	jwtManager, err := initializeJWTManager(ctx, logger, cfg, postgresDB)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize JWT manager: ", err)
 		return
@@ -227,4 +224,48 @@ func registerGracefulShutdown(logger log.Logger) {
 		logger.Info(context.Background(), "Cleanup completed")
 		os.Exit(0)
 	}()
+}
+
+// initializeJWTManager initializes JWT manager with database keys or file-based keys
+func initializeJWTManager(ctx context.Context, logger log.Logger, cfg *config.Config, db *sql.DB) (*pkgJWT.Manager, error) {
+	// Try to load keys from database first (for rotation support)
+	jwtKeysRepo := authrepo.NewJWTKeysRepository(db)
+	keys, err := jwtKeysRepo.GetActiveAndRotatingKeys(ctx)
+
+	if err == nil && len(keys) > 0 {
+		// Database keys found - use rotation-enabled mode
+		logger.Infof(ctx, "Loading %d JWT keys from database (rotation enabled)", len(keys))
+
+		// Convert to JWTKeyData format
+		keyData := make([]*pkgJWT.JWTKeyData, len(keys))
+		for i, key := range keys {
+			keyData[i] = &pkgJWT.JWTKeyData{
+				KID:        key.KID,
+				PrivateKey: key.PrivateKey,
+				PublicKey:  key.PublicKey,
+				IsActive:   key.IsActive(),
+			}
+		}
+
+		// Create manager with database keys
+		manager := &pkgJWT.Manager{}
+		if err := manager.LoadKeys(keyData); err != nil {
+			return nil, fmt.Errorf("failed to load keys from database: %w", err)
+		}
+
+		// Set issuer, audience, TTL
+		manager.SetConfig(cfg.JWT.Issuer, cfg.JWT.Audience, time.Duration(cfg.JWT.TTL)*time.Second)
+
+		return manager, nil
+	}
+
+	// No database keys - fallback to file-based keys (legacy mode)
+	logger.Warn(ctx, "No keys found in database, using file-based keys (rotation disabled)")
+	return pkgJWT.New(pkgJWT.Config{
+		PrivateKeyPath: cfg.JWT.PrivateKeyPath,
+		PublicKeyPath:  cfg.JWT.PublicKeyPath,
+		Issuer:         cfg.JWT.Issuer,
+		Audience:       cfg.JWT.Audience,
+		TTL:            time.Duration(cfg.JWT.TTL) * time.Second,
+	})
 }

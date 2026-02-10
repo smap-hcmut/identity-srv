@@ -9,7 +9,10 @@ import (
 
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
+	"smap-api/internal/audit"
+	authrepo "smap-api/internal/authentication/repository"
 	"smap-api/internal/scheduler"
+	"smap-api/pkg/jwt/rotation"
 	pkgLog "smap-api/pkg/log"
 
 	_ "github.com/lib/pq"
@@ -48,10 +51,30 @@ func main() {
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s",
 		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
-	// 4. Initialize scheduler service
+	// 4. Initialize JWT keys repository
+	jwtKeysRepo := authrepo.NewJWTKeysRepository(postgresDB)
+
+	// 5. Initialize key rotation manager
+	rotationManager := rotation.NewManager(
+		jwtKeysRepo,
+		cfg.KeyRotation.RotationDays,
+		cfg.KeyRotation.GraceDays,
+	)
+
+	// 6. Initialize audit publisher (optional - can be nil)
+	var auditPublisher audit.Publisher
+	// TODO: Initialize Kafka audit publisher if needed
+	// auditPublisher = kafka.NewPublisher(...)
+
+	// 7. Initialize scheduler service
 	// Manages all periodic background jobs (similar to httpserver)
 	schedulerService, err := scheduler.New(logger, scheduler.Config{
-		PostgresDB: postgresDB,
+		Logger:          logger,
+		PostgresDB:      postgresDB,
+		Config:          cfg,
+		JWTKeysRepo:     jwtKeysRepo,
+		RotationManager: rotationManager,
+		AuditPublisher:  auditPublisher,
 	})
 	if err != nil {
 		logger.Errorf(ctx, "Failed to initialize scheduler service: %v", err)
@@ -67,7 +90,7 @@ func main() {
 
 	logger.Info(ctx, "Scheduler service ready - running periodic jobs")
 
-	// 6. Wait for shutdown signal
+	// 8. Wait for shutdown signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan

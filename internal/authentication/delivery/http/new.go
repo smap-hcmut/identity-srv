@@ -9,8 +9,7 @@ import (
 	pkgGoogle "smap-api/pkg/google"
 	pkgJWT "smap-api/pkg/jwt"
 	pkgLog "smap-api/pkg/log"
-
-	"golang.org/x/oauth2"
+	"smap-api/pkg/oauth"
 )
 
 type handler struct {
@@ -19,7 +18,7 @@ type handler struct {
 	discord           *discord.Discord
 	cookieConfig      config.CookieConfig
 	config            *config.Config
-	oauth2Config      *oauth2.Config
+	oauthProvider     oauth.Provider
 	jwtManager        *pkgJWT.Manager
 	sessionManager    *usecase.SessionManager
 	blacklistManager  *usecase.BlacklistManager
@@ -31,14 +30,14 @@ type handler struct {
 	rateLimiter       *usecase.RateLimiter
 }
 
-func New(l pkgLog.Logger, uc authentication.UseCase, discord *discord.Discord, cfg *config.Config, jwtManager *pkgJWT.Manager, sessionManager *usecase.SessionManager, blacklistManager *usecase.BlacklistManager, googleClient *pkgGoogle.Client, groupsManager *usecase.GroupsManager, roleMapper *usecase.RoleMapper, userRepo userrepo.Repository, redirectValidator *usecase.RedirectValidator, rateLimiter *usecase.RateLimiter) handler {
+func New(l pkgLog.Logger, uc authentication.UseCase, discord *discord.Discord, cfg *config.Config, jwtManager *pkgJWT.Manager, sessionManager *usecase.SessionManager, blacklistManager *usecase.BlacklistManager, googleClient *pkgGoogle.Client, groupsManager *usecase.GroupsManager, roleMapper *usecase.RoleMapper, userRepo userrepo.Repository, redirectValidator *usecase.RedirectValidator, rateLimiter *usecase.RateLimiter, oauthProvider oauth.Provider) handler {
 	return handler{
 		l:                 l,
 		uc:                uc,
 		discord:           discord,
 		cookieConfig:      cfg.Cookie,
 		config:            cfg,
-		oauth2Config:      nil, // Will be initialized via InitOAuth2Config
+		oauthProvider:     oauthProvider,
 		jwtManager:        jwtManager,
 		sessionManager:    sessionManager,
 		blacklistManager:  blacklistManager,

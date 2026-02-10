@@ -2,7 +2,6 @@ package postgre
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"smap-api/internal/audit"
@@ -11,17 +10,6 @@ import (
 	"strings"
 	"time"
 )
-
-type auditRepository struct {
-	db *sql.DB
-}
-
-// New creates a new audit repository
-func New(db *sql.DB) repository.Repository {
-	return &auditRepository{
-		db: db,
-	}
-}
 
 // BatchInsert inserts multiple audit events into the database
 func (r *auditRepository) BatchInsert(ctx context.Context, events []audit.AuditEvent) error {
