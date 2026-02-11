@@ -6,7 +6,7 @@ import (
 )
 
 // scanAuditLog scans a single audit log row into a model.AuditLog
-func scanAuditLog(scanner interface {
+func (r *implRepository) scanAuditLog(scanner interface {
 	Scan(dest ...interface{}) error
 }) (model.AuditLog, error) {
 	var log model.AuditLog
@@ -29,13 +29,13 @@ func scanAuditLog(scanner interface {
 	}
 
 	// Unmarshal metadata JSON
-	log.Metadata = unmarshalMetadata(metadataJSON)
+	log.Metadata = r.unmarshalMetadata(metadataJSON)
 
 	return log, nil
 }
 
 // marshalMetadata marshals metadata map to JSON bytes
-func marshalMetadata(metadata map[string]string) []byte {
+func (r *implRepository) marshalMetadata(metadata map[string]string) []byte {
 	if metadata == nil {
 		return []byte("{}")
 	}
@@ -47,7 +47,7 @@ func marshalMetadata(metadata map[string]string) []byte {
 }
 
 // unmarshalMetadata unmarshals JSON bytes to metadata map
-func unmarshalMetadata(data []byte) map[string]interface{} {
+func (r *implRepository) unmarshalMetadata(data []byte) map[string]interface{} {
 	if len(data) == 0 {
 		return make(map[string]interface{})
 	}

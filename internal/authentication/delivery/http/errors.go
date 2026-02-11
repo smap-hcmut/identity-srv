@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"smap-api/internal/authentication"
 	pkgErrors "smap-api/pkg/errors"
 )
@@ -27,37 +28,51 @@ var (
 	errMissingJTIOrUserID   = pkgErrors.NewHTTPError(20017, "Must provide either jti or user_id")
 	errConflictJTIAndUserID = pkgErrors.NewHTTPError(20018, "Cannot provide both jti and user_id")
 	errMissingUserID        = pkgErrors.NewHTTPError(20019, "User ID is required")
+	errConfigurationMissing = pkgErrors.NewHTTPError(20020, "Server configuration missing")
+	errInvalidRedirectURL   = pkgErrors.NewHTTPError(20021, "Invalid redirect URL")
+	errInternalSystem       = pkgErrors.NewHTTPError(20022, "Internal system error")
+	errUserCreation         = pkgErrors.NewHTTPError(20023, "Failed to create or update user")
 )
 
 // mapError maps UseCase domain errors to HTTP errors
 func (h handler) mapError(err error) error {
-	switch err {
-	case authentication.ErrUserNotFound:
+	switch {
+	case errors.Is(err, authentication.ErrUserNotFound):
 		return errUserNotFound
-	case authentication.ErrUsernameExisted:
+	case errors.Is(err, authentication.ErrUsernameExisted):
 		return errUsernameExisted
-	case authentication.ErrWrongPassword:
+	case errors.Is(err, authentication.ErrWrongPassword):
 		return errWrongPassword
-	case authentication.ErrWrongOTP:
+	case errors.Is(err, authentication.ErrWrongOTP):
 		return errWrongOTP
-	case authentication.ErrOTPExpired:
+	case errors.Is(err, authentication.ErrOTPExpired):
 		return errOTPExpired
-	case authentication.ErrTooManyAttempts:
+	case errors.Is(err, authentication.ErrTooManyAttempts):
 		return errTooManyAttempts
-	case authentication.ErrUserNotVerified:
+	case errors.Is(err, authentication.ErrUserNotVerified):
 		return errUserNotVerified
-	case authentication.ErrInvalidProvider:
+	case errors.Is(err, authentication.ErrInvalidProvider):
 		return errInvalidProvider
-	case authentication.ErrInvalidEmail:
+	case errors.Is(err, authentication.ErrInvalidEmail):
 		return errInvalidEmail
-	case authentication.ErrUserVerified:
+	case errors.Is(err, authentication.ErrUserVerified):
 		return errUserVerified
-	case authentication.ErrDomainNotAllowed:
+	case errors.Is(err, authentication.ErrDomainNotAllowed):
 		return errDomainNotAllowed
-	case authentication.ErrAccountBlocked:
+	case errors.Is(err, authentication.ErrAccountBlocked):
 		return errAccountBlocked
-	case authentication.ErrScopeNotFound:
+	case errors.Is(err, authentication.ErrScopeNotFound):
 		return errScopeNotFound
+	case errors.Is(err, authentication.ErrConfigurationMissing):
+		return errConfigurationMissing
+	case errors.Is(err, authentication.ErrInvalidRedirectURL):
+		return errInvalidRedirectURL
+	case errors.Is(err, authentication.ErrRedirectURLNotAllowed):
+		return errInvalidRedirectURL
+	case errors.Is(err, authentication.ErrInternalSystem):
+		return errInternalSystem
+	case errors.Is(err, authentication.ErrUserCreation):
+		return errUserCreation
 	default:
 		return err
 	}

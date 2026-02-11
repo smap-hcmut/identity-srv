@@ -53,24 +53,15 @@ func (h handler) OAuthLogin(c *gin.Context) {
 func (h handler) OAuthCallback(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// 1. Validate CSRF state (HTTP transport concern)
-	state := c.Query("state")
-	storedState, err := c.Cookie("oauth_state")
-	if err != nil || state != storedState {
-		h.l.Error(ctx, "OAuthCallback: invalid state")
-		response.Error(c, errInvalidState, h.discord)
-		return
-	}
-	h.clearStateCookie(c)
-
-	// 2. Process Request
+	// 1. Process Request (includes CSRF state validation)
 	input, err := h.processCallbackRequest(c)
 	if err != nil {
+		h.l.Errorf(ctx, "processCallbackRequest: %v", err)
 		response.Error(c, err, h.discord)
 		return
 	}
 
-	// 3. Call UseCase
+	// 2. Call UseCase
 	output, err := h.uc.ProcessOAuthCallback(ctx, input)
 	if err != nil {
 		h.l.Errorf(ctx, "uc.ProcessOAuthCallback: %v", err)
@@ -78,7 +69,7 @@ func (h handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	// 4. Response
+	// 3. Response
 	h.setAuthCookie(c, output.Token)
 
 	redirectURL, cookieErr := c.Cookie("oauth_redirect")

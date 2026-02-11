@@ -36,24 +36,33 @@ func (srv HTTPServer) mapHandlers() error {
 
 	// Initialize authentication usecase
 	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
+	authUC.SetSessionManager(srv.sessionManager)
+	authUC.SetBlacklistManager(srv.blacklistManager)
+	authUC.SetJWTManager(srv.jwtManager)
+	authUC.SetGroupsManager(srv.groupsManager)
+	authUC.SetRoleMapper(srv.roleMapper)
 
 	// Initialize OAuth provider
 	oauthProvider, err := srv.initOAuthProvider()
 	if err != nil {
 		return fmt.Errorf("failed to initialize OAuth provider: %w", err)
 	}
+	authUC.SetOAuthProvider(oauthProvider)
+
+	authUC.SetRateLimiter(srv.rateLimiter)
+	authUC.SetRedirectValidator(srv.redirectValidator)
 
 	// Initialize HTTP handlers with new dependencies
-	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config, srv.jwtManager, srv.sessionManager, srv.blacklistManager, srv.googleClient, srv.groupsManager, srv.roleMapper, userRepo, srv.redirectValidator, srv.rateLimiter, oauthProvider)
+	authHandler := authhttp.New(srv.l, authUC, srv.discord, srv.config)
 
 	// userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
 	// Initialize audit handler
-	auditRepo := auditPostgre.New(srv.postgresDB)
+	auditRepo := auditPostgre.New(srv.l, srv.postgresDB)
 	auditHandler := audithttp.New(srv.l, auditRepo, srv.discord)
 
 	// Map routes (no prefix)
-	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw, srv.rateLimiter)
+	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
 	audithttp.MapAuditRoutes(srv.gin.Group("/audit-logs"), auditHandler, mw)
 	// userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw) // Temporarily disabled for Task 1.9
 
@@ -82,6 +91,11 @@ func (srv HTTPServer) registerSystemRoutes() {
 	srv.gin.GET("/health", srv.healthCheck)
 	srv.gin.GET("/ready", srv.readyCheck)
 	srv.gin.GET("/live", srv.liveCheck)
+
+	// Test client (development only)
+	if srv.environment != "production" {
+		srv.gin.StaticFile("/test", "./cmd/test-client/index.html")
+	}
 
 	// Swagger UI and docs
 	srv.gin.GET("/swagger/*any", ginSwagger.WrapHandler(

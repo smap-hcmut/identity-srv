@@ -7,7 +7,7 @@ import (
 	"github.com/aarondl/null/v8"
 )
 
-func toModelJWTKey(dbKey *sqlboiler.JWTKey) *model.JWTKey {
+func (r *implRepository) toModelJWTKey(dbKey *sqlboiler.JWTKey) *model.JWTKey {
 	key := &model.JWTKey{
 		KID:        dbKey.Kid,
 		PrivateKey: dbKey.PrivateKey,
@@ -29,7 +29,7 @@ func toModelJWTKey(dbKey *sqlboiler.JWTKey) *model.JWTKey {
 	return key
 }
 
-func toDBJWTKey(key *model.JWTKey) *sqlboiler.JWTKey {
+func (r *implRepository) toDBJWTKey(key *model.JWTKey) *sqlboiler.JWTKey {
 	dbKey := &sqlboiler.JWTKey{
 		Kid:        key.KID,
 		PrivateKey: key.PrivateKey,

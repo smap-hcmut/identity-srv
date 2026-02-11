@@ -37,7 +37,13 @@ type Claims struct {
 func (m *Manager) GenerateToken(userID, email, role string, groups []string) (string, error) {
 	activeKey, ok := m.keys[m.activeKID]
 	if !ok {
-		return "", fmt.Errorf("active key not found")
+		return "", fmt.Errorf("active key not found: %s", m.activeKID)
+	}
+	if activeKey == nil {
+		return "", fmt.Errorf("active key pair is nil")
+	}
+	if activeKey.privateKey == nil {
+		return "", fmt.Errorf("active private key is nil")
 	}
 
 	now := time.Now()

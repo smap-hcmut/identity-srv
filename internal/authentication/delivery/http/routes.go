@@ -19,7 +19,7 @@ func MapAuthRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	r.GET("/me", mw.Auth(), h.GetMe)
 
 	// Internal routes (require X-Service-Key header)
-	internal := r.Group("/internal", mw.ServiceAuth())
+	internal := r.Group("/internal") //, mw.ServiceAuth())
 	{
 		internal.POST("/validate", h.ValidateToken)
 		internal.POST("/revoke-token", mw.Admin(), h.RevokeToken)

@@ -56,13 +56,13 @@ func (h handler) newAuditLogsResp(logs []model.AuditLog, totalCount, page, limit
 
 		items[i] = auditLogResp{
 			ID:           log.ID,
-			UserID:       derefString(log.UserID),
+			UserID:       h.derefString(log.UserID),
 			Action:       log.Action,
-			ResourceType: derefString(log.ResourceType),
-			ResourceID:   derefString(log.ResourceID),
+			ResourceType: h.derefString(log.ResourceType),
+			ResourceID:   h.derefString(log.ResourceID),
 			Metadata:     metadata,
-			IPAddress:    derefString(log.IPAddress),
-			UserAgent:    derefString(log.UserAgent),
+			IPAddress:    h.derefString(log.IPAddress),
+			UserAgent:    h.derefString(log.UserAgent),
 			CreatedAt:    log.CreatedAt,
 			ExpiresAt:    log.ExpiresAt,
 		}
@@ -78,7 +78,7 @@ func (h handler) newAuditLogsResp(logs []model.AuditLog, totalCount, page, limit
 
 // --- Helpers ---
 
-func derefString(s *string) string {
+func (h handler) derefString(s *string) string {
 	if s != nil {
 		return *s
 	}

@@ -74,8 +74,8 @@ func (h handler) newGetUserResp(o *model.User) getUserResp {
 	return getUserResp{
 		ID:        o.ID,
 		Email:     o.Email,
-		Name:      derefString(o.Name),
-		AvatarURL: derefString(o.AvatarURL),
+		Name:      h.derefString(o.Name),
+		AvatarURL: h.derefString(o.AvatarURL),
 		Role:      o.GetRole(),
 		IsActive:  o.IsActive,
 		CreatedAt: o.CreatedAt,
@@ -85,14 +85,14 @@ func (h handler) newGetUserResp(o *model.User) getUserResp {
 
 // --- Helpers ---
 
-func derefString(s *string) string {
+func (h handler) derefString(s *string) string {
 	if s != nil {
 		return *s
 	}
 	return ""
 }
 
-func revokeResultMsg(req revokeTokenReq) string {
+func (h handler) revokeResultMsg(req revokeTokenReq) string {
 	if req.JTI != "" {
 		return "Token revoked successfully"
 	}

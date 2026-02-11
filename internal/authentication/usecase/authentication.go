@@ -9,7 +9,7 @@ import (
 )
 
 // GetCurrentUser gets current user from scope
-func (u *implUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (*model.User, error) {
+func (u *ImplUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (*model.User, error) {
 	usr, err := u.userUC.Detail(ctx, sc.UserID)
 	if err != nil {
 		u.l.Errorf(ctx, "authentication.usecase.GetCurrentUser.Detail: %v", err)
@@ -19,7 +19,7 @@ func (u *implUsecase) GetCurrentUser(ctx context.Context, sc model.Scope) (*mode
 }
 
 // GetUserByID gets a user by ID (for internal service calls)
-func (u *implUsecase) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
+func (u *ImplUsecase) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
 	usr, err := u.userUC.Detail(ctx, userID)
 	if err != nil {
 		u.l.Errorf(ctx, "authentication.usecase.GetUserByID.Detail: %v", err)
@@ -29,7 +29,7 @@ func (u *implUsecase) GetUserByID(ctx context.Context, userID string) (*model.Us
 }
 
 // GetJWKS returns the JSON Web Key Set
-func (u *implUsecase) GetJWKS(ctx context.Context) (interface{}, error) {
+func (u *ImplUsecase) GetJWKS(ctx context.Context) (interface{}, error) {
 	if u.jwtManager == nil {
 		return nil, fmt.Errorf("jwt manager not configured")
 	}
@@ -37,7 +37,7 @@ func (u *implUsecase) GetJWKS(ctx context.Context) (interface{}, error) {
 }
 
 // Logout invalidates the current session
-func (u *implUsecase) Logout(ctx context.Context, sc model.Scope) error {
+func (u *ImplUsecase) Logout(ctx context.Context, sc model.Scope) error {
 	if u.sessionManager == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (u *implUsecase) Logout(ctx context.Context, sc model.Scope) error {
 }
 
 // ValidateToken verifies a JWT token
-func (u *implUsecase) ValidateToken(ctx context.Context, token string) (*authentication.TokenValidationResult, error) {
+func (u *ImplUsecase) ValidateToken(ctx context.Context, token string) (*authentication.TokenValidationResult, error) {
 	if u.jwtManager == nil {
 		return nil, fmt.Errorf("jwt manager not configured")
 	}
@@ -89,9 +89,9 @@ func (u *implUsecase) ValidateToken(ctx context.Context, token string) (*authent
 }
 
 // RevokeToken revokes a specific token
-func (u *implUsecase) RevokeToken(ctx context.Context, jti string) error {
+func (u *ImplUsecase) RevokeToken(ctx context.Context, jti string) error {
 	if u.sessionManager == nil || u.blacklistManager == nil {
-		return fmt.Errorf("session/blacklist manager not configured")
+		return authentication.ErrConfigurationMissing
 	}
 
 	session, err := u.sessionManager.GetSession(ctx, jti)
@@ -107,6 +107,18 @@ func (u *implUsecase) RevokeToken(ctx context.Context, jti string) error {
 }
 
 // RevokeAllUserTokens revokes all tokens for a user
-func (u *implUsecase) RevokeAllUserTokens(ctx context.Context, userID string) error {
+func (u *ImplUsecase) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	return u.revokeAllUserTokensInternal(ctx, userID)
+}
+
+// PublishAuditEvent publishes an audit event (non-blocking)
+func (u *ImplUsecase) PublishAuditEvent(ctx context.Context, event audit.AuditEvent) {
+	if u.auditPublisher == nil {
+		u.l.Warnf(ctx, "Audit publisher not configured, skipping audit event")
+		return
+	}
+
+	if err := u.auditPublisher.Publish(ctx, event); err != nil {
+		u.l.Errorf(ctx, "Failed to publish audit event: %v", err)
+	}
 }

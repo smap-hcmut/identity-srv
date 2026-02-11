@@ -21,6 +21,15 @@ func (h handler) getScope(c *gin.Context) (model.Scope, error) {
 // --- Process request functions ---
 
 func (h handler) processCallbackRequest(c *gin.Context) (authentication.OAuthCallbackInput, error) {
+	// Validate CSRF state
+	state := c.Query("state")
+	storedState, err := c.Cookie("oauth_state")
+	if err != nil || state != storedState {
+		return authentication.OAuthCallbackInput{}, errInvalidState
+	}
+	h.clearStateCookie(c)
+
+	// Validate code
 	code := c.Query("code")
 	if code == "" {
 		return authentication.OAuthCallbackInput{}, errMissingCode
@@ -117,6 +126,9 @@ func (h handler) clearRedirectCookie(c *gin.Context) {
 
 // addSameSiteAttribute manually adds SameSite attribute to the last Set-Cookie header
 func (h handler) addSameSiteAttribute(c *gin.Context, sameSite string) {
+	if sameSite == "" {
+		sameSite = "Lax" // Default
+	}
 	cookies := c.Writer.Header()["Set-Cookie"]
 	if len(cookies) > 0 {
 		lastCookie := cookies[len(cookies)-1]

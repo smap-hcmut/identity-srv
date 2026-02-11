@@ -48,11 +48,12 @@ internal/<module_name>/
 │   └── options.go      # Filter/Option structs for Repository methods
 ├── usecase/            # Business logic (implementation)
 │   ├── <entity>.go     # Main logic (Create, Update, Delete)
-│   ├── job_uc.go       # Logic for background jobs
+│   ├── <concern>.go    # Logic separated by concern (e.g., session.go, ratelimit.go)
+│   ├── job.go          # Logic for background jobs
 │   ├── producer.go     # Logic for publishing events
 │   ├── consumer.go     # Logic for handling consumed events
-│   ├── util.go         # Helper functions
-│   └── util_types.go   # Struct definitions for helpers
+│   ├── helpers.go      # Private helper methods
+│   └── types.go        # Private struct definitions (internal to usecase package)
 ├── interface.go        # UseCase interface definition
 ├── types.go            # ALL Input/Output structs for UseCase
 └── errors.go           # Module-specific errors
@@ -65,7 +66,7 @@ internal/<module_name>/
 >
 > - **Repository**: You should have separate implementations (e.g., `repository/mongo/event.go`, `repository/mongo/recurring_tracking.go`).
 > - **UseCase**: You should have separate logic files (e.g., `usecase/event.go`, `usecase/recurring_tracking.go`).
-> - **Types**: Keep related types together or separate if too large, but ALWAYS in `uc_types.go` or `repository/types.go` (if internal).
+> - **Types**: Keep related types together or separate if too large, but ALWAYS in `types.go` (module-level) or `usecase/types.go` (if private to usecase package).
 
 ### Interface Conventions
 
@@ -211,16 +212,16 @@ This layer handles all transport concerns (HTTP, Job, RabbitMQ). It **MUST NOT**
   - **NO** business logic in Delivery (e.g., batching, complicated buffering should be in UseCase or Repository if it's data-layer specific optimization).
   - **NO** direct Repository access. **MUST** go through UseCase.
 
-### 2. UseCase Layer (`usecase/`, `uc_interface.go`, `uc_types.go`)
+### 2. UseCase Layer (`usecase/`, `interface.go`, `types.go`)
 
 This layer contains the core business logic.
 
-- **`uc_interface.go`**:
+- **`interface.go`** (module root):
   - Defines the `UseCase` interface.
   - **Rule**: Methods must accept `context.Context` and `models.Scope` as the first two arguments.
   - **Pattern**: `Create(ctx context.Context, sc models.Scope, input CreateInput) (CreateOutput, error)`
 
-- **`uc_types.go`**:
+- **`types.go`** (module root):
   - **Responsibility**: Defines Input/Output structs for UseCase methods.
   - **Rule**: **DECOUPLE** from Delivery Layer. Do not use HTTP-specific tags (`form`, `json` is okay for general serialization but avoid binding tags if possible).
   - **Naming**: `<Action>Input` and `<Action>Output` (e.g., `CreateEventInput`, `DetailOutput`).
@@ -307,15 +308,71 @@ Both MongoDB and PostgreSQL implementations **MUST** follow this file structure 
 - Only use Raw SQL (e.g., `db.ExecContext`) for bulk operations or complex queries.
 - Logic must still be isolated in `query.go` (returning query string + args).
 
+## File Responsibility Principle (MANDATORY)
+
+> [!IMPORTANT]
+> **Every file has ONE job.** Struct definitions and logic **MUST NOT** live in the same file. If a file exceeds 200 lines, review whether it should be split by concern.
+
+### Rules
+
+1. **Struct definitions go in dedicated type files.** Never define types (structs, interfaces) inline in logic files.
+
+   | Layer                        | Type file                                       | Logic files                                   |
+   | ---------------------------- | ----------------------------------------------- | --------------------------------------------- |
+   | **UseCase** (module root)    | `types.go` — Input/Output structs               | —                                             |
+   | **UseCase** (implementation) | `usecase/types.go` — private structs            | `usecase/<entity>.go`, `usecase/<concern>.go` |
+   | **Delivery HTTP**            | `presenters.go` — all DTOs                      | `handlers.go`, `<resource>.go`                |
+   | **Repository**               | `repository/options.go` — filter/option structs | `repository/<driver>/<entity>.go`             |
+
+2. **Logic files contain ONLY method implementations.** No `type`, no `var` blocks (except very local sentinels).
+
+3. **`new.go` is strictly a factory.** It contains:
+   - The `impl` struct (private)
+   - The `New()` constructor
+   - Setter methods (if needed for optional dependencies)
+   - **Nothing else.** No interfaces, no helper types, no constants.
+
+4. **Split by concern, not by size.** When a module is complex, split logic files by business concern rather than arbitrarily. Each file name should clearly communicate its responsibility.
+
+   ```text
+   # ✅ Good: split by concern
+   usecase/
+   ├── event.go          # CRUD operations for Event
+   ├── recurring.go      # Recurrence logic
+   ├── notification.go   # Notification orchestration
+   ├── helpers.go        # Shared private helpers
+   └── new.go            # Factory only
+
+   # ❌ Bad: everything in one file
+   usecase/
+   ├── event.go          # 800 lines, CRUD + recurrence + notification + helpers
+   └── new.go
+   ```
+
+5. **Multi-entity repositories** — use `<entity>_query.go` and `<entity>_build.go`:
+
+   ```text
+   repository/postgre/
+   ├── user.go             # User coordinator
+   ├── user_query.go       # User query builder
+   ├── user_build.go       # User data mapper
+   ├── event.go            # Event coordinator
+   ├── event_query.go      # Event query builder
+   ├── event_build.go      # Event data mapper
+   └── new.go              # Factory
+   ```
+
+---
+
 ## Naming Conventions & Rules
 
 ### Global Rules
 
 1.  **Contextual Naming**: In `internal/user`, functions should be named `Create`, `Update`, `Detail` (NOT `CreateUser`, `UpdateUser`). The package name provides the context.
 2.  **Type Centralization**:
-    - ALL UseCase struct types must be in `uc_types.go`.
+    - ALL UseCase Input/Output types must be in `types.go` at the module root.
     - Logic files (e.g., `event.go`) must contain **logic only**, no struct definitions.
-    - Util structs go in `util_types.go`.
+    - Private helper structs go in `usecase/types.go`.
 
 ### Module Interaction Rules
 
@@ -355,7 +412,7 @@ func (uc implUseCase) Create(ctx context.Context, sc models.Scope, input event.C
 }
 ```
 
-### UseCase Types (`uc_types.go`)
+### UseCase Types (`types.go`)
 
 ```go
 type CreateInput struct {

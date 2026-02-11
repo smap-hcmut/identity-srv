@@ -13,7 +13,7 @@ func (r *implRepository) buildBatchInsertQuery(events []audit.AuditEvent) (strin
 	valueArgs := make([]interface{}, 0, len(events)*8)
 
 	for i, event := range events {
-		metadataJSON := marshalMetadata(event.Metadata)
+		metadataJSON := r.marshalMetadata(event.Metadata)
 
 		valueStrings = append(valueStrings, fmt.Sprintf(
 			"($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d::timestamp + interval '90 days')",

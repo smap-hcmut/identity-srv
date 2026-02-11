@@ -2,7 +2,18 @@ package authentication
 
 import (
 	"smap-api/internal/model"
+	"time"
 )
+
+// TokenValidationResult contains the result of token validation
+type TokenValidationResult struct {
+	Valid     bool
+	UserID    string
+	Email     string
+	Role      string
+	Groups    []string
+	ExpiresAt time.Time
+}
 
 // GetCurrentUser
 type GetCurrentUserOutput struct {

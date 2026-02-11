@@ -22,6 +22,7 @@ func (m Middleware) ServiceAuth() gin.HandlerFunc {
 		// Decrypt service key using encrypter
 		decryptedKey, err := m.encrypter.Decrypt(serviceKey)
 		if err != nil {
+			m.l.Errorf(c.Request.Context(), "ServiceAuth: Decrypt failed: %v", err)
 			response.Unauthorized(c)
 			c.Abort()
 			return
@@ -31,6 +32,7 @@ func (m Middleware) ServiceAuth() gin.HandlerFunc {
 		// Format: "service_name:key_value"
 		parts := strings.SplitN(decryptedKey, ":", 2)
 		if len(parts) != 2 {
+			m.l.Errorf(c.Request.Context(), "ServiceAuth: Invalid format: %s", decryptedKey)
 			response.Unauthorized(c)
 			c.Abort()
 			return
@@ -42,6 +44,7 @@ func (m Middleware) ServiceAuth() gin.HandlerFunc {
 		// Check if service exists in config
 		configuredKey, exists := m.config.InternalConfig.ServiceKeys[serviceName]
 		if !exists {
+			m.l.Errorf(c.Request.Context(), "ServiceAuth: Service not found: %s", serviceName)
 			response.Unauthorized(c)
 			c.Abort()
 			return
@@ -49,6 +52,7 @@ func (m Middleware) ServiceAuth() gin.HandlerFunc {
 
 		// Validate key value
 		if keyValue != configuredKey {
+			m.l.Errorf(c.Request.Context(), "ServiceAuth: Key mismatch for %s. Got: %s, Want: %s", serviceName, keyValue, configuredKey)
 			response.Unauthorized(c)
 			c.Abort()
 			return

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"smap-api/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ func (h handler) ValidateToken(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// 1. Process Request
+	fmt.Println("DEBUG: ValidateToken Handler Reached")
 	token, err := h.processValidateTokenRequest(c)
 	if err != nil {
 		response.Error(c, err, h.discord)
@@ -78,7 +80,7 @@ func (h handler) RevokeToken(c *gin.Context) {
 	}
 
 	// 3. Response
-	response.OK(c, gin.H{"message": revokeResultMsg(req)})
+	response.OK(c, gin.H{"message": h.revokeResultMsg(req)})
 }
 
 // GetUserByID gets user information by ID (internal service endpoint)

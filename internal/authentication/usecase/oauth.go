@@ -9,7 +9,7 @@ import (
 )
 
 // InitiateOAuthLogin generates the OAuth authorization URL and state
-func (u *implUsecase) InitiateOAuthLogin(ctx context.Context, input authentication.OAuthLoginInput) (*authentication.OAuthLoginOutput, error) {
+func (u *ImplUsecase) InitiateOAuthLogin(ctx context.Context, input authentication.OAuthLoginInput) (*authentication.OAuthLoginOutput, error) {
 	if u.oauthProvider == nil {
 		return nil, authentication.ErrInvalidProvider
 	}
@@ -26,7 +26,7 @@ func (u *implUsecase) InitiateOAuthLogin(ctx context.Context, input authenticati
 // ProcessOAuthCallback handles the entire OAuth callback business logic:
 // exchange code → get user info → validate domain → create/update user →
 // fetch groups → map role → generate JWT → create session → audit
-func (u *implUsecase) ProcessOAuthCallback(ctx context.Context, input authentication.OAuthCallbackInput) (*authentication.OAuthCallbackOutput, error) {
+func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentication.OAuthCallbackInput) (*authentication.OAuthCallbackOutput, error) {
 	// 1. Exchange code for token via OAuth provider
 	token, err := u.oauthProvider.ExchangeCode(ctx, input.Code)
 	if err != nil {
@@ -51,7 +51,7 @@ func (u *implUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 			Metadata: map[string]string{
 				"provider": u.oauthProvider.GetProviderName(),
 				"reason":   "domain_not_allowed",
-				"domain":   extractDomain(userInfo.Email),
+				"domain":   u.extractDomain(userInfo.Email),
 			},
 			IPAddress: input.IPAddress,
 			UserAgent: input.UserAgent,
@@ -83,21 +83,27 @@ func (u *implUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 	}
 
 	// 6. Fetch groups and map to role
+	u.l.Infof(ctx, "Fetching groups for %s", userInfo.Email)
 	groups, err := u.getUserGroups(ctx, userInfo.Email)
 	if err != nil {
 		u.l.Warnf(ctx, "authentication.usecase.ProcessOAuthCallback.GetUserGroups: %v", err)
 		groups = []string{}
 	}
 
+	u.l.Infof(ctx, "Mapping groups to role")
 	role := u.mapGroupsToRole(groups)
+	u.l.Infof(ctx, "Role mapped: %s", role)
 
 	// 7. Update user role
+	u.l.Infof(ctx, "Setting user role in memory")
 	usr.SetRole(role)
+	u.l.Infof(ctx, "Updating user role in DB")
 	if err := u.updateUserRole(ctx, usr.ID, role); err != nil {
 		u.l.Warnf(ctx, "authentication.usecase.ProcessOAuthCallback.UpdateUserRole: %v", err)
 	}
 
 	// 8. Generate JWT token
+	u.l.Infof(ctx, "Generating JWT token")
 	jwtToken, jti, err := u.generateToken(ctx, usr, role, groups)
 	if err != nil {
 		return nil, err

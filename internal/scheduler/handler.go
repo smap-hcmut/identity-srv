@@ -27,7 +27,7 @@ func (srv *Scheduler) registerJobs() error {
 // registerAuditCleanupJob registers the audit log cleanup job
 func (srv *Scheduler) registerAuditCleanupJob(ctx context.Context) error {
 	// Initialize audit repository
-	auditRepo := auditPostgre.New(srv.postgresDB)
+	auditRepo := auditPostgre.New(srv.logger, srv.postgresDB)
 
 	// Initialize audit log cleanup job
 	cleanupJob := usecase.NewCleanupJob(auditRepo, srv.logger)

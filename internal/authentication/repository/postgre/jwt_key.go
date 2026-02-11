@@ -10,7 +10,7 @@ import (
 )
 
 func (r *implRepository) SaveKey(ctx context.Context, key *model.JWTKey) error {
-	dbKey := toDBJWTKey(key)
+	dbKey := r.toDBJWTKey(key)
 	return dbKey.Insert(ctx, r.db, boil.Infer())
 }
 
@@ -23,7 +23,7 @@ func (r *implRepository) GetActiveKey(ctx context.Context) (*model.JWTKey, error
 	if err != nil {
 		return nil, err
 	}
-	return toModelJWTKey(dbKey), nil
+	return r.toModelJWTKey(dbKey), nil
 }
 
 func (r *implRepository) GetActiveAndRotatingKeys(ctx context.Context) ([]*model.JWTKey, error) {
@@ -35,7 +35,7 @@ func (r *implRepository) GetActiveAndRotatingKeys(ctx context.Context) ([]*model
 
 	keys := make([]*model.JWTKey, len(dbKeys))
 	for i, dbKey := range dbKeys {
-		keys[i] = toModelJWTKey(dbKey)
+		keys[i] = r.toModelJWTKey(dbKey)
 	}
 	return keys, nil
 }
@@ -61,7 +61,7 @@ func (r *implRepository) GetRotatingKeys(ctx context.Context) ([]*model.JWTKey, 
 
 	keys := make([]*model.JWTKey, len(dbKeys))
 	for i, dbKey := range dbKeys {
-		keys[i] = toModelJWTKey(dbKey)
+		keys[i] = r.toModelJWTKey(dbKey)
 	}
 	return keys, nil
 }

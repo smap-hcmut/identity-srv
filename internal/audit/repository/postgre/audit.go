@@ -67,7 +67,7 @@ func (r *implRepository) Query(ctx context.Context, opts repository.QueryOptions
 
 	logs := []model.AuditLog{}
 	for rows.Next() {
-		log, err := scanAuditLog(rows)
+		log, err := r.scanAuditLog(rows)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan audit log: %w", err)
 		}

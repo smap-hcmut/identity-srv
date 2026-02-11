@@ -22,7 +22,7 @@ type Scheduler struct {
 	logger          pkgLog.Logger
 	postgresDB      *sql.DB
 	config          *config.Config
-	jwtKeysRepo     *repository.JWTKeysRepository
+	jwtKeysRepo     repository.Repository
 	rotationManager *rotation.Manager
 	auditPublisher  audit.Publisher
 	jobs            []Job
@@ -33,7 +33,7 @@ type Config struct {
 	Logger          pkgLog.Logger
 	PostgresDB      *sql.DB
 	Config          *config.Config
-	JWTKeysRepo     *repository.JWTKeysRepository
+	JWTKeysRepo     repository.Repository
 	RotationManager *rotation.Manager
 	AuditPublisher  audit.Publisher
 }

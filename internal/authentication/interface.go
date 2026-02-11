@@ -4,7 +4,6 @@ import (
 	"context"
 	"smap-api/internal/audit"
 	"smap-api/internal/model"
-	"time"
 )
 
 // UseCase interface for authentication module
@@ -26,13 +25,4 @@ type UseCase interface {
 
 	// Audit
 	PublishAuditEvent(ctx context.Context, event audit.AuditEvent)
-}
-
-type TokenValidationResult struct {
-	Valid     bool
-	UserID    string
-	Email     string
-	Role      string
-	Groups    []string
-	ExpiresAt time.Time
 }
