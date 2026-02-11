@@ -13,15 +13,13 @@ import (
 	userusecase "smap-api/internal/user/usecase"
 	"smap-api/pkg/i18n"
 	"smap-api/pkg/oauth"
-	"smap-api/pkg/scope"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (srv HTTPServer) mapHandlers() error {
-	scopeManager := scope.New("temporary-secret-not-used-in-oauth") // Legacy scope manager - not used in OAuth flow
-	mw := middleware.New(srv.l, scopeManager, srv.cookieConfig, "", srv.config, srv.encrypter)
+	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, "", srv.config, srv.encrypter)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
@@ -35,7 +33,7 @@ func (srv HTTPServer) mapHandlers() error {
 	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
 
 	// Initialize authentication usecase
-	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
+	authUC := authusecase.New(srv.l, srv.jwtManager, srv.encrypter, userUC)
 	authUC.SetSessionManager(srv.sessionManager)
 	authUC.SetBlacklistManager(srv.blacklistManager)
 	authUC.SetJWTManager(srv.jwtManager)

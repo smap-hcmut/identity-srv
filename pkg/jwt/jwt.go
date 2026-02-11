@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"smap-api/pkg/scope"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -233,4 +235,38 @@ func (m *Manager) SetConfig(issuer string, audience []string, ttl time.Duration)
 	m.issuer = issuer
 	m.audience = audience
 	m.ttl = ttl
+}
+
+// Verify implements scope.Manager interface — verifies RS256 token and returns scope.Payload.
+func (m *Manager) Verify(token string) (scope.Payload, error) {
+	claims, err := m.VerifyToken(token)
+	if err != nil {
+		return scope.Payload{}, err
+	}
+
+	var expiresAt int64
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Unix()
+	}
+	var issuedAt int64
+	if claims.IssuedAt != nil {
+		issuedAt = claims.IssuedAt.Unix()
+	}
+
+	p := scope.Payload{
+		UserID:   claims.Subject,
+		Username: claims.Email,
+		Role:     claims.Role,
+	}
+	p.Subject = claims.Subject
+	p.ExpiresAt = expiresAt
+	p.IssuedAt = issuedAt
+	p.Id = claims.ID
+	p.Issuer = claims.Issuer
+	return p, nil
+}
+
+// CreateToken implements scope.Manager interface.
+func (m *Manager) CreateToken(_ scope.Payload) (string, error) {
+	return "", fmt.Errorf("not implemented: use Manager.GenerateToken directly")
 }
