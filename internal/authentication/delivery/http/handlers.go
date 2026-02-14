@@ -1,8 +1,6 @@
 package http
 
 import (
-	"net/http"
-
 	"smap-api/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -72,26 +70,4 @@ func (h handler) GetMe(c *gin.Context) {
 
 	// 3. Response
 	response.OK(c, h.newGetMeResp(user))
-}
-
-// JWKS returns the JSON Web Key Set for JWT verification
-// @Summary Get JSON Web Key Set
-// @Description Returns public keys in JWKS format for JWT verification
-// @Tags Authentication
-// @Produce json
-// @Success 200 {object} map[string]interface{} "JWKS with public keys"
-// @Router /authentication/.well-known/jwks.json [get]
-func (h handler) JWKS(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// 1. Call UseCase
-	jwks, err := h.uc.GetJWKS(ctx)
-	if err != nil {
-		h.l.Errorf(ctx, "uc.GetJWKS: %v", err)
-		response.Error(c, err, h.discord)
-		return
-	}
-
-	// 2. Response
-	c.JSON(http.StatusOK, jwks)
 }

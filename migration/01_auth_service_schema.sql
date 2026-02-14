@@ -27,37 +27,6 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
 -- ============================================================================
--- AUDIT LOGS TABLE
--- ============================================================================
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(50) NOT NULL, -- LOGIN, LOGOUT, LOGIN_FAILED, TOKEN_REVOKED, CREATE_PROJECT, etc.
-    resource_type VARCHAR(50), -- project, campaign, data_source, etc.
-    resource_id UUID,
-    metadata JSONB, -- Additional context (flexible schema)
-    ip_address INET,
-    user_agent TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '90 days')
-);
-
--- Index for user activity queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
-
--- Index for action-based queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-
--- Index for time-based queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
-
--- Index for cleanup job (delete expired logs)
-CREATE INDEX IF NOT EXISTS idx_audit_logs_expires_at ON audit_logs(expires_at);
-
--- Index for resource queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
-
--- ============================================================================
 -- JWT KEYS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS jwt_keys (
@@ -84,11 +53,6 @@ COMMENT ON COLUMN users.email IS 'User email from OAuth provider (unique identif
 COMMENT ON COLUMN users.role_hash IS 'Encrypted user role: ADMIN (full access), ANALYST (create/analyze), VIEWER (read-only)';
 COMMENT ON COLUMN users.is_active IS 'Account status - false for blocked users';
 COMMENT ON COLUMN users.last_login_at IS 'Last successful login timestamp';
-
-COMMENT ON TABLE audit_logs IS 'Audit trail for compliance (90-day retention)';
-COMMENT ON COLUMN audit_logs.action IS 'Action performed (LOGIN, LOGOUT, CREATE_PROJECT, etc.)';
-COMMENT ON COLUMN audit_logs.metadata IS 'Additional context in JSON format';
-COMMENT ON COLUMN audit_logs.expires_at IS 'Auto-delete after 90 days (cleanup job)';
 
 COMMENT ON TABLE jwt_keys IS 'RSA key pairs for JWT signing (supports rotation)';
 COMMENT ON COLUMN jwt_keys.kid IS 'Key ID (used in JWT header)';

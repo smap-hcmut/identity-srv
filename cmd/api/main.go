@@ -2,19 +2,16 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
 	_ "smap-api/docs" // Import swagger docs
-	authrepopostgre "smap-api/internal/authentication/repository/postgre"
 	authUsecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
-	pkgGoogle "smap-api/pkg/google"
 	pkgJWT "smap-api/pkg/jwt"
 	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
@@ -97,63 +94,20 @@ func main() {
 	}
 	logger.Infof(ctx, "Redis connected successfully to %s:%d (DB %d)", cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.DB)
 
-	// 8. Initialize Redis for token blacklist
-	blacklistRedis, err := pkgRedis.New(pkgRedis.Config{
-		Host:     cfg.Redis.Host,
-		Port:     cfg.Redis.Port,
-		Password: cfg.Redis.Password,
-		DB:       1, // Separate DB for blacklist
-	})
-	if err != nil {
-		logger.Error(ctx, "Failed to connect to Redis for blacklist: ", err)
-		return
-	}
-	logger.Infof(ctx, "Redis blacklist connected successfully to %s:%d (DB 1)", cfg.Redis.Host, cfg.Redis.Port)
-
 	// 9. Initialize JWT Manager
-	// Load keys from database for rotation support, fallback to file-based keys
-	jwtManager, err := initializeJWTManager(ctx, logger, cfg, postgresDB)
+	jwtManager, err := initializeJWTManager(ctx, logger, cfg)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize JWT manager: ", err)
 		return
 	}
 	logger.Infof(ctx, "JWT Manager initialized with algorithm: %s", cfg.JWT.Algorithm)
 
-	// 10. Initialize Google Directory API client
-	googleClient, err := pkgGoogle.New(ctx, pkgGoogle.Config{
-		ServiceAccountKey: cfg.GoogleWorkspace.ServiceAccountKey,
-		AdminEmail:        cfg.GoogleWorkspace.AdminEmail,
-		Domain:            cfg.GoogleWorkspace.Domain,
-	})
-	if err != nil {
-		logger.Warnf(ctx, "Google Directory API not configured: %v", err)
-		googleClient = nil
-	} else {
-		// Test connection
-		if err := googleClient.HealthCheck(ctx); err != nil {
-			logger.Warnf(ctx, "Google Directory API health check failed: %v", err)
-		} else {
-			logger.Infof(ctx, "Google Directory API connected successfully for domain: %s", cfg.GoogleWorkspace.Domain)
-		}
-	}
-
-	// 11. Initialize Redirect Validator
+	// 10. Initialize Redirect Validator
 	// Validates OAuth redirect URLs against whitelist to prevent open redirect attacks
 	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
 	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
 
-	// 12. Initialize Rate Limiter
-	// Prevents brute force attacks by limiting failed login attempts per IP
-	rateLimiter := authUsecase.NewRateLimiter(
-		redisClient,
-		cfg.RateLimit.MaxAttempts,
-		time.Duration(cfg.RateLimit.WindowMinutes)*time.Minute,
-		time.Duration(cfg.RateLimit.BlockMinutes)*time.Minute,
-	)
-	logger.Infof(ctx, "Rate limiter initialized (max %d attempts per %d minutes, block for %d minutes)",
-		cfg.RateLimit.MaxAttempts, cfg.RateLimit.WindowMinutes, cfg.RateLimit.BlockMinutes)
-
-	// 13. Initialize Kafka producer
+	// 11. Initialize Kafka producer
 	// Publishes audit events to Kafka for async processing and long-term storage
 	kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{
 		Brokers: cfg.Kafka.Brokers,
@@ -169,7 +123,7 @@ func main() {
 		defer kafkaProducer.Close()
 	}
 
-	// 14. Initialize HTTP server
+	// 12. Initialize HTTP server
 	// Main application server that handles all HTTP requests and routes
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
@@ -186,14 +140,9 @@ func main() {
 		Config:            cfg,
 		JWTManager:        jwtManager,
 		RedisClient:       redisClient,
-		BlacklistRedis:    blacklistRedis,
 		RedirectValidator: redirectValidator,
-		RateLimiter:       rateLimiter,
 		CookieConfig:      cfg.Cookie,
 		Encrypter:         encrypterInstance,
-
-		// Google Workspace Integration
-		GoogleClient: googleClient,
 
 		// Kafka Integration
 		KafkaProducer: kafkaProducer,
@@ -226,59 +175,13 @@ func registerGracefulShutdown(logger log.Logger) {
 	}()
 }
 
-// initializeJWTManager initializes JWT manager with database keys or file-based keys
-func initializeJWTManager(ctx context.Context, logger log.Logger, cfg *config.Config, db *sql.DB) (*pkgJWT.Manager, error) {
-	// Try to load keys from database first (for rotation support)
-	// Try to load keys from database first (for rotation support)
-	// We need to use the concrete postgres repository implementation here to get access to New
-	// But main already imports "smap-api/internal/authentication/repository" as authrepo
-	// We need to import the postgres implementation package too.
-
-	// Wait, I need to check imports in main.go first.
-	// main.go imports `configPostgre "smap-api/config/postgre"` but not likely `authrepo "smap-api/internal/authentication/repository/postgre"`.
-	// I'll assume I need to fix imports too.
-	// For now, let's fix the call assuming I have the package imported or use what's available.
-	// Actually, line 12 is: `authrepo "smap-api/internal/authentication/repository"`.
-	// New is in `postgre` package.
-	// I need to add import "smap-api/internal/authentication/repository/postgre" as authrepopostgre
-
-	jwtKeysRepo := authrepopostgre.New(logger, db)
-	keys, err := jwtKeysRepo.GetActiveAndRotatingKeys(ctx)
-
-	if err == nil && len(keys) > 0 {
-		// Database keys found - use rotation-enabled mode
-		logger.Infof(ctx, "Loading %d JWT keys from database (rotation enabled)", len(keys))
-
-		// Convert to JWTKeyData format
-		keyData := make([]*pkgJWT.JWTKeyData, len(keys))
-		for i, key := range keys {
-			keyData[i] = &pkgJWT.JWTKeyData{
-				KID:        key.KID,
-				PrivateKey: key.PrivateKey,
-				PublicKey:  key.PublicKey,
-				IsActive:   key.IsActive(),
-			}
-		}
-
-		// Create manager with database keys
-		manager := &pkgJWT.Manager{}
-		if err := manager.LoadKeys(keyData); err != nil {
-			return nil, fmt.Errorf("failed to load keys from database: %w", err)
-		}
-
-		// Set issuer, audience, TTL
-		manager.SetConfig(cfg.JWT.Issuer, cfg.JWT.Audience, time.Duration(cfg.JWT.TTL)*time.Second)
-
-		return manager, nil
-	}
-
-	// No database keys - fallback to file-based keys (legacy mode)
-	logger.Warn(ctx, "No keys found in database, using file-based keys (rotation disabled)")
+// initializeJWTManager initializes JWT manager with HS256 symmetric key
+func initializeJWTManager(ctx context.Context, logger log.Logger, cfg *config.Config) (*pkgJWT.Manager, error) {
+	// Create JWT manager with secret key from config
 	return pkgJWT.New(pkgJWT.Config{
-		PrivateKeyPath: cfg.JWT.PrivateKeyPath,
-		PublicKeyPath:  cfg.JWT.PublicKeyPath,
-		Issuer:         cfg.JWT.Issuer,
-		Audience:       cfg.JWT.Audience,
-		TTL:            time.Duration(cfg.JWT.TTL) * time.Second,
+		SecretKey: cfg.JWT.SecretKey,
+		Issuer:    cfg.JWT.Issuer,
+		Audience:  cfg.JWT.Audience,
+		TTL:       time.Duration(cfg.JWT.TTL) * time.Second,
 	})
 }

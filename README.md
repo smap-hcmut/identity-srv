@@ -1,26 +1,59 @@
-# SMAP Auth Service
+# SMAP Identity Service
 
-> Enterprise-grade authentication and authorization service for the SMAP platform
-
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Authentication and authorization service for SMAP platform using OAuth2 and JWT.
 
 ---
 
-## Overview
+## Architecture
 
-**SMAP Auth Service** is a production-ready authentication service built with Go, providing secure OAuth2/OIDC integration, JWT-based authentication, and role-based access control for the SMAP ecosystem.
+```
+┌─────────┐         ┌─────────┐         ┌──────────┐
+│ Browser │ Cookie  │   API   │  JWT    │  Other   │
+│         │────────▶│ Service │────────▶│ Services │
+└─────────┘         └────┬────┘         └──────────┘
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+         ┌────────┐ ┌───────┐ ┌───────┐
+         │Postgres│ │ Redis │ │ Kafka │
+         └────────┘ └───────┘ └───────┘
 
-### Key Features
+┌──────────┐
+│ Consumer │────▶ Audit Log Processing
+└──────────┘
+```
 
-- **OAuth2/OIDC Integration**: Google Workspace (Azure AD, Okta support planned)
-- **JWT Authentication**: RS256 asymmetric signing with public key distribution
-- **HttpOnly Cookie Auth**: XSS-protected token storage
-- **Role-Based Access Control**: ADMIN, ANALYST, VIEWER roles
-- **Group-Based Permissions**: Fine-grained access via Google Groups
-- **Token Blacklist**: Instant revocation capability
-- **Audit Logging**: Kafka-based async event tracking
-- **Key Rotation**: Support for zero-downtime key rotation (planned)
+**3 Services:**
+- **API Service**: OAuth2 login, JWT generation, authentication
+- **Consumer Service**: Kafka consumer for audit log processing
+- **Test Client**: Simple HTML page for testing OAuth flow
+
+---
+
+## Tech Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Language | Go 1.25 | Backend |
+| Framework | Gin | HTTP routing |
+| Database | PostgreSQL | User data, audit logs |
+| Cache | Redis | Session, token blacklist |
+| Queue | Kafka | Async audit events |
+| Auth | OAuth2 (Google) | User authentication |
+| JWT | HS256 | Token signing |
+
+---
+
+## Features
+
+- **OAuth2 Login**: Google Workspace integration
+- **JWT Authentication**: HS256 symmetric signing
+- **HttpOnly Cookies**: XSS-protected token storage
+- **Role-Based Access**: ADMIN, ANALYST, VIEWER roles
+- **Email-to-Role Mapping**: Direct role assignment from config
+- **Token Blacklist**: Instant token revocation
+- **Audit Logging**: Kafka-based event tracking
+- **Session Management**: Redis-backed sessions
 
 ---
 
@@ -31,235 +64,170 @@
 - Go 1.25+
 - PostgreSQL 15+
 - Redis 6+
-- Docker (optional)
+- Kafka (optional, for audit logging)
 
-### Installation
+### 1. Clone & Configure
 
 ```bash
-# Clone repository
 git clone <repository-url>
 cd identity-srv
 
-# Copy configuration template
+# Copy config template
 cp config/auth-config.example.yaml config/auth-config.yaml
 
-# Edit configuration with your credentials
+# Edit with your Google OAuth credentials
 nano config/auth-config.yaml
-
-# Run with Docker Compose (recommended)
-docker-compose up -d
-
-# Or run locally
-make run-api
 ```
 
-### First API Call
+### 2. Setup Database
 
 ```bash
-# Check health
+# Create database
+createdb smap_auth
+
+# Run migration
+psql -d smap_auth -f migration/01_auth_service_schema.sql
+```
+
+### 3. Configure Google OAuth
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create OAuth 2.0 Client ID
+3. Add redirect URI: `http://localhost:8080/authentication/callback`
+4. Update `config/auth-config.yaml`:
+
+```yaml
+oauth2:
+  client_id: YOUR_CLIENT_ID.apps.googleusercontent.com
+  client_secret: YOUR_CLIENT_SECRET
+  redirect_uri: http://localhost:8080/authentication/callback
+```
+
+### 4. Run Services
+
+```bash
+# Start dependencies (PostgreSQL, Redis, Kafka)
+docker-compose up -d postgres redis kafka
+
+# Run API service
+make run-api
+
+# Run Consumer service (optional, for audit logging)
+make run-consumer
+```
+
+### 5. Test
+
+```bash
+# Health check
 curl http://localhost:8080/health
 
-# View API documentation
-open http://localhost:8080/swagger/index.html
-
-# Login (returns HttpOnly cookie)
-curl -X POST http://localhost:8080/authentication/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password"}' \
-  --cookie-jar cookies.txt
+# Login (opens browser)
+open http://localhost:8080/authentication/login
 
 # Get current user
 curl http://localhost:8080/authentication/me \
-  --cookie cookies.txt
+  --cookie "smap_auth_token=<YOUR_TOKEN>"
 ```
-
----
-
-## Architecture
-
-### High-Level Overview
-
-```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Browser   │ Cookie  │ Auth Service │  JWKS   │   Other     │
-│             │────────►│              │────────►│  Services   │
-│             │         │  - OAuth2    │         │             │
-└─────────────┘         │  - JWT       │         └─────────────┘
-                        │  - RBAC      │
-                        └──────┬───────┘
-                               │
-                    ┌──────────┼──────────┐
-                    ▼          ▼          ▼
-              ┌──────────┐ ┌──────┐ ┌────────┐
-              │PostgreSQL│ │Redis │ │ Kafka  │
-              └──────────┘ └──────┘ └────────┘
-```
-
-### Tech Stack
-
-| Component         | Technology    | Purpose                         |
-| ----------------- | ------------- | ------------------------------- |
-| **Language**      | Go 1.25       | High performance, strong typing |
-| **Framework**     | Gin           | HTTP routing and middleware     |
-| **Database**      | PostgreSQL 15 | User data, audit logs, JWT keys |
-| **Cache**         | Redis 6       | Token blacklist, session store  |
-| **Message Queue** | Kafka         | Async audit event publishing    |
-| **Auth**          | OAuth2/OIDC   | Google Workspace integration    |
-| **JWT**           | RS256         | Asymmetric token signing        |
-| **Container**     | Docker        | Deployment and orchestration    |
 
 ---
 
 ## Configuration
 
-### Configuration File
-
-All configuration is managed through `config/auth-config.yaml`. Key options:
+Key settings in `config/auth-config.yaml`:
 
 ```yaml
-# HTTP Server
-http_server:
-  host: 0.0.0.0
-  port: 8080
-  mode: release
+# JWT (HS256 symmetric key)
+jwt:
+  algorithm: HS256
+  secret_key: your-secret-key-min-32-characters
+  ttl: 28800  # 8 hours
 
-# PostgreSQL
-postgres:
-  host: localhost
-  port: 5432
-  db_name: smap_auth
-  user: postgres
-  password: <password>
+# Access Control (email-to-role mapping)
+access_control:
+  allowed_domains:
+    - gmail.com
+    - yourdomain.com
+  user_roles:
+    admin@yourdomain.com: ADMIN
+    analyst@yourdomain.com: ANALYST
+  default_role: VIEWER
 
-# Redis
+# Redis (single DB for session + blacklist)
 redis:
   host: localhost
   port: 6379
-  db: 0 # DB 1 used for blacklist
-
-# OAuth2 (Google Workspace)
-oauth2:
-  client_id: <your-client-id>
-  client_secret: <your-client-secret>
-  redirect_uri: http://localhost:8080/authentication/callback
-
-# JWT
-jwt:
-  algorithm: RS256
-  private_key_path: ./keys/jwt-private.pem
-  public_key_path: ./keys/jwt-public.pem
-  issuer: smap-auth-service
-  audience: [smap-api]
-  ttl: 28800 # 8 hours
-
-# Cookie
-cookie:
-  domain: .smap.com
-  secure: true
-  same_site: Lax
-  name: smap_auth_token
-
-# Google Workspace
-google_workspace:
-  service_account_key: /keys/google-sa.json
-  admin_email: admin@yourdomain.com
-  domain: yourdomain.com
-
-# Access Control
-access_control:
-  allowed_domains:
-    - yourdomain.com
-  default_role: VIEWER
+  db: 0
 ```
-
-See `config/auth-config.example.yaml` for complete configuration options.
-
-### Google OAuth Setup
-
-See [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md) for detailed instructions.
 
 ---
 
-## API Documentation
+## API Endpoints
 
-### Endpoints
-
-**Authentication**:
-
-- `GET /authentication/login` - Redirect to OAuth provider
+### Public
+- `GET /authentication/login` - Redirect to Google OAuth
 - `GET /authentication/callback` - OAuth callback handler
-- `POST /authentication/logout` - Logout and expire cookie
-- `GET /authentication/me` - Get current user info
 
-**JWKS** (for other services):
+### Protected (requires cookie)
+- `POST /authentication/logout` - Logout
+- `GET /authentication/me` - Get current user
 
-- `GET /.well-known/jwks.json` - Public key distribution
+### Internal (service-to-service)
+- `POST /internal/validate` - Validate JWT token
+- `POST /internal/revoke-token` - Revoke token (admin only)
+- `GET /internal/users/:id` - Get user by ID
 
-**Internal** (service-to-service):
+### System
+- `GET /health` - Health check
+- `GET /swagger/*` - API documentation
 
-- `POST /internal/validate` - Token validation
-- `POST /internal/revoke-token` - Token revocation (admin)
-- `GET /internal/users/:id` - User lookup
+---
 
-### Swagger UI
-
-Interactive API documentation available at:
+## Project Structure
 
 ```
-http://localhost:8080/swagger/index.html
+identity-srv/
+├── cmd/
+│   ├── api/              # API server
+│   ├── consumer/         # Kafka consumer
+│   └── test-client/      # Test HTML page
+├── config/               # Configuration
+├── internal/
+│   ├── authentication/   # Auth logic
+│   ├── audit/           # Audit logging
+│   ├── user/            # User management
+│   ├── httpserver/      # HTTP server
+│   └── middleware/      # Middlewares
+├── pkg/
+│   ├── jwt/             # JWT generation
+│   ├── oauth/           # OAuth providers
+│   ├── redis/           # Redis client
+│   └── kafka/           # Kafka producer
+├── migration/           # Database migrations
+├── scripts/             # Cleanup scripts
+└── docs/                # Documentation
 ```
-
-### Detailed Documentation
-
-- **API Reference**: [documents/api-reference.md](documents/api-reference.md)
-- **Integration Guide**: [documents/auth-service-integration.md](documents/auth-service-integration.md)
-- **Deployment Guide**: [documents/deployment-guide.md](documents/deployment-guide.md)
 
 ---
 
 ## Development
 
-### Available Commands
-
 ```bash
-# Development
-make run-api              # Run API server locally
-make swagger              # Generate Swagger docs
-make lint                 # Run linter
-make test                 # Run tests
+# Run API locally
+make run-api
 
-# Database
-make migrate-up           # Run migrations
-make migrate-down         # Rollback migrations
+# Run Consumer locally
+make run-consumer
 
-# Docker
-make docker-build         # Build Docker image
-make docker-run           # Build and run in Docker
-make docker-clean         # Remove Docker images
-```
+# Generate Swagger docs
+make swagger
 
-### Project Structure
+# Run tests
+go test ./...
 
-```
-identity-srv/
-├── cmd/
-│   └── api/              # API server entry point
-├── config/               # Configuration management
-├── internal/             # Private application code
-│   ├── authentication/   # Auth domain logic
-│   ├── audit/           # Audit logging
-│   ├── httpserver/      # HTTP server setup
-│   ├── middleware/      # HTTP middlewares
-│   └── model/           # Domain models
-├── pkg/                  # Public packages
-│   ├── auth/            # JWT verification
-│   ├── jwt/             # JWT generation
-│   ├── redis/           # Redis client
-│   └── kafka/           # Kafka producer
-├── migration/            # Database migrations
-├── docs/                 # Setup guides
-├── documents/            # Technical documentation
-└── te/                   # Requirements & specs
+# Build Docker images
+make docker-build
+make consumer-build
 ```
 
 ---
@@ -269,224 +237,54 @@ identity-srv/
 ### Docker
 
 ```bash
-# Build image
-docker build -t smap-auth-service:latest -f cmd/api/Dockerfile .
+# Build images
+docker build -t smap-api:latest -f cmd/api/Dockerfile .
+docker build -t smap-consumer:latest -f cmd/consumer/Dockerfile .
 
-# Run container
-docker run -d \
-  --name smap-auth \
-  -p 8080:8080 \
-  -v $(pwd)/config/auth-config.yaml:/app/config/auth-config.yaml \
-  -v $(pwd)/keys:/app/keys \
-  smap-auth-service:latest
-```
-
-### Docker Compose
-
-```bash
-# Start all services (PostgreSQL, Redis, Kafka, Auth Service)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f auth-service
-
-# Stop services
-docker-compose down
+# Run containers
+docker run -d -p 8080:8080 \
+  -v $(pwd)/config:/app/config \
+  smap-api:latest
 ```
 
 ### Kubernetes
 
-See [documents/deployment-guide.md](documents/deployment-guide.md) for Kubernetes deployment instructions.
+```bash
+# Apply manifests
+kubectl apply -f manifests/configmap.yaml
+kubectl apply -f manifests/secret.yaml
+kubectl apply -f cmd/api/deployment.yaml
+kubectl apply -f cmd/consumer/deployment.yaml
+```
 
 ---
 
 ## Security
 
-### Implemented Security Measures
-
-- **Password Hashing**: bcrypt with salt
-- **JWT Signing**: RS256 asymmetric algorithm
+- **JWT Signing**: HS256 with 32+ character secret key
 - **HttpOnly Cookies**: XSS protection
 - **Token Blacklist**: Instant revocation via Redis
 - **Domain Validation**: Email domain whitelist
-- **Role Encryption**: Encrypted role storage in database
-- **CORS Configuration**: Strict origin validation
-- **Rate Limiting**: Login attempt throttling
-- **Audit Logging**: Complete audit trail via Kafka
-
-### Security Best Practices
-
-1. **Never commit `auth-config.yaml`** - Use `auth-config.example.yaml` as template
-2. **Never commit private keys** - Store in `keys/` directory (gitignored)
-3. **Rotate JWT keys** regularly (30-day rotation recommended)
-4. **Use strong passwords** for database and Redis
-5. **Enable TLS/SSL** for all connections in production
-6. **Monitor audit logs** for suspicious activities
-7. **Keep dependencies updated**: `go get -u ./...`
-8. **Review access control** regularly
-
----
-
-## Testing
-
-### Run Tests
-
-```bash
-# Run all tests
-go test ./...
-
-# Run with coverage
-go test -v -cover ./...
-
-# Run specific package
-go test ./internal/authentication/...
-```
-
-### Integration Testing
-
-```bash
-# Start test environment
-docker-compose -f docker-compose.test.yml up -d
-
-# Run integration tests
-go test -tags=integration ./...
-
-# Cleanup
-docker-compose -f docker-compose.test.yml down
-```
-
+- **CORS**: Strict origin validation
+- **Audit Logging**: Complete audit trail
 ---
 
 ## Documentation
 
-### Available Documentation
-
-| Document                                                         | Description                          |
-| ---------------------------------------------------------------- | ------------------------------------ |
-| [API Reference](documents/api-reference.md)                      | Complete API endpoint documentation  |
-| [Integration Guide](documents/auth-service-integration.md)       | Guide for integrating other services |
-| [Deployment Guide](documents/deployment-guide.md)                | Production deployment instructions   |
-| [Troubleshooting](documents/identity-service-troubleshooting.md) | Common issues and solutions          |
-| [Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)                 | OAuth2 configuration guide           |
-| [Quick Start](docs/QUICK_START.md)                               | 5-minute setup guide                 |
-| [Gaps Proposal](documents/auth-service-gaps-proposal.md)         | Future enhancements roadmap          |
-
-### Requirements & Specs
-
-| Document                                                  | Description                  |
-| --------------------------------------------------------- | ---------------------------- |
-| [Auth Flow Diagram](te/auth-flow-diagram.md)              | Authentication flow diagrams |
-| [Security Enhancements](te/auth-security-enhancements.md) | Enterprise security features |
-| [Migration Plan](te/migration-plan-v2.md)                 | Complete migration plan v2.9 |
-
----
-
-## Roadmap
-
-### Current Status (v1.0)
-
-- OAuth2/OIDC with Google Workspace
-- JWT RS256 authentication
-- HttpOnly cookie support
-- Role-based access control
-- Token blacklist
-- Audit logging via Kafka
-- JWKS endpoint for public key distribution
-
-### Planned Features (v2.0)
-
-See [documents/auth-service-gaps-proposal.md](documents/auth-service-gaps-proposal.md) for details:
-
-- ⏳ **Token Blacklist Enforcement** (2 hours) - CRITICAL
-- ⏳ **Identity Provider Abstraction** (7 hours) - CRITICAL
-  - Azure AD support
-  - Okta support
-  - LDAP support
-- ⏳ **Automatic Key Rotation** (10 hours) - MEDIUM
-  - 30-day rotation cycle
-  - Zero-downtime rotation
-  - Grace period handling
-
----
-
-## Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow **Clean Architecture** principles
-- Write **unit tests** for business logic
-- Add **Swagger annotations** for new endpoints
-- Update **documentation** for significant changes
-- Use **conventional commits**: `feat:`, `fix:`, `docs:`, etc.
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**Cannot connect to PostgreSQL**:
-
-```bash
-# Check if PostgreSQL is running
-docker ps | grep postgres
-
-# Test connection
-psql -h localhost -U postgres -d smap_auth
-```
-
-**JWT verification fails**:
-
-```bash
-# Check JWKS endpoint
-curl http://localhost:8080/.well-known/jwks.json
-
-# Verify public key
-cat secrets/jwt-public.pem
-```
-
-**Cookie not being set**:
-
-- Check `COOKIE_SECURE=false` for HTTP (dev only)
-- Verify `COOKIE_DOMAIN` matches your domain
-- Check CORS `Access-Control-Allow-Credentials: true`
-
-See [documents/identity-service-troubleshooting.md](documents/identity-service-troubleshooting.md) for more solutions.
-
----
-
-## Support
-
-- **Documentation**: See `documents/` folder
-- **Issues**: Open an issue on GitHub
-- **Email**: support@smap.com
+- [Quick Start Guide](docs/QUICK_START.md)
+- [Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)
+- [API Reference](documents/api-reference.md)
+- [Integration Guide](documents/auth-service-integration.md)
+- [Deployment Guide](documents/deployment-guide.md)
+- [Troubleshooting](documents/identity-service-troubleshooting.md)
 
 ---
 
 ## License
 
-This project is part of the SMAP graduation project.
+Part of SMAP graduation project.
 
 ---
 
-## Acknowledgments
-
-Built with using:
-
-- [Gin Web Framework](https://github.com/gin-gonic/gin)
-- [golang-jwt](https://github.com/golang-jwt/jwt)
-- [SQLBoiler](https://github.com/volatiletech/sqlboiler)
-- [Swagger](https://github.com/swaggo/swag)
-
----
-
-**Last Updated**: 09/02/2026  
-**Version**: 1.0.0
+**Version**: 2.0.0 (Simplified)  
+**Last Updated**: 14/02/2026  

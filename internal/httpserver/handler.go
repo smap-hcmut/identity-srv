@@ -37,7 +37,6 @@ func (srv HTTPServer) mapHandlers() error {
 	authUC.SetSessionManager(srv.sessionManager)
 	authUC.SetBlacklistManager(srv.blacklistManager)
 	authUC.SetJWTManager(srv.jwtManager)
-	authUC.SetGroupsManager(srv.groupsManager)
 	authUC.SetRoleMapper(srv.roleMapper)
 
 	// Initialize OAuth provider
@@ -47,7 +46,6 @@ func (srv HTTPServer) mapHandlers() error {
 	}
 	authUC.SetOAuthProvider(oauthProvider)
 
-	authUC.SetRateLimiter(srv.rateLimiter)
 	authUC.SetRedirectValidator(srv.redirectValidator)
 
 	// Initialize HTTP handlers with new dependencies

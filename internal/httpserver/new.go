@@ -8,7 +8,6 @@ import (
 	"smap-api/internal/authentication/usecase"
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
-	pkgGoogle "smap-api/pkg/google"
 	pkgJWT "smap-api/pkg/jwt"
 	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
@@ -39,15 +38,10 @@ type HTTPServer struct {
 	redisClient       *pkgRedis.Client
 	sessionManager    *usecase.SessionManager
 	blacklistManager  *usecase.BlacklistManager
-	groupsManager     *usecase.GroupsManager
 	roleMapper        *usecase.RoleMapper
 	redirectValidator *usecase.RedirectValidator
-	rateLimiter       *usecase.RateLimiter
 	cookieConfig      config.CookieConfig
 	encrypter         encrypter.Encrypter
-
-	// Google Workspace Integration
-	googleClient *pkgGoogle.Client
 
 	// Kafka Integration
 	kafkaProducer *pkgKafka.Producer
@@ -74,14 +68,9 @@ type Config struct {
 	Config            *config.Config
 	JWTManager        *pkgJWT.Manager
 	RedisClient       *pkgRedis.Client
-	BlacklistRedis    *pkgRedis.Client
 	RedirectValidator *usecase.RedirectValidator
-	RateLimiter       *usecase.RateLimiter
 	CookieConfig      config.CookieConfig
 	Encrypter         encrypter.Encrypter
-
-	// Google Workspace Integration
-	GoogleClient *pkgGoogle.Client
 
 	// Kafka Integration
 	KafkaProducer *pkgKafka.Producer
@@ -98,11 +87,8 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 	sessionTTL := time.Duration(cfg.Config.Session.TTL) * time.Second
 	sessionManager := usecase.NewSessionManager(cfg.RedisClient, sessionTTL)
 
-	// Initialize blacklist manager
-	blacklistManager := usecase.NewBlacklistManager(cfg.BlacklistRedis)
-
-	// Initialize groups manager
-	groupsManager := usecase.NewGroupsManager(cfg.GoogleClient, cfg.RedisClient)
+	// Initialize blacklist manager (using same Redis client as session)
+	blacklistManager := usecase.NewBlacklistManager(cfg.RedisClient)
 
 	// Initialize role mapper
 	roleMapper := usecase.NewRoleMapper(cfg.Config)
@@ -128,15 +114,10 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		redisClient:       cfg.RedisClient,
 		sessionManager:    sessionManager,
 		blacklistManager:  blacklistManager,
-		groupsManager:     groupsManager,
 		roleMapper:        roleMapper,
 		redirectValidator: cfg.RedirectValidator,
-		rateLimiter:       cfg.RateLimiter,
 		cookieConfig:      cfg.CookieConfig,
 		encrypter:         cfg.Encrypter,
-
-		// Google Workspace Integration
-		googleClient: cfg.GoogleClient,
 
 		// Kafka Integration
 		kafkaProducer: cfg.KafkaProducer,
@@ -190,11 +171,6 @@ func (srv HTTPServer) validate() error {
 	if srv.encrypter == nil {
 		return errors.New("encrypter is required")
 	}
-
-	// Google Workspace Integration (optional - needed for Day 3 Groups RBAC)
-	// if srv.googleClient == nil {
-	// 	return errors.New("googleClient is required")
-	// }
 
 	// Monitoring & Notification Configuration (optional)
 	// if srv.discord == nil {

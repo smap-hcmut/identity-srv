@@ -73,20 +73,12 @@ func (u *ImplUsecase) updateUserRole(ctx context.Context, userID, role string) e
 	})
 }
 
-// getUserGroups fetches user groups from the groups manager
-func (u *ImplUsecase) getUserGroups(ctx context.Context, email string) ([]string, error) {
-	if u.groupsManager == nil {
-		return []string{}, nil
-	}
-	return u.groupsManager.GetUserGroups(ctx, email)
-}
-
-// mapGroupsToRole maps groups to a role using the role mapper
-func (u *ImplUsecase) mapGroupsToRole(groups []string) string {
+// mapEmailToRole maps email to a role using the role mapper
+func (u *ImplUsecase) mapEmailToRole(email string) string {
 	if u.roleMapper == nil {
 		return "VIEWER"
 	}
-	return u.roleMapper.MapGroupsToRole(groups)
+	return u.roleMapper.MapEmailToRole(email)
 }
 
 // generateToken generates a JWT and extracts the JTI
@@ -116,26 +108,6 @@ func (u *ImplUsecase) createSession(ctx context.Context, userID, jti string, rem
 		return nil
 	}
 	return u.sessionManager.CreateSession(ctx, userID, jti, rememberMe)
-}
-
-// recordFailedAttempt records a failed login attempt for rate limiting
-func (u *ImplUsecase) recordFailedAttempt(ctx context.Context, ipAddress string) {
-	if u.rateLimiter == nil {
-		return
-	}
-	if err := u.rateLimiter.RecordFailedAttempt(ctx, ipAddress); err != nil {
-		u.l.Warnf(ctx, "authentication.usecase.recordFailedAttempt: %v", err)
-	}
-}
-
-// clearFailedAttempts clears failed login attempts on successful login
-func (u *ImplUsecase) clearFailedAttempts(ctx context.Context, ipAddress string) {
-	if u.rateLimiter == nil {
-		return
-	}
-	if err := u.rateLimiter.ClearFailedAttempts(ctx, ipAddress); err != nil {
-		u.l.Warnf(ctx, "authentication.usecase.clearFailedAttempts: %v", err)
-	}
 }
 
 // revokeAllUserTokensInternal internal helper

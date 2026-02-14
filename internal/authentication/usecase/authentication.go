@@ -28,14 +28,6 @@ func (u *ImplUsecase) GetUserByID(ctx context.Context, userID string) (*model.Us
 	return &usr, nil
 }
 
-// GetJWKS returns the JSON Web Key Set
-func (u *ImplUsecase) GetJWKS(ctx context.Context) (interface{}, error) {
-	if u.jwtManager == nil {
-		return nil, fmt.Errorf("jwt manager not configured")
-	}
-	return u.jwtManager.GetJWKS(), nil
-}
-
 // Logout invalidates the current session
 func (u *ImplUsecase) Logout(ctx context.Context, sc model.Scope) error {
 	if u.sessionManager == nil {

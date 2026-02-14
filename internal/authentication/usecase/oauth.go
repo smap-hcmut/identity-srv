@@ -43,7 +43,6 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 
 	// 3. Validate domain (business rule)
 	if !u.isAllowedDomain(userInfo.Email) {
-		u.recordFailedAttempt(ctx, input.IPAddress)
 		u.PublishAuditEvent(ctx, audit.AuditEvent{
 			UserID:       userInfo.Email,
 			Action:       audit.ActionLoginFailed,
@@ -61,7 +60,6 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 
 	// 4. Check blocklist (business rule)
 	if u.isBlockedEmail(userInfo.Email) {
-		u.recordFailedAttempt(ctx, input.IPAddress)
 		u.PublishAuditEvent(ctx, audit.AuditEvent{
 			UserID:       userInfo.Email,
 			Action:       audit.ActionLoginFailed,
@@ -82,16 +80,10 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 		return nil, err
 	}
 
-	// 6. Fetch groups and map to role
-	u.l.Infof(ctx, "Fetching groups for %s", userInfo.Email)
-	groups, err := u.getUserGroups(ctx, userInfo.Email)
-	if err != nil {
-		u.l.Warnf(ctx, "authentication.usecase.ProcessOAuthCallback.GetUserGroups: %v", err)
-		groups = []string{}
-	}
-
-	u.l.Infof(ctx, "Mapping groups to role")
-	role := u.mapGroupsToRole(groups)
+	// 6. Map email to role
+	u.l.Infof(ctx, "Mapping email to role")
+	groups := []string{} // Empty groups array as we no longer use Google Groups
+	role := u.mapEmailToRole(userInfo.Email)
 	u.l.Infof(ctx, "Role mapped: %s", role)
 
 	// 7. Update user role
@@ -114,10 +106,7 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 		return nil, err
 	}
 
-	// 10. Clear failed attempts on success
-	u.clearFailedAttempts(ctx, input.IPAddress)
-
-	// 11. Publish audit event
+	// 10. Publish audit event
 	u.PublishAuditEvent(ctx, audit.AuditEvent{
 		UserID:       usr.ID,
 		Action:       audit.ActionLogin,

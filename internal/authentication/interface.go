@@ -17,7 +17,6 @@ type UseCase interface {
 	ValidateToken(ctx context.Context, token string) (*TokenValidationResult, error)
 	RevokeToken(ctx context.Context, jti string) error
 	RevokeAllUserTokens(ctx context.Context, userID string) error
-	GetJWKS(ctx context.Context) (interface{}, error)
 
 	// OAuth flow
 	InitiateOAuthLogin(ctx context.Context, input OAuthLoginInput) (*OAuthLoginOutput, error)

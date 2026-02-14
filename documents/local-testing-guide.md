@@ -5,16 +5,19 @@
 Khi sử dụng JWT thông thường (gửi qua Authorization header), việc test local rất đơn giản - chỉ cần copy token và thêm vào header. Tuy nhiên, với **HttpOnly Cookies**, có một số thách thức:
 
 ### 🔴 Vấn Đề 1: CORS Configuration cho Localhost
+
 **Vấn đề**: Browser sẽ block cookies từ cross-origin requests nếu CORS không được config đúng.
 
 **Giải pháp**: Service đã được config sẵn để hỗ trợ localhost trong development mode.
 
 ### 🔴 Vấn Đề 2: Cookie Domain Configuration
+
 **Vấn đề**: Cookies chỉ được gửi khi domain khớp với cookie domain setting.
 
 **Giải pháp**: Phải config `cookie.domain` phù hợp với môi trường test.
 
 ### 🔴 Vấn đề 3: Không Thể Lấy Token Để Test Thủ Công
+
 **Vấn đề**: HttpOnly cookies không thể đọc được từ JavaScript, khó debug và test.
 
 **Giải pháp**: Sử dụng Browser DevTools hoặc test client đã được chuẩn bị sẵn.
@@ -30,15 +33,16 @@ Mở file `config/auth-config.yaml` và điều chỉnh phần cookie:
 ```yaml
 # Cookie Configuration
 cookie:
-  domain: localhost              # ✅ Quan trọng: Dùng "localhost" cho local testing
-  secure: false                  # ✅ Phải là false cho HTTP (localhost)
-  samesite: Lax                  # ✅ Lax cho phép cookies trong redirects
-  max_age: 28800                 # 8 hours
-  max_age_remember: 604800       # 7 days
+  domain: localhost # ✅ Quan trọng: Dùng "localhost" cho local testing
+  secure: false # ✅ Phải là false cho HTTP (localhost)
+  samesite: Lax # ✅ Lax cho phép cookies trong redirects
+  max_age: 28800 # 8 hours
+  max_age_remember: 604800 # 7 days
   name: smap_auth_token
 ```
 
 **⚠️ LƯU Ý QUAN TRỌNG**:
+
 - `domain: localhost` - KHÔNG dùng `.localhost` (dấu chấm sẽ gây lỗi)
 - `secure: false` - Bắt buộc cho HTTP (localhost không có SSL)
 - `samesite: Lax` - Cho phép cookies được gửi trong OAuth redirects
@@ -50,7 +54,7 @@ Service đã tự động hỗ trợ localhost khi `environment.name != "product
 ```yaml
 # Environment Configuration
 environment:
-  name: development  # ✅ Không dùng "production" khi test local
+  name: development # ✅ Không dùng "production" khi test local
 ```
 
 **Cách hoạt động của CORS middleware** (file `internal/middleware/cors.go`):
@@ -91,7 +95,7 @@ oauth2:
   provider: google
   client_id: YOUR_CLIENT_ID.apps.googleusercontent.com
   client_secret: YOUR_CLIENT_SECRET
-  redirect_uri: http://localhost:8080/authentication/callback  # ✅ HTTP cho localhost
+  redirect_uri: http://localhost:8080/authentication/callback # ✅ HTTP cho localhost
 ```
 
 ---
@@ -103,6 +107,7 @@ oauth2:
 Service đã có sẵn một test client HTML tại `cmd/test-client/`.
 
 #### Bước 1: Start Auth Service
+
 ```bash
 # Terminal 1: Start dependencies
 docker-compose up -d postgres redis kafka
@@ -114,6 +119,7 @@ go run cmd/api/main.go
 ```
 
 #### Bước 2: Start Test Client
+
 ```bash
 # Terminal 3: Start test client
 go run cmd/test-client/main.go
@@ -124,7 +130,7 @@ Test client sẽ chạy tại: `http://localhost:3000`
 #### Bước 3: Test Flow
 
 1. **Mở browser**: `http://localhost:3000`
-2. **Click "Login with Google"**: 
+2. **Click "Login with Google"**:
    - Redirect đến `http://localhost:8080/authentication/login`
    - Redirect đến Google OAuth
    - Sau khi login, redirect về `http://localhost:3000`
@@ -138,6 +144,7 @@ Test client sẽ chạy tại: `http://localhost:3000`
    - Session bị revoke
 
 **✅ Ưu điểm**:
+
 - Tự động xử lý cookies
 - Giống production flow
 - Dễ debug với Browser DevTools
@@ -149,6 +156,7 @@ Test client sẽ chạy tại: `http://localhost:3000`
 #### Bước 1: Login qua Browser
 
 Mở browser và truy cập:
+
 ```
 http://localhost:8080/authentication/login
 ```
@@ -160,6 +168,7 @@ Sau khi login thành công, bạn sẽ được redirect về dashboard.
 Mở **DevTools** → **Application** → **Cookies** → `http://localhost:8080`
 
 Bạn sẽ thấy cookie:
+
 ```
 Name: smap_auth_token
 Value: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -176,20 +185,20 @@ Mở **DevTools** → **Console** và chạy:
 
 ```javascript
 // Test GET /authentication/me
-fetch('http://localhost:8080/authentication/me', {
-  method: 'GET',
-  credentials: 'include'  // ✅ Quan trọng: Gửi cookies
+fetch("http://localhost:8080/authentication/me", {
+  method: "GET",
+  credentials: "include", // ✅ Quan trọng: Gửi cookies
 })
-.then(r => r.json())
-.then(data => console.log(data));
+  .then((r) => r.json())
+  .then((data) => console.log(data));
 
 // Test POST /authentication/logout
-fetch('http://localhost:8080/authentication/logout', {
-  method: 'POST',
-  credentials: 'include'
+fetch("http://localhost:8080/authentication/logout", {
+  method: "POST",
+  credentials: "include",
 })
-.then(r => r.json())
-.then(data => console.log(data));
+  .then((r) => r.json())
+  .then((data) => console.log(data));
 ```
 
 **⚠️ LƯU Ý**: Phải thêm `credentials: 'include'` để browser gửi cookies!
@@ -222,9 +231,11 @@ Postman có thể test HttpOnly cookies nhưng cần setup đúng cách. Có 2 p
 Postman Interceptor sẽ tự động sync cookies từ browser.
 
 1. **Request: Get User Info**
+
    ```
    GET http://localhost:8080/authentication/me
    ```
+
    - Tab "Cookies": Bạn sẽ thấy `smap_auth_token` được sync từ browser
    - Click "Send"
    - Response: User information
@@ -233,15 +244,18 @@ Postman Interceptor sẽ tự động sync cookies từ browser.
    ```
    POST http://localhost:8080/authentication/logout
    ```
+
    - Cookie sẽ bị expire
    - Kiểm tra lại tab "Cookies" - cookie đã mất
 
 **✅ Ưu điểm**:
+
 - Tự động sync cookies từ browser
 - Không cần copy/paste thủ công
 - Giống production flow
 
 **❌ Nhược điểm**:
+
 - Cần cài extension
 - Chỉ hoạt động với Chrome/Edge
 
@@ -253,7 +267,7 @@ Postman Interceptor sẽ tự động sync cookies từ browser.
 
 1. Mở Postman Settings (⚙️)
 2. General tab:
-   - ✅ Enable "Automatically follow redirects" 
+   - ✅ Enable "Automatically follow redirects"
    - ✅ Enable "Send cookies"
    - ✅ Enable "Capture cookies"
 
@@ -276,6 +290,7 @@ smap_auth_token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; Domain=localhos
 ```
 
 Hoặc dùng form:
+
 - Name: `smap_auth_token`
 - Value: `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...` (paste token)
 - Domain: `localhost`
@@ -286,18 +301,22 @@ Hoặc dùng form:
 **Bước 4: Test API**
 
 1. **Request: Get User Info**
+
    ```
    GET http://localhost:8080/authentication/me
    ```
+
    - Tab "Headers": Không cần thêm gì
    - Tab "Cookies": Cookie đã được add ở bước 3
    - Click "Send"
    - Response 200: User information
 
 2. **Request: Get JWKS**
+
    ```
    GET http://localhost:8080/authentication/.well-known/jwks.json
    ```
+
    - Không cần cookie (public endpoint)
    - Response: Public keys
 
@@ -305,6 +324,7 @@ Hoặc dùng form:
    ```
    POST http://localhost:8080/authentication/logout
    ```
+
    - Cookie tự động được gửi
    - Response 200: Success
    - Cookie bị expire (check lại tab "Cookies")
@@ -312,9 +332,11 @@ Hoặc dùng form:
 **Bước 5: Verify Cookie Expired**
 
 Sau khi logout, thử request lại:
+
 ```
 GET http://localhost:8080/authentication/me
 ```
+
 - Response 401: Unauthorized (cookie đã expire)
 
 ---
@@ -339,6 +361,7 @@ POST {{base_url}}/authentication/me
 ```
 
 Pre-request Script:
+
 ```javascript
 // Paste token vào đây sau khi login qua browser
 const token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...";
@@ -348,13 +371,13 @@ pm.environment.set("auth_token", token);
 
 // Set cookie
 pm.cookies.set({
-    url: pm.environment.get("base_url"),
-    name: "smap_auth_token",
-    value: token,
-    path: "/",
-    domain: "localhost",
-    httpOnly: true,
-    sameSite: "Lax"
+  url: pm.environment.get("base_url"),
+  name: "smap_auth_token",
+  value: token,
+  path: "/",
+  domain: "localhost",
+  httpOnly: true,
+  sameSite: "Lax",
 });
 ```
 
@@ -365,33 +388,35 @@ GET {{base_url}}/authentication/me
 ```
 
 Pre-request Script:
+
 ```javascript
 // Đảm bảo cookie được set
 const token = pm.environment.get("auth_token");
 if (token) {
-    pm.cookies.set({
-        url: pm.environment.get("base_url"),
-        name: "smap_auth_token",
-        value: token,
-        path: "/",
-        domain: "localhost",
-        httpOnly: true,
-        sameSite: "Lax"
-    });
+  pm.cookies.set({
+    url: pm.environment.get("base_url"),
+    name: "smap_auth_token",
+    value: token,
+    path: "/",
+    domain: "localhost",
+    httpOnly: true,
+    sameSite: "Lax",
+  });
 }
 ```
 
 Tests Script:
+
 ```javascript
 // Verify response
 pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
+  pm.response.to.have.status(200);
 });
 
 pm.test("Response has user data", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.data).to.have.property('id');
-    pm.expect(jsonData.data).to.have.property('email');
+  const jsonData = pm.response.json();
+  pm.expect(jsonData.data).to.have.property("id");
+  pm.expect(jsonData.data).to.have.property("email");
 });
 ```
 
@@ -402,9 +427,10 @@ POST {{base_url}}/authentication/logout
 ```
 
 Tests Script:
+
 ```javascript
 pm.test("Logout successful", function () {
-    pm.response.to.have.status(200);
+  pm.response.to.have.status(200);
 });
 
 // Clear token from environment
@@ -425,37 +451,41 @@ pm.environment.unset("auth_token");
 **Issue 1: Cookie Không Được Gửi**
 
 Kiểm tra:
+
 1. Tab "Cookies" → Verify cookie tồn tại cho domain `localhost`
 2. Settings → "Send cookies" phải được enable
 3. Cookie domain phải khớp với request URL
 
 Debug:
+
 ```javascript
 // Pre-request Script để debug
 pm.cookies.jar().getAll(pm.request.url.toString(), (error, cookies) => {
-    console.log("Cookies for this request:", cookies);
+  console.log("Cookies for this request:", cookies);
 });
 ```
 
 **Issue 2: Cookie Bị Reject**
 
 Nguyên nhân:
+
 - Domain không khớp (dùng `127.0.0.1` thay vì `localhost`)
 - Secure flag = true nhưng dùng HTTP
 - SameSite = Strict
 
 Giải pháp:
+
 ```javascript
 // Đảm bảo cookie settings đúng
 pm.cookies.set({
-    url: "http://localhost:8080",  // Phải dùng localhost, không dùng 127.0.0.1
-    name: "smap_auth_token",
-    value: token,
-    path: "/",
-    domain: "localhost",           // Không có dấu chấm
-    httpOnly: true,
-    secure: false,                 // false cho HTTP
-    sameSite: "Lax"               // Lax hoặc None
+  url: "http://localhost:8080", // Phải dùng localhost, không dùng 127.0.0.1
+  name: "smap_auth_token",
+  value: token,
+  path: "/",
+  domain: "localhost", // Không có dấu chấm
+  httpOnly: true,
+  secure: false, // false cho HTTP
+  sameSite: "Lax", // Lax hoặc None
 });
 ```
 
@@ -464,6 +494,7 @@ pm.cookies.set({
 Postman không thể xử lý OAuth flow (redirect đến Google) một cách tự động.
 
 Giải pháp:
+
 1. **Dùng Postman Interceptor** (sync cookies từ browser)
 2. **Login qua browser** → Copy cookie thủ công
 3. **Dùng test client** (`cmd/test-client/`) thay vì Postman
@@ -472,11 +503,11 @@ Giải pháp:
 
 #### So Sánh Các Phương Pháp Postman
 
-| Phương Pháp | Ưu Điểm | Nhược Điểm | Khuyến Nghị |
-|-------------|---------|------------|-------------|
-| **Interceptor** | Tự động sync, dễ dùng | Cần extension | ⭐⭐⭐⭐⭐ |
-| **Manual Cookie** | Không cần extension | Phải copy/paste | ⭐⭐⭐ |
-| **Pre-request Script** | Automation, reusable | Phức tạp setup | ⭐⭐⭐⭐ |
+| Phương Pháp            | Ưu Điểm               | Nhược Điểm      | Khuyến Nghị |
+| ---------------------- | --------------------- | --------------- | ----------- |
+| **Interceptor**        | Tự động sync, dễ dùng | Cần extension   | ⭐⭐⭐⭐⭐  |
+| **Manual Cookie**      | Không cần extension   | Phải copy/paste | ⭐⭐⭐      |
+| **Pre-request Script** | Automation, reusable  | Phức tạp setup  | ⭐⭐⭐⭐    |
 
 ---
 
@@ -567,6 +598,7 @@ Tạo file `postman_collection.json`:
 ```
 
 Import vào Postman và sử dụng với environment:
+
 ```json
 {
   "name": "Local",
@@ -605,7 +637,7 @@ Import vào Postman và sử dụng với environment:
 
 3. **HttpOnly Cookies**: Postman có thể set/send HttpOnly cookies (khác với browser JavaScript)
 
-4. **Testing Recommendation**: 
+4. **Testing Recommendation**:
    - Development: Dùng test client (`cmd/test-client/`)
    - API Testing: Dùng Postman với Interceptor
    - Automation: Dùng Postman Collection với scripts
@@ -624,6 +656,7 @@ curl -c cookies.txt -L \
 ```
 
 **⚠️ Vấn đề**: curl không thể xử lý OAuth redirect tự động. Bạn cần:
+
 1. Copy authorization URL từ response
 2. Mở browser, login
 3. Copy cookie từ browser
@@ -663,33 +696,36 @@ curl -b cookies.txt -X POST \
 **Nguyên nhân & Giải pháp**:
 
 1. **Cookie domain không khớp**
+
    ```yaml
    # ❌ SAI
    cookie:
      domain: .localhost  # Dấu chấm gây lỗi
-   
+
    # ✅ ĐÚNG
    cookie:
      domain: localhost
    ```
 
 2. **Secure flag = true với HTTP**
+
    ```yaml
    # ❌ SAI (cho localhost HTTP)
    cookie:
      secure: true
-   
+
    # ✅ ĐÚNG
    cookie:
      secure: false
    ```
 
 3. **SameSite = Strict**
+
    ```yaml
    # ❌ SAI (block OAuth redirects)
    cookie:
      samesite: Strict
-   
+
    # ✅ ĐÚNG
    cookie:
      samesite: Lax
@@ -697,34 +733,37 @@ curl -b cookies.txt -X POST \
 
 ### Issue 2: CORS Error
 
-**Triệu chứng**: 
+**Triệu chứng**:
+
 ```
-Access to fetch at 'http://localhost:8080/authentication/me' from origin 
+Access to fetch at 'http://localhost:8080/authentication/me' from origin
 'http://localhost:3000' has been blocked by CORS policy
 ```
 
 **Nguyên nhân & Giải pháp**:
 
 1. **Environment = production**
+
    ```yaml
    # ❌ SAI
    environment:
      name: production
-   
+
    # ✅ ĐÚNG
    environment:
      name: development
    ```
 
 2. **Thiếu credentials: 'include'**
+
    ```javascript
    // ❌ SAI
-   fetch('http://localhost:8080/authentication/me')
-   
+   fetch("http://localhost:8080/authentication/me");
+
    // ✅ ĐÚNG
-   fetch('http://localhost:8080/authentication/me', {
-     credentials: 'include'
-   })
+   fetch("http://localhost:8080/authentication/me", {
+     credentials: "include",
+   });
    ```
 
 ### Issue 3: Cookie Được Set Nhưng Không Được Gửi
@@ -754,24 +793,27 @@ Access to fetch at 'http://localhost:8080/authentication/me' from origin
 **Debug steps**:
 
 1. **Kiểm tra cookie có được set không**
+
    ```javascript
    // DevTools Console
-   document.cookie
+   document.cookie;
    ```
 
 2. **Kiểm tra cookie có được gửi không**
    - DevTools → Network → Request → Headers → Cookie
 
 3. **Kiểm tra JWT token có valid không**
+
    ```bash
    # Copy token từ cookie và decode tại jwt.io
    ```
 
 4. **Kiểm tra blacklist**
+
    ```bash
    # Connect to Redis
    docker exec -it redis redis-cli
-   
+
    # Check if token is blacklisted
    GET blacklist:YOUR_JTI
    ```
@@ -786,19 +828,21 @@ Access to fetch at 'http://localhost:8080/authentication/me' from origin
 // Client code
 const token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...";
 
-fetch('http://localhost:8080/api/users', {
+fetch("http://localhost:8080/api/users", {
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 });
 ```
 
 **✅ Ưu điểm**:
+
 - Dễ test (copy/paste token)
 - Dễ debug (thấy token trong request)
 - Không cần CORS credentials
 
 **❌ Nhược điểm**:
+
 - Dễ bị XSS attack (JavaScript có thể đọc token)
 - Phải tự quản lý token storage
 - Token có thể bị leak qua console.log
@@ -807,17 +851,19 @@ fetch('http://localhost:8080/api/users', {
 
 ```javascript
 // Client code
-fetch('http://localhost:8080/authentication/me', {
-  credentials: 'include'  // Browser tự động gửi cookie
+fetch("http://localhost:8080/authentication/me", {
+  credentials: "include", // Browser tự động gửi cookie
 });
 ```
 
 **✅ Ưu điểm**:
+
 - Bảo mật cao (JavaScript không đọc được)
 - Tự động gửi cookie (không cần code)
 - Chống XSS attack
 
 **❌ Nhược điểm**:
+
 - Khó test hơn (không thấy token)
 - Cần config CORS đúng
 - Cần config cookie domain/secure/samesite
@@ -866,7 +912,7 @@ environment:
 cookie:
   domain: .smap.com
   secure: true
-  samesite: Strict  # Hoặc Lax nếu cần cross-site
+  samesite: Strict # Hoặc Lax nếu cần cross-site
 
 oauth2:
   redirect_uri: https://auth.smap.com/authentication/callback
@@ -877,6 +923,7 @@ oauth2:
 ## Testing Checklist
 
 ### ✅ Pre-Test Setup
+
 - [ ] Config `cookie.domain = localhost`
 - [ ] Config `cookie.secure = false`
 - [ ] Config `environment.name = development`
@@ -885,6 +932,7 @@ oauth2:
 - [ ] Add `http://localhost:8080/authentication/callback` to Google OAuth
 
 ### ✅ Login Flow Test
+
 - [ ] Access `http://localhost:8080/authentication/login`
 - [ ] Redirect to Google OAuth
 - [ ] Login with Google account
@@ -894,11 +942,13 @@ oauth2:
 - [ ] Cookie có SameSite=Lax
 
 ### ✅ Authenticated Request Test
+
 - [ ] Request `/authentication/me` với `credentials: 'include'`
 - [ ] Response 200 với user info
 - [ ] Cookie được gửi trong request header
 
 ### ✅ Logout Test
+
 - [ ] Request `/authentication/logout`
 - [ ] Cookie bị expire (Max-Age=-1)
 - [ ] Request `/authentication/me` trả về 401

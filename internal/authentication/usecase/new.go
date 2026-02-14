@@ -4,7 +4,6 @@ import (
 	"smap-api/internal/audit"
 	"smap-api/internal/user"
 	"smap-api/pkg/encrypter"
-	pkgGoogle "smap-api/pkg/google"
 	pkgJWT "smap-api/pkg/jwt"
 	pkgLog "smap-api/pkg/log"
 	"smap-api/pkg/oauth"
@@ -25,10 +24,8 @@ type ImplUsecase struct {
 	sessionManager    *SessionManager
 	blacklistManager  *BlacklistManager
 	jwtManager        *pkgJWT.Manager
-	groupsManager     *GroupsManager
 	roleMapper        *RoleMapper
 	oauthProvider     oauth.Provider
-	rateLimiter       *RateLimiter
 	redirectValidator *RedirectValidator
 	allowedDomains    []string
 	blockedEmails     []string
@@ -57,28 +54,12 @@ type BlacklistManager struct {
 	redis *pkgRedis.Client
 }
 
-// --- Groups types ---
-
-// GroupsManager handles Google Groups fetching and caching
-type GroupsManager struct {
-	googleClient *pkgGoogle.Client
-	redis        *pkgRedis.Client
-	cacheTTL     time.Duration
-}
-
 // --- Role mapping types ---
 
-// RoleMapper handles group-to-role mapping logic
+// RoleMapper handles email-to-role mapping logic
 type RoleMapper struct {
-	roleMapping map[string][]string
+	userRoles   map[string]string
 	defaultRole string
-}
-
-// rolePriority maps roles to their priority level for selecting highest privilege
-var rolePriority = map[string]int{
-	"ADMIN":   3,
-	"ANALYST": 2,
-	"VIEWER":  1,
 }
 
 // --- Redirect types ---
@@ -86,16 +67,6 @@ var rolePriority = map[string]int{
 // RedirectValidator validates redirect URLs against allowed list
 type RedirectValidator struct {
 	allowedURLs []string
-}
-
-// --- Rate limiting types ---
-
-// RateLimiter implements login rate limiting to prevent brute force attacks
-type RateLimiter struct {
-	redis          *pkgRedis.Client
-	maxAttempts    int
-	windowDuration time.Duration
-	blockDuration  time.Duration
 }
 
 func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) *ImplUsecase {
@@ -125,19 +96,10 @@ func NewBlacklistManager(redisClient *pkgRedis.Client) *BlacklistManager {
 	}
 }
 
-// NewGroupsManager creates a new groups manager
-func NewGroupsManager(googleClient *pkgGoogle.Client, redis *pkgRedis.Client) *GroupsManager {
-	return &GroupsManager{
-		googleClient: googleClient,
-		redis:        redis,
-		cacheTTL:     5 * time.Minute,
-	}
-}
-
 // NewRoleMapper creates a new role mapper
 func NewRoleMapper(cfg *config.Config) *RoleMapper {
 	return &RoleMapper{
-		roleMapping: cfg.AccessControl.RoleMapping,
+		userRoles:   cfg.AccessControl.UserRoles,
 		defaultRole: cfg.AccessControl.DefaultRole,
 	}
 }
@@ -146,16 +108,6 @@ func NewRoleMapper(cfg *config.Config) *RoleMapper {
 func NewRedirectValidator(allowedURLs []string) *RedirectValidator {
 	return &RedirectValidator{
 		allowedURLs: allowedURLs,
-	}
-}
-
-// NewRateLimiter creates a new rate limiter
-func NewRateLimiter(redisClient *pkgRedis.Client, maxAttempts int, windowDuration, blockDuration time.Duration) *RateLimiter {
-	return &RateLimiter{
-		redis:          redisClient,
-		maxAttempts:    maxAttempts,
-		windowDuration: windowDuration,
-		blockDuration:  blockDuration,
 	}
 }
 
@@ -177,20 +129,12 @@ func (u *ImplUsecase) SetJWTManager(manager *pkgJWT.Manager) {
 	u.jwtManager = manager
 }
 
-func (u *ImplUsecase) SetGroupsManager(manager *GroupsManager) {
-	u.groupsManager = manager
-}
-
 func (u *ImplUsecase) SetRoleMapper(mapper *RoleMapper) {
 	u.roleMapper = mapper
 }
 
 func (u *ImplUsecase) SetOAuthProvider(provider oauth.Provider) {
 	u.oauthProvider = provider
-}
-
-func (u *ImplUsecase) SetRateLimiter(limiter *RateLimiter) {
-	u.rateLimiter = limiter
 }
 
 func (u *ImplUsecase) SetRedirectValidator(validator *RedirectValidator) {

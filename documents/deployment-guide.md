@@ -4,17 +4,16 @@
 
 1. [Prerequisites](#prerequisites)
 2. [Google OAuth Setup](#google-oauth-setup)
-3. [Google Service Account Setup](#google-service-account-setup)
-4. [Generate JWT Keys](#generate-jwt-keys)
-5. [Environment Variables](#environment-variables)
-6. [Database Setup](#database-setup)
-7. [Redis Setup](#redis-setup)
-8. [Kafka Setup](#kafka-setup)
-9. [Service Keys Configuration](#service-keys-configuration)
-10. [Docker Compose (Local Development)](#docker-compose-local-development)
-11. [Kubernetes Deployment](#kubernetes-deployment)
-12. [Health Checks](#health-checks)
-13. [Troubleshooting](#troubleshooting)
+3. [Environment Variables](#environment-variables)
+4. [Database Setup](#database-setup)
+5. [Redis Setup](#redis-setup)
+6. [Kafka Setup](#kafka-setup)
+7. [Service Keys Configuration](#service-keys-configuration)
+8. [Docker Compose (Local Development)](#docker-compose-local-development)
+9. [Kubernetes Deployment](#kubernetes-deployment)
+10. [Cleanup Scripts](#cleanup-scripts)
+11. [Health Checks](#health-checks)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -24,7 +23,7 @@
 - PostgreSQL 14+
 - Redis 7+
 - Kafka 3.0+
-- Google Workspace account with admin access
+- Google account for OAuth
 - Domain with HTTPS support
 
 ---
@@ -43,12 +42,11 @@
 1. Navigate to **"APIs & Services" → "Library"**
 2. Search and enable:
    - **Google+ API** (for user info)
-   - **Admin SDK API** (for Directory API)
 
 ### Step 3: Configure OAuth Consent Screen
 
 1. Navigate to **"APIs & Services" → "OAuth consent screen"**
-2. Select **"Internal"** (for Google Workspace users only)
+2. Select **"External"** (for any Google account) or **"Internal"** (for Google Workspace)
 3. Fill in application information:
    - **App name**: `SMAP Identity Service`
    - **User support email**: `admin@yourdomain.com`
@@ -62,7 +60,6 @@
    ```
    https://www.googleapis.com/auth/userinfo.email
    https://www.googleapis.com/auth/userinfo.profile
-   https://www.googleapis.com/auth/admin.directory.group.readonly
    ```
 3. Click **"Update"** and **"Save and Continue"**
 
@@ -97,143 +94,6 @@
 │ Client Secret:                                      │
 │ GOCSPX-abc123def456ghi789jkl012                     │
 └─────────────────────────────────────────────────────┘
-```
-
----
-
-## Google Service Account Setup
-
-### Step 1: Create Service Account
-
-1. Navigate to **"IAM & Admin" → "Service Accounts"**
-2. Click **"Create Service Account"**
-3. Enter details:
-   - **Name**: `smap-directory-api`
-   - **Description**: `Service account for accessing Google Directory API`
-4. Click **"Create and Continue"**
-5. Skip role assignment (not needed for domain-wide delegation)
-6. Click **"Done"**
-
-### Step 2: Enable Domain-Wide Delegation
-
-1. Click on the created service account
-2. Navigate to **"Details"** tab
-3. Scroll to **"Advanced settings"**
-4. Click **"Enable Google Workspace Domain-wide Delegation"**
-5. **Save the Client ID** (numeric, e.g., `123456789012345678901`)
-
-### Step 3: Create Service Account Key
-
-1. Navigate to **"Keys"** tab
-2. Click **"Add Key" → "Create new key"**
-3. Select **"JSON"**
-4. Click **"Create"**
-5. **Save the downloaded JSON file** (you'll need this)
-
-**JSON File Example**:
-
-```json
-{
-  "type": "service_account",
-  "project_id": "smap-auth-service",
-  "private_key_id": "abc123...",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "client_email": "smap-directory-api@smap-auth-service.iam.gserviceaccount.com",
-  "client_id": "123456789012345678901",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/..."
-}
-```
-
-### Step 4: Configure Domain-Wide Delegation in Google Workspace
-
-1. Go to [Google Admin Console](https://admin.google.com/)
-2. Navigate to **"Security" → "Access and data control" → "API controls"**
-3. Scroll to **"Domain-wide delegation"**
-4. Click **"Manage Domain-Wide Delegation"**
-5. Click **"Add new"**
-6. Enter:
-   - **Client ID**: `123456789012345678901` (from Step 2)
-   - **OAuth Scopes**:
-     ```
-     https://www.googleapis.com/auth/admin.directory.group.readonly
-     ```
-7. Click **"Authorize"**
-
-**Screenshot Example**:
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Add a new Client ID                                 │
-├─────────────────────────────────────────────────────┤
-│ Client ID:                                          │
-│ [123456789012345678901                          ]   │
-│                                                     │
-│ OAuth Scopes (comma-delimited):                     │
-│ [https://www.googleapis.com/auth/admin.directory...]│
-│                                                     │
-│                          [Cancel]  [Authorize]      │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-## Generate JWT Keys
-
-### Step 1: Generate RSA Key Pair
-
-```bash
-# Create keys directory
-mkdir -p keys
-
-# Generate private key (2048-bit RSA)
-openssl genrsa -out keys/jwt-private.pem 2048
-
-# Generate public key
-openssl rsa -in keys/jwt-private.pem -pubout -out keys/jwt-public.pem
-
-# Set proper permissions
-chmod 600 keys/jwt-private.pem
-chmod 644 keys/jwt-public.pem
-```
-
-### Step 2: Verify Keys
-
-```bash
-# Verify private key
-openssl rsa -in keys/jwt-private.pem -check
-
-# View public key
-cat keys/jwt-public.pem
-```
-
-**Output Example**:
-
-```
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxGOr+H7A...
------END PUBLIC KEY-----
-```
-
-### Step 3: Store Keys Securely
-
-**For Kubernetes**:
-
-```bash
-# Create secret
-kubectl create secret generic jwt-keys \
-  --from-file=private-key=keys/jwt-private.pem \
-  --from-file=public-key=keys/jwt-public.pem \
-  -n identity-service
-```
-
-**For Docker**:
-
-```bash
-# Mount as volume
-docker run -v $(pwd)/keys:/app/keys identity-service
 ```
 
 ---
@@ -295,19 +155,12 @@ oauth2:
 
 # JWT Configuration
 jwt:
-  algorithm: RS256
-  private_key_path: /app/keys/jwt-private.pem
-  public_key_path: /app/keys/jwt-public.pem
+  algorithm: HS256
+  secret_key: <JWT_SECRET_KEY> # Minimum 32 characters
   issuer: smap-auth-service
   audience:
     - smap-api
   ttl: 28800 # 8 hours in seconds
-
-# Google Workspace Configuration
-google_workspace:
-  service_account_key: /app/keys/service-account.json
-  admin_email: admin@yourdomain.com
-  domain: yourdomain.com
 
 # Access Control Configuration
 access_control:
@@ -320,13 +173,10 @@ access_control:
     - https://yourdomain.com/dashboard
     - https://yourdomain.com/
     - https://app.yourdomain.com
-  role_mapping:
-    admins@yourdomain.com:
-      - ADMIN
-    analysts@yourdomain.com:
-      - ANALYST
-    viewers@yourdomain.com:
-      - VIEWER
+  user_roles:
+    admin@yourdomain.com: ADMIN
+    analyst@yourdomain.com: ANALYST
+    viewer@yourdomain.com: VIEWER
   default_role: VIEWER
 
 # Session Configuration
@@ -398,6 +248,9 @@ kafka:
 oauth2:
   redirect_uri: http://localhost:8080/authentication/callback
 
+jwt:
+  secret_key: dev-secret-key-minimum-32-characters-for-development
+
 cookie:
   domain: localhost
   secure: false
@@ -449,7 +302,6 @@ psql -h postgres.example.com -U identity_user -d identity_service
 --  Schema |    Name     | Type  |     Owner
 -- --------+-------------+-------+---------------
 --  public | audit_logs  | table | identity_user
---  public | jwt_keys    | table | identity_user
 --  public | users       | table | identity_user
 ```
 
@@ -697,6 +549,93 @@ docker-compose -f docker-compose.dev.yml down
 
 ---
 
+## Cleanup Scripts
+
+### Manual Audit Log Cleanup
+
+The service provides scripts for manual maintenance tasks that were previously handled by the Scheduler service.
+
+#### Cleanup Audit Logs
+
+```bash
+# Run cleanup script (removes logs older than 90 days)
+make db-cleanup-audit
+
+# Or run script directly
+bash scripts/cleanup-audit-logs.sh
+
+# Customize retention period
+AUDIT_RETENTION_DAYS=30 bash scripts/cleanup-audit-logs.sh
+```
+
+#### Setup Cron Job (Recommended for Production)
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add monthly cleanup (runs on 1st of each month at 2 AM)
+0 2 1 * * cd /path/to/identity-srv && make db-cleanup-audit >> /var/log/audit-cleanup.log 2>&1
+
+# Or weekly cleanup (runs every Sunday at 3 AM)
+0 3 * * 0 cd /path/to/identity-srv && make db-cleanup-audit >> /var/log/audit-cleanup.log 2>&1
+```
+
+#### Kubernetes CronJob
+
+Create `manifests/cronjob-cleanup.yaml`:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: audit-cleanup
+  namespace: auth-service
+spec:
+  schedule: "0 2 1 * *" # Monthly on 1st at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: cleanup
+              image: postgres:14-alpine
+              env:
+                - name: PGHOST
+                  value: postgres.auth-service.svc.cluster.local
+                - name: PGPORT
+                  value: "5432"
+                - name: PGDATABASE
+                  value: identity_service
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: password
+                - name: RETENTION_DAYS
+                  value: "90"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  CUTOFF_DATE=$(date -d "$RETENTION_DAYS days ago" +%Y-%m-%d)
+                  psql -c "DELETE FROM audit_logs WHERE created_at < '$CUTOFF_DATE'::timestamp;"
+          restartPolicy: OnFailure
+```
+
+Apply the CronJob:
+
+```bash
+kubectl apply -f manifests/cronjob-cleanup.yaml
+```
+
+---
+
 ## Kubernetes Deployment
 
 ### Step 1: Create Namespace
@@ -708,20 +647,14 @@ kubectl create namespace auth-service
 ### Step 2: Create Secrets
 
 ```bash
-# JWT keys
-kubectl create secret generic jwt-keys \
-  --from-file=private-key=keys/jwt-private.pem \
-  --from-file=public-key=keys/jwt-public.pem \
-  -n auth-service
-
-# Google service account
-kubectl create secret generic google-service-account \
-  --from-file=service-account.json=keys/service-account.json \
-  -n auth-service
-
 # Configuration
 kubectl create secret generic auth-config \
   --from-file=auth-config.yaml=auth-config.yaml \
+  -n auth-service
+
+# JWT secret key
+kubectl create secret generic jwt-secret \
+  --from-literal=secret-key='your-secret-key-minimum-32-characters-required' \
   -n auth-service
 ```
 
@@ -753,15 +686,14 @@ spec:
           env:
             - name: CONFIG_FILE
               value: /app/config/auth-config.yaml
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: secret-key
           volumeMounts:
             - name: config
               mountPath: /app/config
-              readOnly: true
-            - name: jwt-keys
-              mountPath: /app/keys
-              readOnly: true
-            - name: google-service-account
-              mountPath: /app/google
               readOnly: true
           livenessProbe:
             httpGet:
@@ -786,12 +718,6 @@ spec:
         - name: config
           secret:
             secretName: auth-config
-        - name: jwt-keys
-          secret:
-            secretName: jwt-keys
-        - name: google-service-account
-          secret:
-            secretName: google-service-account
 ```
 
 ### Step 4: Create Service
@@ -917,12 +843,13 @@ curl https://yourdomain.com/health
 
 **Symptom**: `Failed to fetch user groups`
 
+**Note**: This feature has been removed. User roles are now mapped directly from email addresses in the configuration file.
+
 **Solutions**:
 
-- Verify service account has domain-wide delegation enabled
-- Check `google_workspace.admin_email` has admin privileges
-- Verify OAuth scopes in Google Admin Console
-- Check service account JSON file path
+- Update `access_control.user_roles` in config file
+- Map user emails to roles: `email@domain.com: ROLE`
+- Set appropriate `default_role` for unmapped users
 
 #### 3. JWT Verification Fails
 
@@ -930,10 +857,10 @@ curl https://yourdomain.com/health
 
 **Solutions**:
 
-- Verify JWT keys are correctly mounted
-- Check `jwt.public_key_path` points to correct file
-- Ensure public key is accessible by other services
-- Verify JWKS endpoint is reachable
+- Verify JWT secret key is correctly configured
+- Check `jwt.secret_key` is minimum 32 characters
+- Ensure secret key matches across all services
+- Verify `jwt.issuer` and `jwt.audience` are correct
 
 #### 4. Redis Connection Fails
 

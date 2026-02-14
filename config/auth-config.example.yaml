@@ -50,20 +50,13 @@ oauth2:
     - email
     - profile
 
-# Google Workspace Configuration (for Day 3)
-google_workspace:
-  service_account_key: /secrets/google-service-account.json
-  admin_email: admin@vinfast.com
-  domain: vinfast.com
-
 # JWT Configuration
 jwt:
-  algorithm: RS256
+  algorithm: HS256
   issuer: smap-auth-service
   audience:
     - smap-api
-  private_key_path: ./secrets/jwt-private.pem
-  public_key_path: ./secrets/jwt-public.pem
+  secret_key: smap-jwt-secret-key-2024-minimum-32-characters-required
   ttl: 28800 # 8 hours in seconds
 
 # Cookie Configuration
@@ -81,13 +74,11 @@ access_control:
     - gmail.com
     - vinfast.com
   blocked_emails: []
-  role_mapping:
-    ADMIN:
-      - admin@vinfast.com
-    ANALYST:
-      - analyst@vinfast.com
-    VIEWER:
-      - viewer@vinfast.com
+  user_roles:
+    admin@vinfast.com: ADMIN
+    analyst@vinfast.com: ANALYST
+    viewer@vinfast.com: VIEWER
+    tantai@vinfast.com: ADMIN
   default_role: VIEWER
 
 # Session Configuration

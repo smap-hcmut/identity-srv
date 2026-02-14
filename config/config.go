@@ -43,12 +43,6 @@ type Config struct {
 	// Token Blacklist
 	Blacklist BlacklistConfig
 
-	// Rate Limiting Configuration
-	RateLimit RateLimitConfig
-
-	// Key Rotation Configuration
-	KeyRotation KeyRotationConfig
-
 	// Monitoring & Notification Configuration
 	Discord DiscordConfig
 }
@@ -80,7 +74,7 @@ type AccessControlConfig struct {
 	AllowedDomains      []string
 	BlockedEmails       []string
 	AllowedRedirectURLs []string
-	RoleMapping         map[string][]string
+	UserRoles           map[string]string
 	DefaultRole         string
 }
 
@@ -96,20 +90,6 @@ type BlacklistConfig struct {
 	Enabled   bool
 	Backend   string
 	KeyPrefix string
-}
-
-// RateLimitConfig is the configuration for rate limiting
-type RateLimitConfig struct {
-	MaxAttempts   int // Maximum failed login attempts
-	WindowMinutes int // Time window in minutes
-	BlockMinutes  int // Block duration in minutes
-}
-
-// KeyRotationConfig is the configuration for JWT key rotation
-type KeyRotationConfig struct {
-	Enabled      bool
-	RotationDays int // Default: 30
-	GraceDays    int // Default: 7
 }
 
 // KafkaConfig is the configuration for Kafka
@@ -138,12 +118,11 @@ type CookieConfig struct {
 
 // JWTConfig is the configuration for JWT
 type JWTConfig struct {
-	Algorithm      string
-	Issuer         string
-	Audience       []string
-	PrivateKeyPath string
-	PublicKeyPath  string
-	TTL            int // in seconds
+	Algorithm string
+	Issuer    string
+	Audience  []string
+	SecretKey string
+	TTL       int // in seconds
 }
 
 // HTTPServerConfig is the configuration for the HTTP server
@@ -263,8 +242,7 @@ func Load() (*Config, error) {
 	cfg.JWT.Algorithm = viper.GetString("jwt.algorithm")
 	cfg.JWT.Issuer = viper.GetString("jwt.issuer")
 	cfg.JWT.Audience = viper.GetStringSlice("jwt.audience")
-	cfg.JWT.PrivateKeyPath = viper.GetString("jwt.private_key_path")
-	cfg.JWT.PublicKeyPath = viper.GetString("jwt.public_key_path")
+	cfg.JWT.SecretKey = viper.GetString("jwt.secret_key")
 	cfg.JWT.TTL = viper.GetInt("jwt.ttl")
 
 	// Cookie
@@ -280,21 +258,8 @@ func Load() (*Config, error) {
 	cfg.AccessControl.BlockedEmails = viper.GetStringSlice("access_control.blocked_emails")
 	cfg.AccessControl.DefaultRole = viper.GetString("access_control.default_role")
 
-	// Role mapping
-	roleMapping := make(map[string][]string)
-	if viper.IsSet("access_control.role_mapping") {
-		roleMappingRaw := viper.GetStringMap("access_control.role_mapping")
-		for role, groups := range roleMappingRaw {
-			if groupList, ok := groups.([]interface{}); ok {
-				strGroups := make([]string, len(groupList))
-				for i, g := range groupList {
-					strGroups[i] = fmt.Sprint(g)
-				}
-				roleMapping[role] = strGroups
-			}
-		}
-	}
-	cfg.AccessControl.RoleMapping = roleMapping
+	// User roles mapping (email -> role)
+	cfg.AccessControl.UserRoles = viper.GetStringMapString("access_control.user_roles")
 
 	// Session
 	cfg.Session.TTL = viper.GetInt("session.ttl")
@@ -322,16 +287,6 @@ func Load() (*Config, error) {
 	// Discord
 	cfg.Discord.WebhookID = viper.GetString("discord.webhook_id")
 	cfg.Discord.WebhookToken = viper.GetString("discord.webhook_token")
-
-	// Rate Limit
-	cfg.RateLimit.MaxAttempts = viper.GetInt("rate_limit.max_attempts")
-	cfg.RateLimit.WindowMinutes = viper.GetInt("rate_limit.window_minutes")
-	cfg.RateLimit.BlockMinutes = viper.GetInt("rate_limit.block_minutes")
-
-	// Key Rotation
-	cfg.KeyRotation.Enabled = viper.GetBool("key_rotation.enabled")
-	cfg.KeyRotation.RotationDays = viper.GetInt("key_rotation.rotation_days")
-	cfg.KeyRotation.GraceDays = viper.GetInt("key_rotation.grace_days")
 
 	// Validate required fields
 	if err := validate(cfg); err != nil {
@@ -379,7 +334,7 @@ func setDefaults() {
 	viper.SetDefault("oauth2.scopes", []string{"openid", "email", "profile"})
 
 	// JWT
-	viper.SetDefault("jwt.algorithm", "RS256")
+	viper.SetDefault("jwt.algorithm", "HS256")
 	viper.SetDefault("jwt.issuer", "smap-auth-service")
 	viper.SetDefault("jwt.audience", []string{"smap-api"})
 	viper.SetDefault("jwt.ttl", 28800) // 8 hours
@@ -405,16 +360,6 @@ func setDefaults() {
 	viper.SetDefault("blacklist.enabled", true)
 	viper.SetDefault("blacklist.backend", "redis")
 	viper.SetDefault("blacklist.key_prefix", "blacklist:")
-
-	// Rate Limit
-	viper.SetDefault("rate_limit.max_attempts", 5)
-	viper.SetDefault("rate_limit.window_minutes", 15)
-	viper.SetDefault("rate_limit.block_minutes", 30)
-
-	// Key Rotation
-	viper.SetDefault("key_rotation.enabled", true)
-	viper.SetDefault("key_rotation.rotation_days", 30)
-	viper.SetDefault("key_rotation.grace_days", 7)
 }
 
 func validate(cfg *Config) error {
@@ -434,11 +379,11 @@ func validate(cfg *Config) error {
 	}
 
 	// Validate JWT fields
-	if cfg.JWT.PrivateKeyPath == "" {
-		return fmt.Errorf("jwt.private_key_path is required")
+	if cfg.JWT.SecretKey == "" {
+		return fmt.Errorf("jwt.secret_key is required")
 	}
-	if cfg.JWT.PublicKeyPath == "" {
-		return fmt.Errorf("jwt.public_key_path is required")
+	if len(cfg.JWT.SecretKey) < 32 {
+		return fmt.Errorf("jwt.secret_key must be at least 32 characters for security")
 	}
 	if cfg.JWT.Issuer == "" {
 		return fmt.Errorf("jwt.issuer is required")
@@ -448,21 +393,6 @@ func validate(cfg *Config) error {
 	}
 	if cfg.JWT.TTL <= 0 {
 		return fmt.Errorf("jwt.ttl must be greater than 0")
-	}
-
-	// Validate Google Workspace fields
-	if cfg.GoogleWorkspace.ServiceAccountKey == "" {
-		return fmt.Errorf("google_workspace.service_account_key is required")
-	}
-	if cfg.GoogleWorkspace.AdminEmail == "" {
-		return fmt.Errorf("google_workspace.admin_email is required")
-	}
-	// Validate admin email format (Task 4.4)
-	if !strings.Contains(cfg.GoogleWorkspace.AdminEmail, "@") {
-		return fmt.Errorf("google_workspace.admin_email must be a valid email address")
-	}
-	if cfg.GoogleWorkspace.Domain == "" {
-		return fmt.Errorf("google_workspace.domain is required")
 	}
 
 	// Validate Access Control
