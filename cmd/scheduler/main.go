@@ -10,7 +10,7 @@ import (
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
 	"smap-api/internal/audit"
-	authrepo "smap-api/internal/authentication/repository"
+	authrepopostgre "smap-api/internal/authentication/repository/postgre"
 	"smap-api/internal/scheduler"
 	"smap-api/pkg/jwt/rotation"
 	pkgLog "smap-api/pkg/log"
@@ -52,7 +52,7 @@ func main() {
 		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
 	// 4. Initialize JWT keys repository
-	jwtKeysRepo := authrepo.NewJWTKeysRepository(postgresDB)
+	jwtKeysRepo := authrepopostgre.New(logger, postgresDB)
 
 	// 5. Initialize key rotation manager
 	rotationManager := rotation.NewManager(

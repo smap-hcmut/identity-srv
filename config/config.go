@@ -169,6 +169,7 @@ type PostgresConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	Schema   string // Added Schema support
 }
 
 type DiscordConfig struct {
@@ -233,6 +234,7 @@ func Load() (*Config, error) {
 	cfg.Postgres.Password = viper.GetString("postgres.password")
 	cfg.Postgres.DBName = viper.GetString("postgres.dbname")
 	cfg.Postgres.SSLMode = viper.GetString("postgres.sslmode")
+	cfg.Postgres.Schema = viper.GetString("postgres.schema")
 
 	// Redis
 	cfg.Redis.Host = viper.GetString("redis.host")

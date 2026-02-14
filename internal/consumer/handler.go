@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	auditKafka "smap-api/internal/audit/delivery/kafka"
+	auditKafka "smap-api/internal/audit/delivery/kafka/consumer"
 	auditPostgre "smap-api/internal/audit/repository/postgre"
 )
 
@@ -12,7 +12,7 @@ import (
 // Similar to how httpserver/handler.go initializes and maps audit routes
 func (srv *Consumer) registerAuditConsumer(ctx context.Context) error {
 	// Initialize audit repository
-	auditRepo := auditPostgre.New(srv.postgresDB)
+	auditRepo := auditPostgre.New(srv.logger, srv.postgresDB)
 
 	// Initialize audit consumer
 	auditConsumer := auditKafka.New(

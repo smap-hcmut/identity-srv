@@ -1,54 +1,16 @@
-package audit
+package producer
 
 import (
 	"context"
 	"encoding/json"
-	"sync"
+	"smap-api/internal/audit"
 	"time"
 
 	"github.com/IBM/sarama"
 )
 
-// Publisher publishes audit events to Kafka
-type Publisher interface {
-	Publish(ctx context.Context, event AuditEvent) error
-	Close() error
-}
-
-type publisher struct {
-	producer  sarama.AsyncProducer
-	topic     string
-	buffer    []AuditEvent
-	bufferMu  sync.Mutex
-	maxBuffer int
-	logger    Logger
-}
-
-// Logger interface for audit publisher
-type Logger interface {
-	Infof(ctx context.Context, format string, args ...interface{})
-	Errorf(ctx context.Context, format string, args ...interface{})
-	Warnf(ctx context.Context, format string, args ...interface{})
-}
-
-// NewPublisher creates a new audit event publisher
-func NewPublisher(producer sarama.AsyncProducer, topic string, logger Logger) Publisher {
-	p := &publisher{
-		producer:  producer,
-		topic:     topic,
-		buffer:    make([]AuditEvent, 0, 1000),
-		maxBuffer: 1000,
-		logger:    logger,
-	}
-
-	// Start goroutine to handle producer errors and successes
-	go p.handleProducerMessages()
-
-	return p
-}
-
 // Publish publishes an audit event to Kafka (non-blocking)
-func (p *publisher) Publish(ctx context.Context, event AuditEvent) error {
+func (p *publisher) Publish(ctx context.Context, event audit.AuditEvent) error {
 	// Set timestamp if not set
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now()
@@ -81,7 +43,7 @@ func (p *publisher) Publish(ctx context.Context, event AuditEvent) error {
 }
 
 // bufferEvent adds event to in-memory buffer when Kafka is unavailable
-func (p *publisher) bufferEvent(ctx context.Context, event AuditEvent) {
+func (p *publisher) bufferEvent(ctx context.Context, event audit.AuditEvent) {
 	p.bufferMu.Lock()
 	defer p.bufferMu.Unlock()
 

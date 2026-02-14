@@ -2,19 +2,27 @@ package authentication
 
 import (
 	"context"
-
 	"smap-api/internal/audit"
 	"smap-api/internal/model"
 )
 
-//go:generate mockery --name UseCase
+// UseCase interface for authentication module
 type UseCase interface {
-	// OAuth2 methods
-	GetCurrentUser(ctx context.Context, sc model.Scope) (GetCurrentUserOutput, error)
-	CreateOrUpdateUser(ctx context.Context, ip CreateOrUpdateUserInput) (model.User, error)
-	UpdateUserRole(ctx context.Context, ip UpdateUserRoleInput) error
-	Logout(ctx context.Context, sc model.Scope) error
+	// User operations
+	GetCurrentUser(ctx context.Context, sc model.Scope) (*model.User, error)
+	GetUserByID(ctx context.Context, userID string) (*model.User, error)
 
-	// Audit logging
+	// Session & Token operations
+	Logout(ctx context.Context, sc model.Scope) error
+	ValidateToken(ctx context.Context, token string) (*TokenValidationResult, error)
+	RevokeToken(ctx context.Context, jti string) error
+	RevokeAllUserTokens(ctx context.Context, userID string) error
+	GetJWKS(ctx context.Context) (interface{}, error)
+
+	// OAuth flow
+	InitiateOAuthLogin(ctx context.Context, input OAuthLoginInput) (*OAuthLoginOutput, error)
+	ProcessOAuthCallback(ctx context.Context, input OAuthCallbackInput) (*OAuthCallbackOutput, error)
+
+	// Audit
 	PublishAuditEvent(ctx context.Context, event audit.AuditEvent)
 }

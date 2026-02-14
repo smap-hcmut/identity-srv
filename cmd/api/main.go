@@ -9,7 +9,7 @@ import (
 	"smap-api/config"
 	configPostgre "smap-api/config/postgre"
 	_ "smap-api/docs" // Import swagger docs
-	authrepo "smap-api/internal/authentication/repository"
+	authrepopostgre "smap-api/internal/authentication/repository/postgre"
 	authUsecase "smap-api/internal/authentication/usecase"
 	"smap-api/internal/httpserver"
 	"smap-api/pkg/discord"
@@ -145,7 +145,7 @@ func main() {
 	// 12. Initialize Rate Limiter
 	// Prevents brute force attacks by limiting failed login attempts per IP
 	rateLimiter := authUsecase.NewRateLimiter(
-		redisClient.GetClient(),
+		redisClient,
 		cfg.RateLimit.MaxAttempts,
 		time.Duration(cfg.RateLimit.WindowMinutes)*time.Minute,
 		time.Duration(cfg.RateLimit.BlockMinutes)*time.Minute,
@@ -229,7 +229,20 @@ func registerGracefulShutdown(logger log.Logger) {
 // initializeJWTManager initializes JWT manager with database keys or file-based keys
 func initializeJWTManager(ctx context.Context, logger log.Logger, cfg *config.Config, db *sql.DB) (*pkgJWT.Manager, error) {
 	// Try to load keys from database first (for rotation support)
-	jwtKeysRepo := authrepo.NewJWTKeysRepository(db)
+	// Try to load keys from database first (for rotation support)
+	// We need to use the concrete postgres repository implementation here to get access to New
+	// But main already imports "smap-api/internal/authentication/repository" as authrepo
+	// We need to import the postgres implementation package too.
+
+	// Wait, I need to check imports in main.go first.
+	// main.go imports `configPostgre "smap-api/config/postgre"` but not likely `authrepo "smap-api/internal/authentication/repository/postgre"`.
+	// I'll assume I need to fix imports too.
+	// For now, let's fix the call assuming I have the package imported or use what's available.
+	// Actually, line 12 is: `authrepo "smap-api/internal/authentication/repository"`.
+	// New is in `postgre` package.
+	// I need to add import "smap-api/internal/authentication/repository/postgre" as authrepopostgre
+
+	jwtKeysRepo := authrepopostgre.New(logger, db)
 	keys, err := jwtKeysRepo.GetActiveAndRotatingKeys(ctx)
 
 	if err == nil && len(keys) > 0 {

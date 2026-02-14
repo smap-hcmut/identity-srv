@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Identity Service Test Client</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.logout {
+      background: #dc3545;
+    }
+
+    pre {
+      background: #f8f9fa;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 4px;
+      border: 1px solid #eee;
+    }
+
+    .status {
+      font-weight: bold;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Identity Service Test Client</h1>
+
+  <div class="card">
+    <h2>1. Login</h2>
+    <p>
+      Clicking this will redirect you to the Identity Service, then to Google,
+      and back here.
+    </p>
+    <button onclick="login()">Login with Google</button>
+  </div>
+
+  <div class="card">
+    <h2>2. Get User Info (Secure)</h2>
+    <p>
+      This request sends the <code>HTTPOnly</code> cookie to the server to
+      identify you.
+    </p>
+    <button class="secondary" onclick="getMe()">Get My Info</button>
+    <div id="me-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Logout</h2>
+    <button class="logout" onclick="logout()">Logout</button>
+    <div id="logout-result"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8080/authentication";
+    const CLIENT_URL = "http://localhost:3000";
+    function login() {
+      // Redirect to Login Endpoint
+      const redirectUrl = encodeURIComponent(CLIENT_URL);
+      window.location.href = `${API_URL}/login?provider=google&redirect=${redirectUrl}`;
+    }
+
+    async function getMe() {
+      const resultDiv = document.getElementById("me-result");
+      resultDiv.innerHTML = "<p>Loading...</p>";
+
+      try {
+        const response = await fetch(`${API_URL}/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const text = await response.text();
+        let display;
+        try {
+          const data = JSON.parse(text);
+          display = JSON.stringify(data, null, 2);
+        } catch {
+          display = text;
+        }
+
+        if (response.ok) {
+          resultDiv.innerHTML = `<pre class="success">Status: ${response.status}\n${display}</pre>`;
+        } else {
+          resultDiv.innerHTML = `<pre class="error">Status: ${response.status}\n${display}</pre>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<pre class="error">Fetch Error: ${error.message}</pre>`;
+      }
+    }
+
+    async function logout() {
+      const resultDiv = document.getElementById("logout-result");
+      try {
+        const response = await fetch(`${API_URL}/logout`, {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          resultDiv.innerHTML = `<p class="success">Logged out successfully.</p>`;
+          // Optional: reload page to clear any local state if needed
+        } else {
+          resultDiv.innerHTML = `<p class="error">Logout failed.</p>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+
+</html>

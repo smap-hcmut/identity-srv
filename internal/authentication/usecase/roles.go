@@ -1,30 +1,5 @@
 package usecase
 
-import (
-	"smap-api/config"
-)
-
-// RoleMapper handles group-to-role mapping logic
-type RoleMapper struct {
-	roleMapping map[string][]string
-	defaultRole string
-}
-
-// Role priority for selecting highest privilege role
-var rolePriority = map[string]int{
-	"ADMIN":   3,
-	"ANALYST": 2,
-	"VIEWER":  1,
-}
-
-// NewRoleMapper creates a new role mapper
-func NewRoleMapper(cfg *config.Config) *RoleMapper {
-	return &RoleMapper{
-		roleMapping: cfg.AccessControl.RoleMapping,
-		defaultRole: cfg.AccessControl.DefaultRole,
-	}
-}
-
 // MapGroupsToRole maps user groups to a role
 // Returns the highest privilege role if user belongs to multiple groups
 func (rm *RoleMapper) MapGroupsToRole(userGroups []string) string {

@@ -4,27 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	pkgGoogle "smap-api/pkg/google"
-	pkgRedis "smap-api/pkg/redis"
+	"smap-api/internal/authentication"
 )
-
-// GroupsManager handles Google Groups fetching and caching
-type GroupsManager struct {
-	googleClient *pkgGoogle.Client
-	redis        *pkgRedis.Client
-	cacheTTL     time.Duration
-}
-
-// NewGroupsManager creates a new groups manager
-func NewGroupsManager(googleClient *pkgGoogle.Client, redis *pkgRedis.Client) *GroupsManager {
-	return &GroupsManager{
-		googleClient: googleClient,
-		redis:        redis,
-		cacheTTL:     5 * time.Minute, // 5-minute cache TTL
-	}
-}
 
 // GetUserGroups fetches user groups with cache-first lookup
 func (gm *GroupsManager) GetUserGroups(ctx context.Context, userEmail string) ([]string, error) {
@@ -41,6 +22,10 @@ func (gm *GroupsManager) GetUserGroups(ctx context.Context, userEmail string) ([
 	}
 
 	// Cache miss or error - fetch from Google Directory API
+	if gm.googleClient == nil {
+		// Google Client not configured, return empty groups (safe fallback)
+		return []string{}, nil
+	}
 	groups, err := gm.googleClient.GetUserGroups(ctx, userEmail)
 	if err != nil {
 		// If API call fails, try to return stale cached data if available
@@ -51,7 +36,7 @@ func (gm *GroupsManager) GetUserGroups(ctx context.Context, userEmail string) ([
 				return groups, nil
 			}
 		}
-		return nil, fmt.Errorf("failed to fetch user groups: %w", err)
+		return nil, fmt.Errorf("%w: failed to fetch user groups: %v", authentication.ErrInternalSystem, err)
 	}
 
 	// Store in cache for future requests

@@ -4,32 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"smap-api/internal/authentication"
 	"time"
-
-	"smap-api/pkg/redis"
 )
-
-// SessionManager handles session storage and retrieval
-type SessionManager struct {
-	redis *redis.Client
-	ttl   time.Duration
-}
-
-// SessionData represents session information stored in Redis
-type SessionData struct {
-	UserID    string    `json:"user_id"`
-	JTI       string    `json:"jti"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
-// NewSessionManager creates a new session manager
-func NewSessionManager(redisClient *redis.Client, ttl time.Duration) *SessionManager {
-	return &SessionManager{
-		redis: redisClient,
-		ttl:   ttl,
-	}
-}
 
 // CreateSession creates a new session in Redis
 func (sm *SessionManager) CreateSession(ctx context.Context, userID, jti string, rememberMe bool) error {
@@ -50,13 +27,13 @@ func (sm *SessionManager) CreateSession(ctx context.Context, userID, jti string,
 	// Serialize session data
 	data, err := json.Marshal(sessionData)
 	if err != nil {
-		return fmt.Errorf("failed to marshal session data: %w", err)
+		return fmt.Errorf("%w: failed to marshal session data: %v", authentication.ErrInternalSystem, err)
 	}
 
 	// Store in Redis with key: session:{jti}
 	key := fmt.Sprintf("session:%s", jti)
 	if err := sm.redis.Set(ctx, key, data, ttl); err != nil {
-		return fmt.Errorf("failed to store session: %w", err)
+		return fmt.Errorf("%w: failed to store session: %v", authentication.ErrInternalSystem, err)
 	}
 
 	// Also store user-to-session mapping for logout all functionality
@@ -88,13 +65,13 @@ func (sm *SessionManager) CreateSession(ctx context.Context, userID, jti string,
 	// Store updated JTIs list
 	jtisData, err := json.Marshal(existingJTIs)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JTIs: %w", err)
+		return fmt.Errorf("%w: failed to marshal JTIs: %v", authentication.ErrInternalSystem, err)
 	}
 
 	// Use longest TTL for the mapping (7 days for remember me)
 	mappingTTL := 7 * 24 * time.Hour
 	if err := sm.redis.Set(ctx, userSessionsKey, jtisData, mappingTTL); err != nil {
-		return fmt.Errorf("failed to store user session mapping: %w", err)
+		return fmt.Errorf("%w: failed to store user session mapping: %v", authentication.ErrInternalSystem, err)
 	}
 
 	return nil
@@ -105,12 +82,12 @@ func (sm *SessionManager) GetSession(ctx context.Context, jti string) (*SessionD
 	key := fmt.Sprintf("session:%s", jti)
 	data, err := sm.redis.Get(ctx, key)
 	if err != nil {
-		return nil, fmt.Errorf("session not found: %w", err)
+		return nil, fmt.Errorf("%w: session not found: %v", authentication.ErrInternalSystem, err)
 	}
 
 	var sessionData SessionData
 	if err := json.Unmarshal([]byte(data), &sessionData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal session data: %w", err)
+		return nil, fmt.Errorf("%w: failed to unmarshal session data: %v", authentication.ErrInternalSystem, err)
 	}
 
 	return &sessionData, nil
@@ -120,7 +97,7 @@ func (sm *SessionManager) GetSession(ctx context.Context, jti string) (*SessionD
 func (sm *SessionManager) DeleteSession(ctx context.Context, jti string) error {
 	key := fmt.Sprintf("session:%s", jti)
 	if err := sm.redis.Delete(ctx, key); err != nil {
-		return fmt.Errorf("failed to delete session: %w", err)
+		return fmt.Errorf("%w: failed to delete session: %v", authentication.ErrInternalSystem, err)
 	}
 	return nil
 }
@@ -136,7 +113,7 @@ func (sm *SessionManager) GetAllUserSessions(ctx context.Context, userID string)
 
 	var jtis []string
 	if err := json.Unmarshal([]byte(data), &jtis); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JTIs: %w", err)
+		return nil, fmt.Errorf("%w: failed to unmarshal JTIs: %v", authentication.ErrInternalSystem, err)
 	}
 
 	return jtis, nil
@@ -147,7 +124,7 @@ func (sm *SessionManager) DeleteUserSessions(ctx context.Context, userID string)
 	// Get all JTIs for the user
 	jtis, err := sm.GetAllUserSessions(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user sessions: %w", err)
+		return fmt.Errorf("%w: failed to get user sessions: %v", authentication.ErrInternalSystem, err)
 	}
 
 	// Delete each session
@@ -162,7 +139,7 @@ func (sm *SessionManager) DeleteUserSessions(ctx context.Context, userID string)
 	// Delete user sessions mapping
 	userSessionsKey := fmt.Sprintf("user_sessions:%s", userID)
 	if err := sm.redis.Delete(ctx, userSessionsKey); err != nil {
-		return fmt.Errorf("failed to delete user sessions mapping: %w", err)
+		return fmt.Errorf("%w: failed to delete user sessions mapping: %v", authentication.ErrInternalSystem, err)
 	}
 
 	return nil
