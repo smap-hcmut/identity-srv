@@ -3,22 +3,9 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"smap-api/internal/authentication"
 	"time"
-
-	"smap-api/pkg/redis"
 )
-
-// BlacklistManager handles token blacklist operations
-type BlacklistManager struct {
-	redis *redis.Client
-}
-
-// NewBlacklistManager creates a new blacklist manager
-func NewBlacklistManager(redisClient *redis.Client) *BlacklistManager {
-	return &BlacklistManager{
-		redis: redisClient,
-	}
-}
 
 // AddToken adds a token to the blacklist by JTI
 // TTL is set to the remaining token lifetime to automatically expire
@@ -33,7 +20,7 @@ func (bm *BlacklistManager) AddToken(ctx context.Context, jti string, expiresAt 
 	// Store in Redis with key: blacklist:{jti}
 	key := fmt.Sprintf("blacklist:%s", jti)
 	if err := bm.redis.Set(ctx, key, "1", ttl); err != nil {
-		return fmt.Errorf("failed to add token to blacklist: %w", err)
+		return fmt.Errorf("%w: failed to add token to blacklist: %v", authentication.ErrInternalSystem, err)
 	}
 
 	return nil
@@ -53,7 +40,7 @@ func (bm *BlacklistManager) AddAllUserTokens(ctx context.Context, jtis []string,
 	for _, jti := range jtis {
 		key := fmt.Sprintf("blacklist:%s", jti)
 		if err := bm.redis.Set(ctx, key, "1", ttl); err != nil {
-			return fmt.Errorf("failed to add user token to blacklist: %w", err)
+			return fmt.Errorf("%w: failed to add user token to blacklist: %v", authentication.ErrInternalSystem, err)
 		}
 	}
 
@@ -65,7 +52,7 @@ func (bm *BlacklistManager) IsBlacklisted(ctx context.Context, jti string) (bool
 	key := fmt.Sprintf("blacklist:%s", jti)
 	exists, err := bm.redis.Exists(ctx, key)
 	if err != nil {
-		return false, fmt.Errorf("failed to check blacklist: %w", err)
+		return false, fmt.Errorf("%w: failed to check blacklist: %v", authentication.ErrInternalSystem, err)
 	}
 	return exists, nil
 }
@@ -74,7 +61,7 @@ func (bm *BlacklistManager) IsBlacklisted(ctx context.Context, jti string) (bool
 func (bm *BlacklistManager) RemoveToken(ctx context.Context, jti string) error {
 	key := fmt.Sprintf("blacklist:%s", jti)
 	if err := bm.redis.Delete(ctx, key); err != nil {
-		return fmt.Errorf("failed to remove token from blacklist: %w", err)
+		return fmt.Errorf("%w: failed to remove token from blacklist: %v", authentication.ErrInternalSystem, err)
 	}
 	return nil
 }

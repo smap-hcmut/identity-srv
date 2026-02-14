@@ -1,80 +1,13 @@
-package kafka
+package consumer
 
 import (
 	"context"
 	"encoding/json"
 	"smap-api/internal/audit"
-	"smap-api/internal/audit/repository"
 	"time"
 
 	"github.com/IBM/sarama"
 )
-
-// Consumer consumes audit events from Kafka and stores them in database
-type Consumer struct {
-	repo         repository.Repository
-	logger       Logger
-	batchSize    int
-	batchTimeout time.Duration
-}
-
-// Logger interface for consumer
-type Logger interface {
-	Infof(ctx context.Context, format string, args ...interface{})
-	Errorf(ctx context.Context, format string, args ...interface{})
-	Warnf(ctx context.Context, format string, args ...interface{})
-}
-
-// Config holds consumer configuration
-type Config struct {
-	BatchSize    int
-	BatchTimeout time.Duration
-}
-
-// New creates a new audit consumer
-func New(repo repository.Repository, cfg Config, logger Logger) *Consumer {
-	if cfg.BatchSize == 0 {
-		cfg.BatchSize = 100
-	}
-	if cfg.BatchTimeout == 0 {
-		cfg.BatchTimeout = 5 * time.Second
-	}
-
-	return &Consumer{
-		repo:         repo,
-		logger:       logger,
-		batchSize:    cfg.BatchSize,
-		batchTimeout: cfg.BatchTimeout,
-	}
-}
-
-// GetTopics returns the topics this consumer wants to subscribe to
-func (c *Consumer) GetTopics() []string {
-	return []string{"audit.events"}
-}
-
-// GetGroupID returns the consumer group ID
-func (c *Consumer) GetGroupID() string {
-	return "audit-consumer-group"
-}
-
-// CreateHandler creates a Sarama consumer group handler
-func (c *Consumer) CreateHandler() sarama.ConsumerGroupHandler {
-	return &consumerGroupHandler{
-		consumer:  c,
-		logger:    c.logger,
-		batch:     make([]audit.AuditEvent, 0, c.batchSize),
-		lastFlush: time.Now(),
-	}
-}
-
-// consumerGroupHandler implements sarama.ConsumerGroupHandler
-type consumerGroupHandler struct {
-	consumer  *Consumer
-	logger    Logger
-	batch     []audit.AuditEvent
-	lastFlush time.Time
-}
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
 func (h *consumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {

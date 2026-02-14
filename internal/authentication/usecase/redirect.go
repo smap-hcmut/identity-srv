@@ -3,20 +3,9 @@ package usecase
 import (
 	"fmt"
 	"net/url"
+	"smap-api/internal/authentication"
 	"strings"
 )
-
-// RedirectValidator validates redirect URLs against allowed list
-type RedirectValidator struct {
-	allowedURLs []string
-}
-
-// NewRedirectValidator creates a new redirect validator
-func NewRedirectValidator(allowedURLs []string) *RedirectValidator {
-	return &RedirectValidator{
-		allowedURLs: allowedURLs,
-	}
-}
 
 // ValidateRedirectURL validates if a redirect URL is in the allowed list
 // Returns error if URL is not allowed (prevents open redirect attacks)
@@ -28,7 +17,7 @@ func (rv *RedirectValidator) ValidateRedirectURL(redirectURL string) error {
 	// Parse the redirect URL
 	parsedURL, err := url.Parse(redirectURL)
 	if err != nil {
-		return fmt.Errorf("invalid redirect URL format: %w", err)
+		return fmt.Errorf("%w: %v", authentication.ErrInvalidRedirectURL, err)
 	}
 
 	// Check if URL is relative (always allowed)
@@ -62,5 +51,5 @@ func (rv *RedirectValidator) ValidateRedirectURL(redirectURL string) error {
 		}
 	}
 
-	return fmt.Errorf("redirect URL not allowed: %s", redirectURL)
+	return fmt.Errorf("%w: %s", authentication.ErrRedirectURLNotAllowed, redirectURL)
 }
