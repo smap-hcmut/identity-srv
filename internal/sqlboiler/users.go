@@ -123,15 +123,15 @@ var UserWhere = struct {
 	CreatedAt   whereHelpertime_Time
 	UpdatedAt   whereHelpertime_Time
 }{
-	ID:          whereHelperstring{field: "\"users\".\"id\""},
-	Email:       whereHelperstring{field: "\"users\".\"email\""},
-	Name:        whereHelpernull_String{field: "\"users\".\"name\""},
-	AvatarURL:   whereHelpernull_String{field: "\"users\".\"avatar_url\""},
-	RoleHash:    whereHelperstring{field: "\"users\".\"role_hash\""},
-	IsActive:    whereHelpernull_Bool{field: "\"users\".\"is_active\""},
-	LastLoginAt: whereHelpernull_Time{field: "\"users\".\"last_login_at\""},
-	CreatedAt:   whereHelpertime_Time{field: "\"users\".\"created_at\""},
-	UpdatedAt:   whereHelpertime_Time{field: "\"users\".\"updated_at\""},
+	ID:          whereHelperstring{field: "\"schema_identity\".\"users\".\"id\""},
+	Email:       whereHelperstring{field: "\"schema_identity\".\"users\".\"email\""},
+	Name:        whereHelpernull_String{field: "\"schema_identity\".\"users\".\"name\""},
+	AvatarURL:   whereHelpernull_String{field: "\"schema_identity\".\"users\".\"avatar_url\""},
+	RoleHash:    whereHelperstring{field: "\"schema_identity\".\"users\".\"role_hash\""},
+	IsActive:    whereHelpernull_Bool{field: "\"schema_identity\".\"users\".\"is_active\""},
+	LastLoginAt: whereHelpernull_Time{field: "\"schema_identity\".\"users\".\"last_login_at\""},
+	CreatedAt:   whereHelpertime_Time{field: "\"schema_identity\".\"users\".\"created_at\""},
+	UpdatedAt:   whereHelpertime_Time{field: "\"schema_identity\".\"users\".\"updated_at\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -491,7 +491,7 @@ func (o *User) AuditLogs(mods ...qm.QueryMod) auditLogQuery {
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"audit_logs\".\"user_id\"=?", o.ID),
+		qm.Where("\"schema_identity\".\"audit_logs\".\"user_id\"=?", o.ID),
 	)
 
 	return AuditLogs(queryMods...)
@@ -552,8 +552,8 @@ func (userL) LoadAuditLogs(ctx context.Context, e boil.ContextExecutor, singular
 	}
 
 	query := NewQuery(
-		qm.From(`audit_logs`),
-		qm.WhereIn(`audit_logs.user_id in ?`, argsSlice...),
+		qm.From(`schema_identity.audit_logs`),
+		qm.WhereIn(`schema_identity.audit_logs.user_id in ?`, argsSlice...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -624,7 +624,7 @@ func (o *User) AddAuditLogs(ctx context.Context, exec boil.ContextExecutor, inse
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"audit_logs\" SET %s WHERE %s",
+				"UPDATE \"schema_identity\".\"audit_logs\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
 				strmangle.WhereClause("\"", "\"", 2, auditLogPrimaryKeyColumns),
 			)
@@ -670,7 +670,7 @@ func (o *User) AddAuditLogs(ctx context.Context, exec boil.ContextExecutor, inse
 // Replaces o.R.AuditLogs with related.
 // Sets related.R.User's AuditLogs accordingly.
 func (o *User) SetAuditLogs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*AuditLog) error {
-	query := "update \"audit_logs\" set \"user_id\" = null where \"user_id\" = $1"
+	query := "update \"schema_identity\".\"audit_logs\" set \"user_id\" = null where \"user_id\" = $1"
 	values := []any{o.ID}
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -739,10 +739,10 @@ func (o *User) RemoveAuditLogs(ctx context.Context, exec boil.ContextExecutor, r
 
 // Users retrieves all the records using an executor.
 func Users(mods ...qm.QueryMod) userQuery {
-	mods = append(mods, qm.From("\"users\""))
+	mods = append(mods, qm.From("\"schema_identity\".\"users\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
-		queries.SetSelect(q, []string{"\"users\".*"})
+		queries.SetSelect(q, []string{"\"schema_identity\".\"users\".*"})
 	}
 
 	return userQuery{q}
@@ -758,7 +758,7 @@ func FindUser(ctx context.Context, exec boil.ContextExecutor, iD string, selectC
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"users\" where \"id\"=$1", sel,
+		"select %s from \"schema_identity\".\"users\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -825,9 +825,9 @@ func (o *User) Insert(ctx context.Context, exec boil.ContextExecutor, columns bo
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO \"users\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"schema_identity\".\"users\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO \"users\" %sDEFAULT VALUES%s"
+			cache.query = "INSERT INTO \"schema_identity\".\"users\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
@@ -899,7 +899,7 @@ func (o *User) Update(ctx context.Context, exec boil.ContextExecutor, columns bo
 			return 0, errors.New("sqlboiler: unable to update users, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE \"users\" SET %s WHERE %s",
+		cache.query = fmt.Sprintf("UPDATE \"schema_identity\".\"users\" SET %s WHERE %s",
 			strmangle.SetParamNames("\"", "\"", 1, wl),
 			strmangle.WhereClause("\"", "\"", len(wl)+1, userPrimaryKeyColumns),
 		)
@@ -980,7 +980,7 @@ func (o UserSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, col
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE \"users\" SET %s WHERE %s",
+	sql := fmt.Sprintf("UPDATE \"schema_identity\".\"users\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, userPrimaryKeyColumns, len(o)))
 
@@ -1084,7 +1084,7 @@ func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCo
 			conflict = make([]string, len(userPrimaryKeyColumns))
 			copy(conflict, userPrimaryKeyColumns)
 		}
-		cache.query = buildUpsertQueryPostgres(dialect, "\"users\"", updateOnConflict, ret, update, conflict, insert, opts...)
+		cache.query = buildUpsertQueryPostgres(dialect, "\"schema_identity\".\"users\"", updateOnConflict, ret, update, conflict, insert, opts...)
 
 		cache.valueMapping, err = queries.BindMapping(userType, userMapping, insert)
 		if err != nil {
@@ -1143,7 +1143,7 @@ func (o *User) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, er
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), userPrimaryKeyMapping)
-	sql := "DELETE FROM \"users\" WHERE \"id\"=$1"
+	sql := "DELETE FROM \"schema_identity\".\"users\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1208,7 +1208,7 @@ func (o UserSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (in
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM \"users\" WHERE " +
+	sql := "DELETE FROM \"schema_identity\".\"users\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userPrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
@@ -1263,7 +1263,7 @@ func (o *UserSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) er
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT \"users\".* FROM \"users\" WHERE " +
+	sql := "SELECT \"schema_identity\".\"users\".* FROM \"schema_identity\".\"users\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
@@ -1281,7 +1281,7 @@ func (o *UserSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) er
 // UserExists checks if the User row exists.
 func UserExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"users\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"schema_identity\".\"users\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)

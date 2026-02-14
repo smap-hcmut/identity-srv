@@ -256,6 +256,7 @@ func Load() (*Config, error) {
 	// Access Control
 	cfg.AccessControl.AllowedDomains = viper.GetStringSlice("access_control.allowed_domains")
 	cfg.AccessControl.BlockedEmails = viper.GetStringSlice("access_control.blocked_emails")
+	cfg.AccessControl.AllowedRedirectURLs = viper.GetStringSlice("access_control.allowed_redirect_urls")
 	cfg.AccessControl.DefaultRole = viper.GetString("access_control.default_role")
 
 	// User roles mapping (email -> role)

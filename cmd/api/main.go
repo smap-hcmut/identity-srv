@@ -13,7 +13,6 @@ import (
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
 	pkgJWT "smap-api/pkg/jwt"
-	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
 	pkgRedis "smap-api/pkg/redis"
 	"syscall"
@@ -107,23 +106,8 @@ func main() {
 	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
 	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
 
-	// 11. Initialize Kafka producer
-	// Publishes audit events to Kafka for async processing and long-term storage
-	kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{
-		Brokers: cfg.Kafka.Brokers,
-		Topic:   cfg.Kafka.Topic,
-	})
-	if err != nil {
-		logger.Warnf(ctx, "Failed to initialize Kafka producer (audit logging will be buffered): %v", err)
-		kafkaProducer = nil // Continue without Kafka - will use in-memory buffer
-	} else {
-		logger.Infof(ctx, "Kafka producer initialized successfully for topic: %s", cfg.Kafka.Topic)
-	}
-	if kafkaProducer != nil {
-		defer kafkaProducer.Close()
-	}
-
-	// 12. Initialize HTTP server
+	// 11. Initialize HTTP server
+	// 11. Initialize HTTP server
 	// Main application server that handles all HTTP requests and routes
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
@@ -143,9 +127,6 @@ func main() {
 		RedirectValidator: redirectValidator,
 		CookieConfig:      cfg.Cookie,
 		Encrypter:         encrypterInstance,
-
-		// Kafka Integration
-		KafkaProducer: kafkaProducer,
 
 		// Monitoring & Notification Configuration
 		Discord: discordClient,

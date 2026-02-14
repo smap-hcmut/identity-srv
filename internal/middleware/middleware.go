@@ -9,14 +9,28 @@ import (
 
 func (m Middleware) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// First, attempt to read token from cookie (preferred method)
-		tokenString, err := c.Cookie(m.cookieConfig.Name)
+		var tokenString string
+		var err error
 
-		// If no token found in cookie, return unauthorized
-		if err != nil || tokenString == "" {
-			response.Unauthorized(c)
-			c.Abort()
-			return
+		// Priority 1: Try to read token from Authorization header (for dev/testing/mobile)
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			// Support both "Bearer <token>" and plain token
+			if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+				tokenString = authHeader[7:]
+			} else {
+				tokenString = authHeader
+			}
+		}
+
+		// Priority 2: If no token in header, try cookie (for browser with HttpOnly)
+		if tokenString == "" {
+			tokenString, err = c.Cookie(m.cookieConfig.Name)
+			if err != nil || tokenString == "" {
+				response.Unauthorized(c)
+				c.Abort()
+				return
+			}
 		}
 
 		// Verify JWT token

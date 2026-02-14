@@ -24,19 +24,15 @@ import (
 
 // AuditLog is an object representing the database table.
 type AuditLog struct {
-	ID     string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	UserID null.String `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
-	// Action performed (LOGIN, LOGOUT, CREATE_PROJECT, etc.)
+	ID           string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	UserID       null.String `boil:"user_id" json:"user_id,omitempty" toml:"user_id" yaml:"user_id,omitempty"`
 	Action       string      `boil:"action" json:"action" toml:"action" yaml:"action"`
 	ResourceType null.String `boil:"resource_type" json:"resource_type,omitempty" toml:"resource_type" yaml:"resource_type,omitempty"`
 	ResourceID   null.String `boil:"resource_id" json:"resource_id,omitempty" toml:"resource_id" yaml:"resource_id,omitempty"`
-	// Additional context in JSON format
-	Metadata  null.JSON   `boil:"metadata" json:"metadata,omitempty" toml:"metadata" yaml:"metadata,omitempty"`
-	IPAddress null.String `boil:"ip_address" json:"ip_address,omitempty" toml:"ip_address" yaml:"ip_address,omitempty"`
-	UserAgent null.String `boil:"user_agent" json:"user_agent,omitempty" toml:"user_agent" yaml:"user_agent,omitempty"`
-	CreatedAt time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	// Auto-delete after 90 days (cleanup job)
-	ExpiresAt time.Time `boil:"expires_at" json:"expires_at" toml:"expires_at" yaml:"expires_at"`
+	IPAddress    null.String `boil:"ip_address" json:"ip_address,omitempty" toml:"ip_address" yaml:"ip_address,omitempty"`
+	UserAgent    null.String `boil:"user_agent" json:"user_agent,omitempty" toml:"user_agent" yaml:"user_agent,omitempty"`
+	Metadata     null.JSON   `boil:"metadata" json:"metadata,omitempty" toml:"metadata" yaml:"metadata,omitempty"`
+	CreatedAt    time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 
 	R *auditLogR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L auditLogL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,22 +44,20 @@ var AuditLogColumns = struct {
 	Action       string
 	ResourceType string
 	ResourceID   string
-	Metadata     string
 	IPAddress    string
 	UserAgent    string
+	Metadata     string
 	CreatedAt    string
-	ExpiresAt    string
 }{
 	ID:           "id",
 	UserID:       "user_id",
 	Action:       "action",
 	ResourceType: "resource_type",
 	ResourceID:   "resource_id",
-	Metadata:     "metadata",
 	IPAddress:    "ip_address",
 	UserAgent:    "user_agent",
+	Metadata:     "metadata",
 	CreatedAt:    "created_at",
-	ExpiresAt:    "expires_at",
 }
 
 var AuditLogTableColumns = struct {
@@ -72,22 +66,20 @@ var AuditLogTableColumns = struct {
 	Action       string
 	ResourceType string
 	ResourceID   string
-	Metadata     string
 	IPAddress    string
 	UserAgent    string
+	Metadata     string
 	CreatedAt    string
-	ExpiresAt    string
 }{
 	ID:           "audit_logs.id",
 	UserID:       "audit_logs.user_id",
 	Action:       "audit_logs.action",
 	ResourceType: "audit_logs.resource_type",
 	ResourceID:   "audit_logs.resource_id",
-	Metadata:     "audit_logs.metadata",
 	IPAddress:    "audit_logs.ip_address",
 	UserAgent:    "audit_logs.user_agent",
+	Metadata:     "audit_logs.metadata",
 	CreatedAt:    "audit_logs.created_at",
-	ExpiresAt:    "audit_logs.expires_at",
 }
 
 // Generated where
@@ -230,22 +222,20 @@ var AuditLogWhere = struct {
 	Action       whereHelperstring
 	ResourceType whereHelpernull_String
 	ResourceID   whereHelpernull_String
-	Metadata     whereHelpernull_JSON
 	IPAddress    whereHelpernull_String
 	UserAgent    whereHelpernull_String
+	Metadata     whereHelpernull_JSON
 	CreatedAt    whereHelpertime_Time
-	ExpiresAt    whereHelpertime_Time
 }{
-	ID:           whereHelperstring{field: "\"audit_logs\".\"id\""},
-	UserID:       whereHelpernull_String{field: "\"audit_logs\".\"user_id\""},
-	Action:       whereHelperstring{field: "\"audit_logs\".\"action\""},
-	ResourceType: whereHelpernull_String{field: "\"audit_logs\".\"resource_type\""},
-	ResourceID:   whereHelpernull_String{field: "\"audit_logs\".\"resource_id\""},
-	Metadata:     whereHelpernull_JSON{field: "\"audit_logs\".\"metadata\""},
-	IPAddress:    whereHelpernull_String{field: "\"audit_logs\".\"ip_address\""},
-	UserAgent:    whereHelpernull_String{field: "\"audit_logs\".\"user_agent\""},
-	CreatedAt:    whereHelpertime_Time{field: "\"audit_logs\".\"created_at\""},
-	ExpiresAt:    whereHelpertime_Time{field: "\"audit_logs\".\"expires_at\""},
+	ID:           whereHelperstring{field: "\"schema_identity\".\"audit_logs\".\"id\""},
+	UserID:       whereHelpernull_String{field: "\"schema_identity\".\"audit_logs\".\"user_id\""},
+	Action:       whereHelperstring{field: "\"schema_identity\".\"audit_logs\".\"action\""},
+	ResourceType: whereHelpernull_String{field: "\"schema_identity\".\"audit_logs\".\"resource_type\""},
+	ResourceID:   whereHelpernull_String{field: "\"schema_identity\".\"audit_logs\".\"resource_id\""},
+	IPAddress:    whereHelpernull_String{field: "\"schema_identity\".\"audit_logs\".\"ip_address\""},
+	UserAgent:    whereHelpernull_String{field: "\"schema_identity\".\"audit_logs\".\"user_agent\""},
+	Metadata:     whereHelpernull_JSON{field: "\"schema_identity\".\"audit_logs\".\"metadata\""},
+	CreatedAt:    whereHelpertime_Time{field: "\"schema_identity\".\"audit_logs\".\"created_at\""},
 }
 
 // AuditLogRels is where relationship names are stored.
@@ -285,9 +275,9 @@ func (r *auditLogR) GetUser() *User {
 type auditLogL struct{}
 
 var (
-	auditLogAllColumns            = []string{"id", "user_id", "action", "resource_type", "resource_id", "metadata", "ip_address", "user_agent", "created_at", "expires_at"}
+	auditLogAllColumns            = []string{"id", "user_id", "action", "resource_type", "resource_id", "ip_address", "user_agent", "metadata", "created_at"}
 	auditLogColumnsWithoutDefault = []string{"action"}
-	auditLogColumnsWithDefault    = []string{"id", "user_id", "resource_type", "resource_id", "metadata", "ip_address", "user_agent", "created_at", "expires_at"}
+	auditLogColumnsWithDefault    = []string{"id", "user_id", "resource_type", "resource_id", "ip_address", "user_agent", "metadata", "created_at"}
 	auditLogPrimaryKeyColumns     = []string{"id"}
 	auditLogGeneratedColumns      = []string{}
 )
@@ -670,8 +660,8 @@ func (auditLogL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular 
 	}
 
 	query := NewQuery(
-		qm.From(`users`),
-		qm.WhereIn(`users.id in ?`, argsSlice...),
+		qm.From(`schema_identity.users`),
+		qm.WhereIn(`schema_identity.users.id in ?`, argsSlice...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -744,7 +734,7 @@ func (o *AuditLog) SetUser(ctx context.Context, exec boil.ContextExecutor, inser
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE \"audit_logs\" SET %s WHERE %s",
+		"UPDATE \"schema_identity\".\"audit_logs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
 		strmangle.WhereClause("\"", "\"", 2, auditLogPrimaryKeyColumns),
 	)
@@ -814,10 +804,10 @@ func (o *AuditLog) RemoveUser(ctx context.Context, exec boil.ContextExecutor, re
 
 // AuditLogs retrieves all the records using an executor.
 func AuditLogs(mods ...qm.QueryMod) auditLogQuery {
-	mods = append(mods, qm.From("\"audit_logs\""))
+	mods = append(mods, qm.From("\"schema_identity\".\"audit_logs\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
-		queries.SetSelect(q, []string{"\"audit_logs\".*"})
+		queries.SetSelect(q, []string{"\"schema_identity\".\"audit_logs\".*"})
 	}
 
 	return auditLogQuery{q}
@@ -833,7 +823,7 @@ func FindAuditLog(ctx context.Context, exec boil.ContextExecutor, iD string, sel
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"audit_logs\" where \"id\"=$1", sel,
+		"select %s from \"schema_identity\".\"audit_logs\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -897,9 +887,9 @@ func (o *AuditLog) Insert(ctx context.Context, exec boil.ContextExecutor, column
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO \"audit_logs\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"schema_identity\".\"audit_logs\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO \"audit_logs\" %sDEFAULT VALUES%s"
+			cache.query = "INSERT INTO \"schema_identity\".\"audit_logs\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
@@ -965,7 +955,7 @@ func (o *AuditLog) Update(ctx context.Context, exec boil.ContextExecutor, column
 			return 0, errors.New("sqlboiler: unable to update audit_logs, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE \"audit_logs\" SET %s WHERE %s",
+		cache.query = fmt.Sprintf("UPDATE \"schema_identity\".\"audit_logs\" SET %s WHERE %s",
 			strmangle.SetParamNames("\"", "\"", 1, wl),
 			strmangle.WhereClause("\"", "\"", len(wl)+1, auditLogPrimaryKeyColumns),
 		)
@@ -1046,7 +1036,7 @@ func (o AuditLogSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor,
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE \"audit_logs\" SET %s WHERE %s",
+	sql := fmt.Sprintf("UPDATE \"schema_identity\".\"audit_logs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, auditLogPrimaryKeyColumns, len(o)))
 
@@ -1149,7 +1139,7 @@ func (o *AuditLog) Upsert(ctx context.Context, exec boil.ContextExecutor, update
 			conflict = make([]string, len(auditLogPrimaryKeyColumns))
 			copy(conflict, auditLogPrimaryKeyColumns)
 		}
-		cache.query = buildUpsertQueryPostgres(dialect, "\"audit_logs\"", updateOnConflict, ret, update, conflict, insert, opts...)
+		cache.query = buildUpsertQueryPostgres(dialect, "\"schema_identity\".\"audit_logs\"", updateOnConflict, ret, update, conflict, insert, opts...)
 
 		cache.valueMapping, err = queries.BindMapping(auditLogType, auditLogMapping, insert)
 		if err != nil {
@@ -1208,7 +1198,7 @@ func (o *AuditLog) Delete(ctx context.Context, exec boil.ContextExecutor) (int64
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), auditLogPrimaryKeyMapping)
-	sql := "DELETE FROM \"audit_logs\" WHERE \"id\"=$1"
+	sql := "DELETE FROM \"schema_identity\".\"audit_logs\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1273,7 +1263,7 @@ func (o AuditLogSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM \"audit_logs\" WHERE " +
+	sql := "DELETE FROM \"schema_identity\".\"audit_logs\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, auditLogPrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
@@ -1328,7 +1318,7 @@ func (o *AuditLogSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT \"audit_logs\".* FROM \"audit_logs\" WHERE " +
+	sql := "SELECT \"schema_identity\".\"audit_logs\".* FROM \"schema_identity\".\"audit_logs\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, auditLogPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
@@ -1346,7 +1336,7 @@ func (o *AuditLogSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor
 // AuditLogExists checks if the AuditLog row exists.
 func AuditLogExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"audit_logs\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"schema_identity\".\"audit_logs\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)

@@ -111,13 +111,13 @@ var JWTKeyWhere = struct {
 	ExpiresAt  whereHelpernull_Time
 	RetiredAt  whereHelpernull_Time
 }{
-	Kid:        whereHelperstring{field: "\"jwt_keys\".\"kid\""},
-	PrivateKey: whereHelperstring{field: "\"jwt_keys\".\"private_key\""},
-	PublicKey:  whereHelperstring{field: "\"jwt_keys\".\"public_key\""},
-	Status:     whereHelperstring{field: "\"jwt_keys\".\"status\""},
-	CreatedAt:  whereHelpertime_Time{field: "\"jwt_keys\".\"created_at\""},
-	ExpiresAt:  whereHelpernull_Time{field: "\"jwt_keys\".\"expires_at\""},
-	RetiredAt:  whereHelpernull_Time{field: "\"jwt_keys\".\"retired_at\""},
+	Kid:        whereHelperstring{field: "\"schema_identity\".\"jwt_keys\".\"kid\""},
+	PrivateKey: whereHelperstring{field: "\"schema_identity\".\"jwt_keys\".\"private_key\""},
+	PublicKey:  whereHelperstring{field: "\"schema_identity\".\"jwt_keys\".\"public_key\""},
+	Status:     whereHelperstring{field: "\"schema_identity\".\"jwt_keys\".\"status\""},
+	CreatedAt:  whereHelpertime_Time{field: "\"schema_identity\".\"jwt_keys\".\"created_at\""},
+	ExpiresAt:  whereHelpernull_Time{field: "\"schema_identity\".\"jwt_keys\".\"expires_at\""},
+	RetiredAt:  whereHelpernull_Time{field: "\"schema_identity\".\"jwt_keys\".\"retired_at\""},
 }
 
 // JWTKeyRels is where relationship names are stored.
@@ -451,10 +451,10 @@ func (q jwtKeyQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (boo
 
 // JWTKeys retrieves all the records using an executor.
 func JWTKeys(mods ...qm.QueryMod) jwtKeyQuery {
-	mods = append(mods, qm.From("\"jwt_keys\""))
+	mods = append(mods, qm.From("\"schema_identity\".\"jwt_keys\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
-		queries.SetSelect(q, []string{"\"jwt_keys\".*"})
+		queries.SetSelect(q, []string{"\"schema_identity\".\"jwt_keys\".*"})
 	}
 
 	return jwtKeyQuery{q}
@@ -470,7 +470,7 @@ func FindJWTKey(ctx context.Context, exec boil.ContextExecutor, kid string, sele
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"jwt_keys\" where \"kid\"=$1", sel,
+		"select %s from \"schema_identity\".\"jwt_keys\" where \"kid\"=$1", sel,
 	)
 
 	q := queries.Raw(query, kid)
@@ -534,9 +534,9 @@ func (o *JWTKey) Insert(ctx context.Context, exec boil.ContextExecutor, columns 
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO \"jwt_keys\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"schema_identity\".\"jwt_keys\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO \"jwt_keys\" %sDEFAULT VALUES%s"
+			cache.query = "INSERT INTO \"schema_identity\".\"jwt_keys\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
@@ -602,7 +602,7 @@ func (o *JWTKey) Update(ctx context.Context, exec boil.ContextExecutor, columns 
 			return 0, errors.New("sqlboiler: unable to update jwt_keys, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE \"jwt_keys\" SET %s WHERE %s",
+		cache.query = fmt.Sprintf("UPDATE \"schema_identity\".\"jwt_keys\" SET %s WHERE %s",
 			strmangle.SetParamNames("\"", "\"", 1, wl),
 			strmangle.WhereClause("\"", "\"", len(wl)+1, jwtKeyPrimaryKeyColumns),
 		)
@@ -683,7 +683,7 @@ func (o JWTKeySlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE \"jwt_keys\" SET %s WHERE %s",
+	sql := fmt.Sprintf("UPDATE \"schema_identity\".\"jwt_keys\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, jwtKeyPrimaryKeyColumns, len(o)))
 
@@ -786,7 +786,7 @@ func (o *JWTKey) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOn
 			conflict = make([]string, len(jwtKeyPrimaryKeyColumns))
 			copy(conflict, jwtKeyPrimaryKeyColumns)
 		}
-		cache.query = buildUpsertQueryPostgres(dialect, "\"jwt_keys\"", updateOnConflict, ret, update, conflict, insert, opts...)
+		cache.query = buildUpsertQueryPostgres(dialect, "\"schema_identity\".\"jwt_keys\"", updateOnConflict, ret, update, conflict, insert, opts...)
 
 		cache.valueMapping, err = queries.BindMapping(jwtKeyType, jwtKeyMapping, insert)
 		if err != nil {
@@ -845,7 +845,7 @@ func (o *JWTKey) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, 
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), jwtKeyPrimaryKeyMapping)
-	sql := "DELETE FROM \"jwt_keys\" WHERE \"kid\"=$1"
+	sql := "DELETE FROM \"schema_identity\".\"jwt_keys\" WHERE \"kid\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -910,7 +910,7 @@ func (o JWTKeySlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM \"jwt_keys\" WHERE " +
+	sql := "DELETE FROM \"schema_identity\".\"jwt_keys\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, jwtKeyPrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
@@ -965,7 +965,7 @@ func (o *JWTKeySlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) 
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT \"jwt_keys\".* FROM \"jwt_keys\" WHERE " +
+	sql := "SELECT \"schema_identity\".\"jwt_keys\".* FROM \"schema_identity\".\"jwt_keys\" WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, jwtKeyPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
@@ -983,7 +983,7 @@ func (o *JWTKeySlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) 
 // JWTKeyExists checks if the JWTKey row exists.
 func JWTKeyExists(ctx context.Context, exec boil.ContextExecutor, kid string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"jwt_keys\" where \"kid\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"schema_identity\".\"jwt_keys\" where \"kid\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)

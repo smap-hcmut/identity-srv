@@ -9,7 +9,6 @@ import (
 	"smap-api/pkg/discord"
 	"smap-api/pkg/encrypter"
 	pkgJWT "smap-api/pkg/jwt"
-	pkgKafka "smap-api/pkg/kafka"
 	"smap-api/pkg/log"
 	pkgRedis "smap-api/pkg/redis"
 	"time"
@@ -43,9 +42,6 @@ type HTTPServer struct {
 	cookieConfig      config.CookieConfig
 	encrypter         encrypter.Encrypter
 
-	// Kafka Integration
-	kafkaProducer *pkgKafka.Producer
-
 	// Monitoring & Notification Configuration
 	discord *discord.Discord
 }
@@ -71,9 +67,6 @@ type Config struct {
 	RedirectValidator *usecase.RedirectValidator
 	CookieConfig      config.CookieConfig
 	Encrypter         encrypter.Encrypter
-
-	// Kafka Integration
-	KafkaProducer *pkgKafka.Producer
 
 	// Monitoring & Notification Configuration
 	Discord *discord.Discord
@@ -118,9 +111,6 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		redirectValidator: cfg.RedirectValidator,
 		cookieConfig:      cfg.CookieConfig,
 		encrypter:         cfg.Encrypter,
-
-		// Kafka Integration
-		kafkaProducer: cfg.KafkaProducer,
 
 		// Monitoring & Notification Configuration
 		discord: cfg.Discord,

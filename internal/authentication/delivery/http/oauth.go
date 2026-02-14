@@ -45,7 +45,8 @@ func (h handler) OAuthLogin(c *gin.Context) {
 // @Produce json
 // @Param code query string true "Authorization code from provider"
 // @Param state query string true "State parameter for CSRF protection"
-// @Success 302 {string} string "Redirect to dashboard"
+// @Success 302 {string} string "Redirect to dashboard (production mode)"
+// @Success 200 {object} response.Resp{data=oauthCallbackResp} "Token response (development mode)"
 // @Failure 400 {object} response.Resp "Invalid request"
 // @Failure 403 {object} response.Resp "Domain not allowed or account blocked"
 // @Failure 500 {object} response.Resp "Internal server error"
@@ -70,6 +71,14 @@ func (h handler) OAuthCallback(c *gin.Context) {
 	}
 
 	// 3. Response
+	// Development mode: Return token in JSON response for easier testing
+	if h.isDevelopmentMode() {
+		h.l.Infof(ctx, "Development mode: returning token in response body")
+		response.OK(c, h.newOAuthCallbackResp(output.Token))
+		return
+	}
+
+	// Production mode: Set HttpOnly cookie and redirect
 	h.setAuthCookie(c, output.Token)
 
 	redirectURL, cookieErr := c.Cookie("oauth_redirect")

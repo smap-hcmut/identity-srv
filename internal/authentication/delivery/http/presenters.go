@@ -20,6 +20,10 @@ type revokeTokenReq struct {
 
 // --- Response DTOs ---
 
+type oauthCallbackResp struct {
+	Token string `json:"token"`
+}
+
 type getMeResp struct {
 	ID       string  `json:"id"`
 	Email    string  `json:"email"`
@@ -47,6 +51,12 @@ type getUserResp struct {
 }
 
 // --- Response Mappers ---
+
+func (h handler) newOAuthCallbackResp(token string) oauthCallbackResp {
+	return oauthCallbackResp{
+		Token: token,
+	}
+}
 
 func (h handler) newGetMeResp(o *model.User) *getMeResp {
 	return &getMeResp{
