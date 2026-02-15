@@ -14,11 +14,11 @@ Authentication and authorization service for SMAP platform using OAuth2 and JWT.
                          │
               ┌──────────┼──────────┐
               ▼          ▼          ▼
-         ┌────────┐ ┌───────┐ ┌───────┐
-         │Postgres│ │ Redis │ │ Kafka │
-         │(schema │ │ (DB0) │ │       │
-         │identity│ │       │ │       │
-         └────────┘ └───────┘ └───┬───┘
+         ┌─────────┐ ┌───────┐ ┌───────┐
+         │Postgres │ │ Redis │ │ Kafka │
+         │(schema  │ │ (DB0) │ │       │
+         │identity)│ │       │ │       │
+         └─────────┘ └───────┘ └───┬───┘
                                   │
                          ┌────────▼────────┐
                          │    Consumer     │
@@ -32,7 +32,7 @@ Authentication and authorization service for SMAP platform using OAuth2 and JWT.
 - **Consumer Service**: Kafka consumer for audit log processing
 - **Test Client**: Simple HTML page for testing OAuth flow
 
-**Note**: API service writes audit logs directly to PostgreSQL. Kafka is only used by Consumer service for async processing.
+**Note**: The API service writes audit logs directly to PostgreSQL. Kafka is used only by the Consumer service for async processing.
 
 ---
 
@@ -40,7 +40,7 @@ Authentication and authorization service for SMAP platform using OAuth2 and JWT.
 
 | Component | Technology      | Purpose                  |
 | --------- | --------------- | ------------------------ |
-| Language  | Go 1.25         | Backend                  |
+| Language  | Go 1.25+        | Backend                  |
 | Framework | Gin             | HTTP routing             |
 | Database  | PostgreSQL      | User data, audit logs    |
 | Cache     | Redis           | Session, token blacklist |
@@ -58,7 +58,7 @@ Authentication and authorization service for SMAP platform using OAuth2 and JWT.
 - **Role-Based Access**: ADMIN, ANALYST, VIEWER roles
 - **Email-to-Role Mapping**: Direct role assignment from config
 - **Token Blacklist**: Instant token revocation
-- **Audit Logging**: Kafka-based event tracking
+- **Audit Logging**: Audit written to PostgreSQL; Consumer processes events from Kafka
 - **Session Management**: Redis-backed sessions
 
 ---
@@ -70,7 +70,7 @@ Authentication and authorization service for SMAP platform using OAuth2 and JWT.
 - Go 1.25+
 - PostgreSQL 15+
 - Redis 6+
-- Kafka (optional, for audit logging)
+- Kafka (optional; required only for Consumer service audit processing)
 
 ### 1. Clone & Configure
 
@@ -88,22 +88,22 @@ nano config/auth-config.yaml
 ### 2. Setup Database
 
 ```bash
-# Create database (if not exists)
-createdb smap
+# Create database (name must match postgres.dbname in config)
+createdb smap_auth
 
 # Run migration (creates schema_identity and tables)
-psql -h 172.16.19.10 -U master -d smap -f migration/01_auth_service_schema.sql
+psql -h localhost -U postgres -d smap_auth -f migration/01_auth_service_schema.sql
 
 # Or using Docker
 docker run --rm \
   -v "$(pwd)/migration:/migration" \
   -e PGPASSWORD="your_password" \
   postgres:15-alpine \
-  psql -h 172.16.19.10 -p 5432 -U master -d smap \
+  psql -h host.docker.internal -p 5432 -U postgres -d smap_auth \
   -f /migration/01_auth_service_schema.sql
 ```
 
-**Note**: All tables are created in `schema_identity` schema.
+**Note**: All tables live in schema `schema_identity`. Set `postgres.schema` to `schema_identity` and `postgres.dbname` to the database you created (e.g. `smap_auth`) in `auth-config.yaml`.
 
 ### 3. Configure Google OAuth
 
@@ -142,9 +142,11 @@ curl http://localhost:8080/health
 # Login (opens browser)
 open http://localhost:8080/authentication/login
 
-# Get current user
-curl http://localhost:8080/authentication/me \
-  --cookie "smap_auth_token=<YOUR_TOKEN>"
+# Get current user (use cookie from browser or Bearer token in dev)
+curl http://localhost:8080/authentication/me --cookie "smap_auth_token=<YOUR_TOKEN>"
+# In development, or: curl -H "Authorization: Bearer <YOUR_TOKEN>" http://localhost:8080/authentication/me
+
+# OAuth test page (dev only): http://localhost:8080/test
 ```
 
 ---
@@ -154,16 +156,19 @@ curl http://localhost:8080/authentication/me \
 Key settings in `config/auth-config.yaml`:
 
 ```yaml
-# Environment (affects authentication mode)
+# Environment: development = token in JSON + Authorization header; production = cookie only, redirect
 environment:
-  name: development # "development" = token in JSON, "production" = cookie only
+  name: development
 
-# PostgreSQL
+# PostgreSQL (dbname and schema must match the migrated database)
 postgres:
   host: localhost
   port: 5432
-  dbname: smap
-  schema: schema_identity # All tables in this schema
+  user: postgres
+  password: postgres
+  dbname: smap_auth
+  sslmode: disable
+  schema: schema_identity
 
 # JWT (HS256 symmetric key)
 jwt:
@@ -176,7 +181,7 @@ access_control:
   allowed_domains:
     - gmail.com
     - yourdomain.com
-  allowed_redirect_urls: # Prevent open redirect attacks
+  allowed_redirect_urls: # Prevent open redirect
     - /dashboard
     - /
     - http://localhost:3000
@@ -185,19 +190,18 @@ access_control:
     analyst@yourdomain.com: ANALYST
   default_role: VIEWER
 
-# Redis (single DB for session + blacklist)
+# Redis (shared for session and blacklist)
 redis:
   host: localhost
   port: 6379
+  password: ""
   db: 0
 ```
 
-**Authentication Modes:**
+**Authentication modes:**
 
-- **Development**: Token returned in JSON response, supports Authorization header
-- **Production**: Token in HttpOnly cookie, automatic redirect
-
-See [AUTHENTICATION_MODES.md](docs/AUTHENTICATION_MODES.md) for details.
+- **development**: Token in JSON response; supports `Authorization: Bearer <token>` header
+- **production**: HttpOnly cookie only; redirect after login
 
 ---
 
@@ -205,24 +209,28 @@ See [AUTHENTICATION_MODES.md](docs/AUTHENTICATION_MODES.md) for details.
 
 ### Public
 
-- `GET /authentication/login` - Redirect to Google OAuth
-- `GET /authentication/callback` - OAuth callback handler
+- `GET /authentication/login` — Redirect to Google OAuth
+- `GET /authentication/callback` — OAuth callback handler
 
-### Protected (requires cookie)
+### Protected (cookie or Bearer token required)
 
-- `POST /authentication/logout` - Logout
-- `GET /authentication/me` - Get current user
+- `POST /authentication/logout` — Logout
+- `GET /authentication/me` — Current user info
+- `GET /audit-logs` — List audit logs (ADMIN only; pagination and date filters)
 
-### Internal (service-to-service)
+### Internal (service-to-service; X-Service-Key header when enabled)
 
-- `POST /internal/validate` - Validate JWT token
-- `POST /internal/revoke-token` - Revoke token (admin only)
-- `GET /internal/users/:id` - Get user by ID
+- `POST /authentication/internal/validate` — Validate JWT
+- `POST /authentication/internal/revoke-token` — Revoke token (ADMIN only)
+- `GET /authentication/internal/users/:id` — Get user by ID
 
 ### System
 
-- `GET /health` - Health check
-- `GET /swagger/*` - API documentation
+- `GET /health` — Health check
+- `GET /ready` — Readiness check
+- `GET /live` — Liveness check
+- `GET /swagger/*any` — Swagger docs (e.g. `/swagger/index.html`)
+- `GET /test` — OAuth test page (only when `environment.name` is not `production`)
 
 ---
 
@@ -231,24 +239,30 @@ See [AUTHENTICATION_MODES.md](docs/AUTHENTICATION_MODES.md) for details.
 ```
 identity-srv/
 ├── cmd/
-│   ├── api/              # API server
-│   ├── consumer/         # Kafka consumer
-│   └── test-client/      # Test HTML page
-├── config/               # Configuration
+│   ├── api/              # API server (OAuth2, JWT, auth)
+│   ├── consumer/         # Kafka consumer (audit events → PostgreSQL)
+│   └── test-client/      # OAuth test HTML (also served at /test in dev)
+├── config/               # Configuration (auth-config.yaml, config.go)
 ├── internal/
-│   ├── authentication/   # Auth logic
-│   ├── audit/           # Audit logging
-│   ├── user/            # User management
-│   ├── httpserver/      # HTTP server
-│   └── middleware/      # Middlewares
+│   ├── authentication/   # OAuth login, session, blacklist, roles
+│   ├── audit/            # Audit (HTTP handler + Kafka producer/consumer)
+│   ├── user/             # User repository & usecase
+│   ├── consumer/         # Kafka consumer bootstrap
+│   ├── httpserver/       # Router, middleware, health
+│   ├── middleware/      # CORS, auth, admin, locale, recovery, service auth
+│   ├── model/            # Domain models (User, Role, AuditLog, ...)
+│   └── sqlboiler/        # Generated DB models
 ├── pkg/
-│   ├── jwt/             # JWT generation
-│   ├── oauth/           # OAuth providers
-│   ├── redis/           # Redis client
-│   └── kafka/           # Kafka producer
-├── migration/           # Database migrations
-├── scripts/             # Cleanup scripts
-└── docs/                # Documentation
+│   ├── jwt/              # JWT issue/verify
+│   ├── oauth/            # OAuth providers (Google, Okta, Azure)
+│   ├── redis/            # Redis client
+│   ├── kafka/            # Kafka consumer
+│   ├── auth/             # JWT verification, middleware
+│   └── ...               # log, i18n, response, encrypter, scope, etc.
+├── migration/            # SQL schema (schema_identity)
+├── scripts/              # Docker build (build-api.sh, build-consumer.sh)
+├── docs/                 # Swagger (docs.go, swagger.json, swagger.yaml)
+└── documents/            # Integration, deployment, testing docs
 ```
 
 ---
@@ -280,11 +294,15 @@ make consumer-build
 ### Docker
 
 ```bash
-# Build images
+# Build (recommended: use Makefile)
+make docker-build          # API image (local)
+make consumer-build        # Consumer image (local)
+
+# Hoặc build trực tiếp
 docker build -t identity-srv:latest -f cmd/api/Dockerfile .
 docker build -t smap-consumer:latest -f cmd/consumer/Dockerfile .
 
-# Run containers
+# Chạy container API
 docker run -d -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   identity-srv:latest
@@ -315,15 +333,11 @@ kubectl apply -f cmd/consumer/deployment.yaml
 
 ## Documentation
 
-- [Quick Start Guide](docs/QUICK_START.md)
-- [Authentication Modes](docs/AUTHENTICATION_MODES.md) - Development vs Production
-- [Authentication Quick Reference](docs/AUTHENTICATION_QUICK_REFERENCE.md)
-- [Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)
-- [Testing Examples](docs/examples/README.md)
-- [Features & Capabilities](documents/FEATURES_AND_CAPABILITIES.md)
-- [Current Repository State](documents/CURRENT_REPOSITORY_STATE.md)
-- [Integration Guide](documents/auth-service-integration.md)
+- [Auth Service Integration](documents/auth-service-integration.md)
 - [Deployment Guide](documents/deployment-guide.md)
+- [Local Testing Guide](documents/local-testing-guide.md)
+- [Service Integration Practical Guide](documents/service-integration-practical-guide.md)
+- Swagger UI: `/swagger/index.html` when the API is running
 
 ---
 
@@ -333,5 +347,5 @@ Part of SMAP graduation project.
 
 ---
 
-**Version**: 2.0.0 (Simplified)  
-**Last Updated**: 14/02/2026
+**Version**: 2.0.0  
+**Last Updated**: 15/02/2026
