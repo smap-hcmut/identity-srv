@@ -1,9 +1,9 @@
 package http
 
 import (
-	"smap-api/internal/audit/repository"
-	"smap-api/pkg/discord"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/audit/repository"
+	"identity-srv/pkg/discord"
+	pkgLog "identity-srv/pkg/log"
 )
 
 type handler struct {

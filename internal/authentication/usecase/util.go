@@ -3,9 +3,9 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
-	"smap-api/internal/user"
+	"identity-srv/internal/authentication"
+	"identity-srv/internal/model"
+	"identity-srv/internal/user"
 	"strings"
 	"time"
 )

@@ -2,8 +2,8 @@ package postgre
 
 import (
 	"database/sql"
-	"smap-api/internal/authentication/repository"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/authentication/repository"
+	pkgLog "identity-srv/pkg/log"
 )
 
 type implRepository struct {

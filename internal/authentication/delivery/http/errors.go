@@ -2,8 +2,8 @@ package http
 
 import (
 	"errors"
-	"smap-api/internal/authentication"
-	pkgErrors "smap-api/pkg/errors"
+	"identity-srv/internal/authentication"
+	pkgErrors "identity-srv/pkg/errors"
 )
 
 // --- HTTP error constants ---

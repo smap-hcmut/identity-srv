@@ -34,12 +34,12 @@ cp -r ../identity-srv/pkg/scope ./pkg/
 module your-service
 
 require (
-    smap-api/pkg/auth v0.0.0
-    smap-api/pkg/scope v0.0.0
+    identity-srv/pkg/auth v0.0.0
+    identity-srv/pkg/scope v0.0.0
 )
 
-replace smap-api/pkg/auth => ../identity-srv/pkg/auth
-replace smap-api/pkg/scope => ../identity-srv/pkg/scope
+replace identity-srv/pkg/auth => ../identity-srv/pkg/auth
+replace identity-srv/pkg/scope => ../identity-srv/pkg/scope
 ```
 
 ---
@@ -59,7 +59,7 @@ jwt:
   algorithm: HS256
   issuer: smap-auth-service # ✅ Phải giống Auth Service
   audience:
-    - smap-api # ✅ Phải giống Auth Service
+    - identity-srv # ✅ Phải giống Auth Service
   secret_key: <same-secret-key-as-auth-service> # ✅ Phải giống Auth Service
 
 # Cookie Configuration - PHẢI KHỚP VỚI AUTH SERVICE
@@ -90,7 +90,7 @@ cors:
 **Các config SAU PHẢI KHỚP với Auth Service**:
 
 - `jwt.issuer`: `smap-auth-service`
-- `jwt.audience`: `["smap-api"]`
+- `jwt.audience`: `["identity-srv"]`
 - `jwt.secret_key`: Same secret key as Auth Service
 - `cookie.name`: `smap_auth_token`
 - `cookie.domain`: `localhost` (dev) hoặc `.smap.com` (prod)
@@ -113,8 +113,8 @@ import (
     "your-service/config"
     "your-service/internal/httpserver"
 
-    "smap-api/pkg/auth"
-    pkgRedis "smap-api/pkg/redis"
+    "identity-srv/pkg/auth"
+    pkgRedis "identity-srv/pkg/redis"
 
     "github.com/gin-gonic/gin"
 )
@@ -186,7 +186,7 @@ func main() {
 package httpserver
 
 import (
-    "smap-api/pkg/auth"
+    "identity-srv/pkg/auth"
     "github.com/gin-gonic/gin"
 )
 
@@ -340,7 +340,7 @@ package handler
 
 import (
     "net/http"
-    "smap-api/pkg/auth"
+    "identity-srv/pkg/auth"
     "github.com/gin-gonic/gin"
 )
 

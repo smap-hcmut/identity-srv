@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"smap-api/config"
-	configPostgre "smap-api/config/postgre"
-	"smap-api/internal/consumer"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/config"
+	configPostgre "identity-srv/config/postgre"
+	"identity-srv/internal/consumer"
+	pkgLog "identity-srv/pkg/log"
 
 	_ "github.com/lib/pq"
 )

@@ -2,8 +2,8 @@ package authentication
 
 import (
 	"context"
-	"smap-api/internal/audit"
-	"smap-api/internal/model"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/model"
 )
 
 // UseCase interface for authentication module

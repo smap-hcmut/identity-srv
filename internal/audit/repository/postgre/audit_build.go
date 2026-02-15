@@ -2,7 +2,7 @@ package postgre
 
 import (
 	"encoding/json"
-	"smap-api/internal/model"
+	"identity-srv/internal/model"
 )
 
 // scanAuditLog scans a single audit log row into a model.AuditLog

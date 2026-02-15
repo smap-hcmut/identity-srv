@@ -3,9 +3,9 @@ package postgre
 import (
 	"context"
 	"fmt"
-	"smap-api/internal/audit"
-	"smap-api/internal/audit/repository"
-	"smap-api/internal/model"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/audit/repository"
+	"identity-srv/internal/model"
 )
 
 // BatchInsert inserts multiple audit events into the database

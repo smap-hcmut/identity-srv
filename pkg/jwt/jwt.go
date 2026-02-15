@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"smap-api/pkg/scope"
+	"identity-srv/pkg/scope"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

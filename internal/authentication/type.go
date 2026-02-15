@@ -1,7 +1,7 @@
 package authentication
 
 import (
-	"smap-api/internal/model"
+	"identity-srv/internal/model"
 	"time"
 )
 

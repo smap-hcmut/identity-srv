@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"smap-api/pkg/discord"
+	"identity-srv/pkg/discord"
 
 	"github.com/gin-gonic/gin"
 )

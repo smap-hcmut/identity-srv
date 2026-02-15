@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"time"
 
-	"smap-api/internal/model"
-	"smap-api/internal/sqlboiler"
-	"smap-api/internal/user/repository"
-	postgresPkg "smap-api/pkg/postgre"
+	"identity-srv/internal/model"
+	"identity-srv/internal/sqlboiler"
+	"identity-srv/internal/user/repository"
+	postgresPkg "identity-srv/pkg/postgre"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"

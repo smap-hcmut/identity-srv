@@ -159,7 +159,7 @@ jwt:
   secret_key: <JWT_SECRET_KEY> # Minimum 32 characters
   issuer: smap-auth-service
   audience:
-    - smap-api
+    - identity-srv
   ttl: 28800 # 8 hours in seconds
 
 # Access Control Configuration
@@ -440,7 +440,7 @@ package main
 
 import (
     "fmt"
-    "smap-api/pkg/encrypter"
+    "identity-srv/pkg/encrypter"
 )
 
 func main() {

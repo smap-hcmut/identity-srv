@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"smap-api/internal/authentication"
+	"identity-srv/internal/authentication"
 	"time"
 )
 

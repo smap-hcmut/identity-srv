@@ -1,7 +1,7 @@
 package producer
 
 import (
-	"smap-api/internal/audit"
+	"identity-srv/internal/audit"
 	"sync"
 
 	"github.com/IBM/sarama"

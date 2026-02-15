@@ -1,7 +1,7 @@
 package http
 
 import (
-	"smap-api/pkg/response"
+	"identity-srv/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )

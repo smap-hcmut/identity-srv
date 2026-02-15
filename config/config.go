@@ -337,7 +337,7 @@ func setDefaults() {
 	// JWT
 	viper.SetDefault("jwt.algorithm", "HS256")
 	viper.SetDefault("jwt.issuer", "smap-auth-service")
-	viper.SetDefault("jwt.audience", []string{"smap-api"})
+	viper.SetDefault("jwt.audience", []string{"identity-srv"})
 	viper.SetDefault("jwt.ttl", 28800) // 8 hours
 
 	// Cookie

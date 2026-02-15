@@ -2,7 +2,7 @@ package model
 
 const (
 	ScopeTypeAccess = "access"
-	SMAPAPI         = "smap-api"
+	SMAPAPI         = "identity-srv"
 )
 
 type Scope struct {

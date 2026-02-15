@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	auditKafka "smap-api/internal/audit/delivery/kafka/consumer"
-	auditPostgre "smap-api/internal/audit/repository/postgre"
+	auditKafka "identity-srv/internal/audit/delivery/kafka/consumer"
+	auditPostgre "identity-srv/internal/audit/repository/postgre"
 )
 
 // registerAuditConsumer registers the audit consumer

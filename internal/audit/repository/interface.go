@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"smap-api/internal/audit"
-	"smap-api/internal/model"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/model"
 )
 
 // Repository defines the interface for audit log storage

@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"smap-api/config"
-	"smap-api/pkg/encrypter"
-	pkgLog "smap-api/pkg/log"
-	pkgScope "smap-api/pkg/scope"
+	"identity-srv/config"
+	"identity-srv/pkg/encrypter"
+	pkgLog "identity-srv/pkg/log"
+	pkgScope "identity-srv/pkg/scope"
 )
 
 type Middleware struct {

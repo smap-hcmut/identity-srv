@@ -45,9 +45,9 @@ var privateSubnets = []string{
 // Production allowed origins
 var productionOrigins = []string{
 	"https://smap.tantai.dev",
-	"https://smap-api.tantai.dev",
-	"http://smap.tantai.dev",     // For testing/non-HTTPS
-	"http://smap-api.tantai.dev", // For testing/non-HTTPS
+	"https://identity-srv.tantai.dev",
+	"http://smap.tantai.dev",         // For testing/non-HTTPS
+	"http://identity-srv.tantai.dev", // For testing/non-HTTPS
 }
 
 // isPrivateOrigin checks if origin is from an allowed private subnet

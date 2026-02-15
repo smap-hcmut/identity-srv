@@ -1,11 +1,11 @@
 package http
 
 import (
-	"smap-api/config"
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
-	"smap-api/pkg/discord"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/config"
+	"identity-srv/internal/authentication"
+	"identity-srv/internal/model"
+	"identity-srv/pkg/discord"
+	pkgLog "identity-srv/pkg/log"
 )
 
 type handler struct {

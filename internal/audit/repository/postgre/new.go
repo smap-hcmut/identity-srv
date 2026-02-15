@@ -2,8 +2,8 @@ package postgre
 
 import (
 	"database/sql"
-	"smap-api/internal/audit/repository"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/audit/repository"
+	pkgLog "identity-srv/pkg/log"
 )
 
 var _ repository.Repository = (*implRepository)(nil)

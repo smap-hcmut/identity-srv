@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"smap-api/internal/authentication"
+	"identity-srv/internal/authentication"
 	"time"
 )
 

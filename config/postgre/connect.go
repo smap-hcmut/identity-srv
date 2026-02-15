@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"smap-api/config"
+	"identity-srv/config"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )

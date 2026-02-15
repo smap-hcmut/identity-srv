@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"smap-api/pkg/response"
+	"identity-srv/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )

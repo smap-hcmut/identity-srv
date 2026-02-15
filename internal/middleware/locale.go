@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"smap-api/pkg/locale"
+	"identity-srv/pkg/locale"
 
 	"github.com/gin-gonic/gin"
 )

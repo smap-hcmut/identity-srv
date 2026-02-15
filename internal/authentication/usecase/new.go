@@ -1,17 +1,17 @@
 package usecase
 
 import (
-	"smap-api/internal/audit"
-	"smap-api/internal/user"
-	"smap-api/pkg/encrypter"
-	pkgJWT "smap-api/pkg/jwt"
-	pkgLog "smap-api/pkg/log"
-	"smap-api/pkg/oauth"
-	pkgRedis "smap-api/pkg/redis"
-	"smap-api/pkg/scope"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/user"
+	"identity-srv/pkg/encrypter"
+	pkgJWT "identity-srv/pkg/jwt"
+	pkgLog "identity-srv/pkg/log"
+	"identity-srv/pkg/oauth"
+	pkgRedis "identity-srv/pkg/redis"
+	"identity-srv/pkg/scope"
 	"time"
 
-	"smap-api/config"
+	"identity-srv/config"
 )
 
 type ImplUsecase struct {

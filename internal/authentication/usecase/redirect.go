@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"identity-srv/internal/authentication"
 	"net/url"
-	"smap-api/internal/authentication"
 	"strings"
 )
 

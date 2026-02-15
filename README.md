@@ -281,13 +281,13 @@ make consumer-build
 
 ```bash
 # Build images
-docker build -t smap-api:latest -f cmd/api/Dockerfile .
+docker build -t identity-srv:latest -f cmd/api/Dockerfile .
 docker build -t smap-consumer:latest -f cmd/consumer/Dockerfile .
 
 # Run containers
 docker run -d -p 8080:8080 \
   -v $(pwd)/config:/app/config \
-  smap-api:latest
+  identity-srv:latest
 ```
 
 ### Kubernetes

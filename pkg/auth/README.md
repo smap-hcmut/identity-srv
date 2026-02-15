@@ -14,7 +14,7 @@ Reusable JWT authentication and authorization middleware for SMAP services.
 ## Installation
 
 ```bash
-go get smap-api/pkg/auth
+go get identity-srv/pkg/auth
 ```
 
 ## Quick Start
@@ -22,13 +22,13 @@ go get smap-api/pkg/auth
 ### 1. Initialize Verifier
 
 ```go
-import "smap-api/pkg/auth"
+import "identity-srv/pkg/auth"
 
 // Create verifier
 verifier, err := auth.NewVerifier(auth.VerifierConfig{
     JWKSEndpoint: "https://auth.example.com/.well-known/jwks.json",
     Issuer:       "smap-auth-service",
-    Audience:     []string{"smap-api"},
+    Audience:     []string{"identity-srv"},
     CacheTTL:     1 * time.Hour,
 })
 if err != nil {
@@ -289,7 +289,7 @@ middleware := auth.NewMiddleware(auth.MiddlewareConfig{
 verifier, err := auth.NewVerifier(auth.VerifierConfig{
     JWKSEndpoint: "https://auth.example.com/.well-known/jwks.json",
     Issuer:       "smap-auth-service",
-    Audience:     []string{"smap-api", "smap-mobile", "smap-web"}, // Multiple audiences
+    Audience:     []string{"identity-srv", "smap-mobile", "smap-web"}, // Multiple audiences
     CacheTTL:     1 * time.Hour,
 })
 ```
@@ -301,7 +301,7 @@ verifier, err := auth.NewVerifier(auth.VerifierConfig{
 verifier, err := auth.NewVerifier(auth.VerifierConfig{
     JWKSEndpoint: "https://auth.example.com/.well-known/jwks.json",
     Issuer:       "smap-auth-service",
-    Audience:     []string{"smap-api"},
+    Audience:     []string{"identity-srv"},
     CacheTTL:     15 * time.Minute, // Refresh every 15 minutes
 })
 ```
@@ -330,7 +330,7 @@ func myHandler(c *gin.Context) {
 package main
 
 import (
-    "smap-api/pkg/auth"
+    "identity-srv/pkg/auth"
     "github.com/gin-gonic/gin"
 )
 
@@ -339,7 +339,7 @@ func main() {
     verifier, _ := auth.NewVerifier(auth.VerifierConfig{
         JWKSEndpoint: "https://auth.smap.com/.well-known/jwks.json",
         Issuer:       "smap-auth-service",
-        Audience:     []string{"smap-api"},
+        Audience:     []string{"identity-srv"},
     })
 
     // Create middleware

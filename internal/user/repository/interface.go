@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"smap-api/internal/model"
+	"identity-srv/internal/model"
 )
 
 //go:generate mockery --name Repository

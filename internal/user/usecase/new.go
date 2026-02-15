@@ -1,10 +1,10 @@
 package usecase
 
 import (
-	"smap-api/internal/user"
-	"smap-api/internal/user/repository"
-	"smap-api/pkg/encrypter"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/user"
+	"identity-srv/internal/user/repository"
+	"identity-srv/pkg/encrypter"
+	pkgLog "identity-srv/pkg/log"
 	"time"
 )
 

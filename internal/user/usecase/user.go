@@ -3,9 +3,9 @@ package usecase
 import (
 	"context"
 
-	"smap-api/internal/model"
-	"smap-api/internal/user"
-	"smap-api/internal/user/repository"
+	"identity-srv/internal/model"
+	"identity-srv/internal/user"
+	"identity-srv/internal/user/repository"
 )
 
 // Create creates or updates user by email (for OAuth - uses Upsert internally)

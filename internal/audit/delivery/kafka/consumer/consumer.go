@@ -1,8 +1,8 @@
 package consumer
 
 import (
-	"smap-api/internal/audit"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/audit"
+	pkgLog "identity-srv/pkg/log"
 	"time"
 
 	"github.com/IBM/sarama"

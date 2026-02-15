@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"smap-api/internal/model"
+	"identity-srv/internal/model"
 )
 
 // NewScope creates a new scope.

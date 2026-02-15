@@ -2,7 +2,7 @@ package http
 
 import (
 	"fmt"
-	"smap-api/pkg/response"
+	"identity-srv/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )

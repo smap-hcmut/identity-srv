@@ -1,7 +1,7 @@
 package model
 
 import (
-	"smap-api/internal/sqlboiler"
+	"identity-srv/internal/sqlboiler"
 	"time"
 
 	"github.com/aarondl/null/v8"

@@ -75,13 +75,13 @@ Update `go.mod`:
 
 ```bash
 # Add pkg/auth from Auth Service
-go get smap-api/pkg/auth@latest
-go get smap-api/pkg/redis@latest
-go get smap-api/pkg/kafka@latest  # Optional, for audit logging
+go get identity-srv/pkg/auth@latest
+go get identity-srv/pkg/redis@latest
+go get identity-srv/pkg/kafka@latest  # Optional, for audit logging
 
 # Or if using local path
-replace smap-api/pkg/auth => ../identity-srv/pkg/auth
-replace smap-api/pkg/redis => ../identity-srv/pkg/redis
+replace identity-srv/pkg/auth => ../identity-srv/pkg/auth
+replace identity-srv/pkg/redis => ../identity-srv/pkg/redis
 ```
 
 ### Step 2: Add Configuration
@@ -152,7 +152,7 @@ jwt:
   algorithm: RS256
   issuer: smap-auth-service
   audience:
-    - smap-api
+    - identity-srv
   jwks_endpoint: https://auth-service:8080/.well-known/jwks.json
   # Or use public key file
   public_key_path: ./secrets/jwt-public.pem
@@ -196,9 +196,9 @@ import (
     "context"
     "time"
 
-    "smap-api/pkg/auth"
-    "smap-api/pkg/log"
-    pkgRedis "smap-api/pkg/redis"
+    "identity-srv/pkg/auth"
+    "identity-srv/pkg/log"
+    pkgRedis "identity-srv/pkg/redis"
 )
 
 func main() {
@@ -309,7 +309,7 @@ import (
     "net/http"
 
     "github.com/gin-gonic/gin"
-    "smap-api/pkg/auth"
+    "identity-srv/pkg/auth"
 )
 
 func (h *Handler) createProject(c *gin.Context) {
@@ -543,7 +543,7 @@ func (h *Handler) HandleWebSocket(c *gin.Context) {
 # JWT Configuration
 JWT_ALGORITHM=RS256
 JWT_ISSUER=smap-auth-service
-JWT_AUDIENCE=smap-api
+JWT_AUDIENCE=identity-srv
 JWT_JWKS_ENDPOINT=https://auth-service:8080/.well-known/jwks.json
 
 # Cookie Configuration
@@ -572,7 +572,7 @@ CORS_ALLOWED_ORIGINS=https://app.smap.com,http://localhost:3000
 **IMPORTANT**: All services MUST use the same:
 
 - JWT issuer: `smap-auth-service`
-- JWT audience: `smap-api`
+- JWT audience: `identity-srv`
 - Cookie name: `smap_auth_token`
 - Cookie domain: `.smap.com`
 - Redis DB: `1` (for blacklist)
@@ -695,7 +695,7 @@ func TestAuthentication(t *testing.T) {
 ### Setup Kafka Producer
 
 ```go
-import pkgKafka "smap-api/pkg/kafka"
+import pkgKafka "identity-srv/pkg/kafka"
 
 // In main.go
 kafkaProducer, err := pkgKafka.NewProducer(pkgKafka.Config{

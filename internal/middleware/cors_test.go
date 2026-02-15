@@ -318,7 +318,7 @@ func TestDefaultCORSConfigAllowOriginFunc(t *testing.T) {
 		},
 		{
 			name:   "Production domain 2",
-			origin: "https://smap-api.tantai.dev",
+			origin: "https://identity-srv.tantai.dev",
 			want:   true,
 		},
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"smap-api/internal/model"
+	"identity-srv/internal/model"
 )
 
 // --- Request DTOs ---

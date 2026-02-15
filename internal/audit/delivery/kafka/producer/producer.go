@@ -3,7 +3,7 @@ package producer
 import (
 	"context"
 	"encoding/json"
-	"smap-api/internal/audit"
+	"identity-srv/internal/audit"
 	"time"
 
 	"github.com/IBM/sarama"

@@ -3,18 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"identity-srv/config"
+	configPostgre "identity-srv/config/postgre"
+	_ "identity-srv/docs" // Import swagger docs
+	authUsecase "identity-srv/internal/authentication/usecase"
+	"identity-srv/internal/httpserver"
+	"identity-srv/pkg/discord"
+	"identity-srv/pkg/encrypter"
+	pkgJWT "identity-srv/pkg/jwt"
+	"identity-srv/pkg/log"
+	pkgRedis "identity-srv/pkg/redis"
 	"os"
 	"os/signal"
-	"smap-api/config"
-	configPostgre "smap-api/config/postgre"
-	_ "smap-api/docs" // Import swagger docs
-	authUsecase "smap-api/internal/authentication/usecase"
-	"smap-api/internal/httpserver"
-	"smap-api/pkg/discord"
-	"smap-api/pkg/encrypter"
-	pkgJWT "smap-api/pkg/jwt"
-	"smap-api/pkg/log"
-	pkgRedis "smap-api/pkg/redis"
 	"syscall"
 	"time"
 )
@@ -22,7 +22,7 @@ import (
 // @title       SMAP Identity Service API
 // @description SMAP Identity Service API documentation.
 // @version     1
-// @host        smap-api.tantai.dev
+// @host        identity-srv.tantai.dev
 // @schemes     https
 // @BasePath    /identity
 //

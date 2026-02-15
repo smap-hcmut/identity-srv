@@ -1,7 +1,7 @@
 package http
 
 import (
-	"smap-api/internal/middleware"
+	"identity-srv/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )

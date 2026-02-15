@@ -55,7 +55,7 @@ jwt:
   algorithm: HS256
   issuer: smap-auth-service
   audience:
-    - smap-api
+    - identity-srv
   secret_key: smap-jwt-secret-key-2024-minimum-32-characters-required
   ttl: 28800 # 8 hours in seconds
 

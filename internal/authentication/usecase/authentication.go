@@ -3,9 +3,9 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"smap-api/internal/audit"
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/authentication"
+	"identity-srv/internal/model"
 )
 
 // GetCurrentUser gets current user from scope

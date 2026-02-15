@@ -2,8 +2,8 @@ package postgre
 
 import (
 	"fmt"
-	"smap-api/internal/audit"
-	"smap-api/internal/audit/repository"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/audit/repository"
 	"strings"
 )
 

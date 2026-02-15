@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"smap-api/internal/user/repository"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/user/repository"
+	pkgLog "identity-srv/pkg/log"
 )
 
 type implRepository struct {

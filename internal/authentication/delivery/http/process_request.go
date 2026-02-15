@@ -1,9 +1,9 @@
 package http
 
 import (
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
-	"smap-api/pkg/scope"
+	"identity-srv/internal/authentication"
+	"identity-srv/internal/model"
+	"identity-srv/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )

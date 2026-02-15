@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	pkgKafka "smap-api/pkg/kafka"
-	pkgLog "smap-api/pkg/log"
+	pkgKafka "identity-srv/pkg/kafka"
+	pkgLog "identity-srv/pkg/log"
 
 	"github.com/IBM/sarama"
 )

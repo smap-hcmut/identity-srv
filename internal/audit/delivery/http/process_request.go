@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"smap-api/internal/audit/repository"
-	pkgErrors "smap-api/pkg/errors"
+	"identity-srv/internal/audit/repository"
+	pkgErrors "identity-srv/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )

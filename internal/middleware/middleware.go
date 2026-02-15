@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"smap-api/pkg/response"
-	"smap-api/pkg/scope"
+	"identity-srv/pkg/response"
+	"identity-srv/pkg/scope"
 
 	"github.com/gin-gonic/gin"
 )

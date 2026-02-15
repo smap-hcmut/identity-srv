@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"context"
-	"smap-api/internal/audit"
-	"smap-api/internal/authentication"
+	"identity-srv/internal/audit"
+	"identity-srv/internal/authentication"
 
 	"golang.org/x/oauth2"
 )

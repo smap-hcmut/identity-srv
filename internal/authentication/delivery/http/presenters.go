@@ -2,8 +2,8 @@ package http
 
 import (
 	"fmt"
-	"smap-api/internal/authentication"
-	"smap-api/internal/model"
+	"identity-srv/internal/authentication"
+	"identity-srv/internal/model"
 	"time"
 )
 

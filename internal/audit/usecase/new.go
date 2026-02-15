@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"smap-api/internal/audit/repository"
-	pkgLog "smap-api/pkg/log"
+	"identity-srv/internal/audit/repository"
+	pkgLog "identity-srv/pkg/log"
 
 	"github.com/robfig/cron/v3"
 )

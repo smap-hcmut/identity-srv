@@ -20,7 +20,7 @@ metadata:
 
 spec:
   rules:
-  - host: smap-api.tantai.dev
+  - host: identity-srv.tantai.dev
     http:
       paths:
       # --- ROUTE FOR IDENTITY SERVICE ---
