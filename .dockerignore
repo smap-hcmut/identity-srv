@@ -7,9 +7,7 @@
 *.md
 !README.md
 docs/
-DOCKER_BUILD_GUIDE.md
-API_SEQUENCE_DIAGRAMS.md
-IMPLEMENTATION_SUMMARY.md
+documents/
 
 # IDE
 .vscode/
@@ -28,10 +26,11 @@ Thumbs.db
 *.so
 *.dylib
 api
+consumer
 *.test
 *.out
 
-# Vendor (sẽ được download lại trong Docker)
+# Vendor (downloaded via go mod download in Docker)
 vendor/
 
 # Temporary files
@@ -39,7 +38,9 @@ tmp/
 temp/
 *.tmp
 
-# Environment files (security)
+# Secrets & Environment (security)
+secrets/
+config/auth-config.yaml
 .env
 .env.local
 .env.*.local
@@ -56,10 +57,13 @@ coverage.html
 *.log
 logs/
 
-# Docker
-Dockerfile
+# Docker & deployment
+**/Dockerfile
 docker-compose*.yml
 .dockerignore
+scripts/
+migration/
+manifests/
 
 # CI/CD
 .github/

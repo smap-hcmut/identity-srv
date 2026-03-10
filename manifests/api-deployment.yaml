@@ -4,7 +4,7 @@ metadata:
   name: identity-api
   namespace: smap
   labels:
-    app: identity-api
+    app.kubernetes.io/name: identity-api
     app.kubernetes.io/part-of: smap
     app.kubernetes.io/component: api
 spec:
@@ -22,14 +22,15 @@ spec:
     metadata:
       labels:
         app: identity-api
+        app.kubernetes.io/name: identity-api
         app.kubernetes.io/part-of: smap
     spec:
       imagePullSecrets:
-        - name: harbor-registry
+        - name: zot-registry
       containers:
         - name: identity-api
-          image: registry.tantai.dev/smap/identity-api:260310-095737
-          imagePullPolicy: IfNotPresent
+          image: 172.16.21.10:5000/smap/identity-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http
@@ -65,31 +66,24 @@ spec:
             httpGet:
               path: /health
               port: 8080
-              scheme: HTTP
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
-            successThreshold: 1
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
-              scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
-            successThreshold: 1
             failureThreshold: 3
           startupProbe:
             httpGet:
               path: /health
               port: 8080
-              scheme: HTTP
-            initialDelaySeconds: 0
             periodSeconds: 5
             timeoutSeconds: 3
-            successThreshold: 1
             failureThreshold: 12
       terminationGracePeriodSeconds: 30
 
@@ -100,7 +94,7 @@ metadata:
   name: identity-api
   namespace: smap
   labels:
-    app: identity-api
+    app.kubernetes.io/name: identity-api
     app.kubernetes.io/part-of: smap
 spec:
   selector:
@@ -111,4 +105,3 @@ spec:
       protocol: TCP
       name: http
   type: ClusterIP
-  sessionAffinity: None
