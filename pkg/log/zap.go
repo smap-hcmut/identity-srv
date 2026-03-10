@@ -91,16 +91,28 @@ func (l *zapLogger) init() {
 
 // loggerKey holds the context key used for loggers.
 type loggerKey struct{}
+type contextKey string
+
+// TraceIDKey is exactly the same as middleware.TraceIDKey to prevent circular dependencies
+const TraceIDKey contextKey = "trace_id"
 
 func (l *zapLogger) ctx(ctx context.Context) *zap.SugaredLogger {
 	if ctx == nil {
 		panic("nil context passed to Logger")
 	}
-	if logger, _ := ctx.Value(loggerKey{}).(*zap.SugaredLogger); logger != nil {
-		return logger
+	
+	logger := l.sugarLogger
+
+	if customLogger, _ := ctx.Value(loggerKey{}).(*zap.SugaredLogger); customLogger != nil {
+		logger = customLogger
 	}
 
-	return l.sugarLogger
+	// Inject trace_id into the logger if present in context
+	if traceID, ok := ctx.Value(TraceIDKey).(string); ok && traceID != "" {
+		return logger.With("trace_id", traceID)
+	}
+
+	return logger
 }
 
 func (l *zapLogger) Debug(ctx context.Context, args ...any) {

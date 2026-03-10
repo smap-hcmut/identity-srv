@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type HTTPServer struct {
@@ -89,7 +90,7 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 	srv := &HTTPServer{
 		// Server Configuration
 		l:           logger,
-		gin:         gin.Default(),
+		gin:         gin.New(),
 		host:        cfg.Host,
 		port:        cfg.Port,
 		mode:        cfg.Mode,
@@ -120,7 +121,39 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 		return nil, err
 	}
 
+	// Add middlewares
+	srv.gin.Use(srv.zapLoggerMiddleware())
+	srv.gin.Use(gin.Recovery())
+
 	return srv, nil
+}
+
+func (srv *HTTPServer) zapLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+
+		c.Next()
+
+		latency := time.Since(start)
+		status := c.Writer.Status()
+
+		if srv.environment == "production" {
+			srv.l.Info(c.Request.Context(), "HTTP Request",
+				zap.Int("status", status),
+				zap.String("method", c.Request.Method),
+				zap.String("path", path),
+				zap.String("query", query),
+				zap.String("ip", c.ClientIP()),
+				zap.Duration("latency", latency),
+				zap.String("user-agent", c.Request.UserAgent()),
+			)
+		} else {
+			// In development, you might still want standard gin logs or a simpler format
+			srv.l.Infof(c.Request.Context(), "%s %s %d %s %s", c.Request.Method, path, status, latency, c.ClientIP())
+		}
+	}
 }
 
 // validate validates that all required dependencies are provided.

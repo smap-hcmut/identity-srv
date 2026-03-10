@@ -12,6 +12,7 @@ import (
 	userrepository "identity-srv/internal/user/repository/postgre"
 	userusecase "identity-srv/internal/user/usecase"
 	"identity-srv/pkg/i18n"
+	pkgMiddleware "identity-srv/pkg/middleware"
 	"identity-srv/pkg/oauth"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -70,6 +71,9 @@ func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
 
 	corsConfig := middleware.DefaultCORSConfig(srv.environment)
 	srv.gin.Use(middleware.CORS(corsConfig))
+
+	// Tracing middleware for centralized logging (trace_id)
+	srv.gin.Use(pkgMiddleware.Tracing())
 
 	// Log CORS mode for visibility
 	ctx := context.Background()
