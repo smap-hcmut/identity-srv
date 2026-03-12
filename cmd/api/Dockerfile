@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source & generate swagger docs
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
-    swag init -g cmd/api/main.go
+    swag init -g cmd/api/main.go --parseVendor
 
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
