@@ -70,7 +70,11 @@ func main() {
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
 	// 6. Initialize Discord (optional)
-	discordClient, err := discord.New(logger, cfg.Discord.WebhookID+"/"+cfg.Discord.WebhookToken)
+	var webhookURL string
+	if cfg.Discord.WebhookID != "" && cfg.Discord.WebhookToken != "" {
+		webhookURL = fmt.Sprintf("https://discord.com/api/webhooks/%s/%s", cfg.Discord.WebhookID, cfg.Discord.WebhookToken)
+	}
+	discordClient, err := discord.New(logger, webhookURL)
 	if err != nil {
 		logger.Warnf(ctx, "Discord webhook not configured (optional): %v", err)
 		discordClient = nil // Continue without Discord
