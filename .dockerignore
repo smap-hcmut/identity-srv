@@ -31,7 +31,7 @@ consumer
 *.out
 
 # Vendor (downloaded via go mod download in Docker)
-vendor/
+# vendor/
 
 # Temporary files
 tmp/
