@@ -2,17 +2,18 @@ package http
 
 import (
 	"identity-srv/internal/audit/repository"
-	"identity-srv/pkg/discord"
-	pkgLog "identity-srv/pkg/log"
+
+	"github.com/smap-hcmut/shared-libs/go/discord"
+	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 type handler struct {
-	l       pkgLog.Logger
+	l       log.Logger
 	repo    repository.Repository
-	discord *discord.Discord
+	discord discord.IDiscord
 }
 
-func New(l pkgLog.Logger, repo repository.Repository, discord *discord.Discord) handler {
+func New(l log.Logger, repo repository.Repository, discord discord.IDiscord) handler {
 	return handler{
 		l:       l,
 		repo:    repo,

@@ -11,21 +11,19 @@ import (
 	"identity-srv/internal/middleware"
 	userrepository "identity-srv/internal/user/repository/postgre"
 	userusecase "identity-srv/internal/user/usecase"
-	"identity-srv/pkg/i18n"
-	pkgMiddleware "identity-srv/pkg/middleware"
 	"identity-srv/pkg/oauth"
 
+	"github.com/smap-hcmut/shared-libs/go/scope"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (srv HTTPServer) mapHandlers() error {
+	// Initialize middleware with shared-libs interfaces
 	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, "", srv.config, srv.encrypter)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
-
-	i18n.Init()
 
 	// Initialize repositories
 	userRepo := userrepository.New(srv.l, srv.postgresDB)
@@ -33,8 +31,9 @@ func (srv HTTPServer) mapHandlers() error {
 	// Initialize usecases
 	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
 
-	// Initialize authentication usecase
-	authUC := authusecase.New(srv.l, srv.jwtManager, srv.encrypter, userUC)
+	// Initialize authentication usecase - use scope manager from shared-libs
+	scopeManager := scope.New(srv.config.JWT.SecretKey)
+	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
 	authUC.SetSessionManager(srv.sessionManager)
 	authUC.SetBlacklistManager(srv.blacklistManager)
 	authUC.SetJWTManager(srv.jwtManager)
@@ -58,7 +57,7 @@ func (srv HTTPServer) mapHandlers() error {
 	auditRepo := auditPostgre.New(srv.l, srv.postgresDB)
 	auditHandler := audithttp.New(srv.l, auditRepo, srv.discord)
 
-	// Map routes (no prefix)
+	// Map routes with middleware
 	authhttp.MapAuthRoutes(srv.gin.Group("/authentication"), authHandler, mw)
 	audithttp.MapAuditRoutes(srv.gin.Group("/audit-logs"), auditHandler, mw)
 	// userhttp.MapUserRoutes(srv.gin.Group("/users"), userHandler, mw) // Temporarily disabled for Task 1.9
@@ -67,13 +66,14 @@ func (srv HTTPServer) mapHandlers() error {
 }
 
 func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
+	// Recovery middleware with Discord reporting
 	srv.gin.Use(middleware.Recovery(srv.l, srv.discord))
 
 	corsConfig := middleware.DefaultCORSConfig(srv.environment)
 	srv.gin.Use(middleware.CORS(corsConfig))
 
 	// Tracing middleware for centralized logging (trace_id)
-	srv.gin.Use(pkgMiddleware.Tracing())
+	srv.gin.Use(middleware.Tracing())
 
 	// Log CORS mode for visibility
 	ctx := context.Background()

@@ -6,14 +6,14 @@ import (
 
 	"identity-srv/config"
 	"identity-srv/internal/authentication/usecase"
-	"identity-srv/pkg/discord"
-	"identity-srv/pkg/encrypter"
-	pkgJWT "identity-srv/pkg/jwt"
-	"identity-srv/pkg/log"
-	pkgRedis "identity-srv/pkg/redis"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/auth"
+	"github.com/smap-hcmut/shared-libs/go/discord"
+	"github.com/smap-hcmut/shared-libs/go/encrypter"
+	"github.com/smap-hcmut/shared-libs/go/log"
+	"github.com/smap-hcmut/shared-libs/go/redis"
 	"go.uber.org/zap"
 )
 
@@ -34,8 +34,8 @@ type HTTPServer struct {
 
 	// Authentication & Security Configuration
 	config            *config.Config
-	jwtManager        *pkgJWT.Manager
-	redisClient       *pkgRedis.Client
+	jwtManager        auth.Manager
+	redisClient       redis.IRedis
 	sessionManager    *usecase.SessionManager
 	blacklistManager  *usecase.BlacklistManager
 	roleMapper        *usecase.RoleMapper
@@ -44,7 +44,7 @@ type HTTPServer struct {
 	encrypter         encrypter.Encrypter
 
 	// Monitoring & Notification Configuration
-	discord *discord.Discord
+	discord discord.IDiscord
 }
 
 type Config struct {
@@ -63,14 +63,14 @@ type Config struct {
 
 	// Authentication & Security Configuration
 	Config            *config.Config
-	JWTManager        *pkgJWT.Manager
-	RedisClient       *pkgRedis.Client
+	JWTManager        auth.Manager
+	RedisClient       redis.IRedis
 	RedirectValidator *usecase.RedirectValidator
 	CookieConfig      config.CookieConfig
 	Encrypter         encrypter.Encrypter
 
 	// Monitoring & Notification Configuration
-	Discord *discord.Discord
+	Discord discord.IDiscord
 }
 
 // New creates a new HTTPServer instance with the provided configuration.

@@ -3,7 +3,8 @@ package http
 import (
 	"errors"
 	"identity-srv/internal/authentication"
-	pkgErrors "identity-srv/pkg/errors"
+
+	pkgErrors "github.com/smap-hcmut/shared-libs/go/errors"
 )
 
 // --- HTTP error constants ---

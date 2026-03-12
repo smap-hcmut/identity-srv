@@ -8,6 +8,8 @@ import (
 	"identity-srv/internal/user"
 	"strings"
 	"time"
+
+	"github.com/smap-hcmut/shared-libs/go/auth"
 )
 
 // --- internal helpers (private, not exposed on the interface) ---
@@ -87,19 +89,27 @@ func (u *ImplUsecase) generateToken(ctx context.Context, usr *model.User, role s
 		return "", "", fmt.Errorf("jwt manager not configured")
 	}
 
-	token, err := u.jwtManager.GenerateToken(usr.ID, usr.Email, role, groups)
+	payload := auth.Payload{
+		UserID:   usr.ID,
+		Username: usr.Email,
+		Role:     role,
+		Type:     "access",
+		Refresh:  false,
+	}
+
+	token, err := u.jwtManager.CreateToken(payload)
 	if err != nil {
 		u.l.Errorf(ctx, "authentication.usecase.generateToken: %v", err)
 		return "", "", err
 	}
 	u.l.Infof(ctx, "Token generated for user %s, verifying...", usr.ID)
 
-	claims, err := u.jwtManager.VerifyToken(token)
+	verifiedPayload, err := u.jwtManager.Verify(token)
 	if err != nil {
 		return "", "", err
 	}
 
-	return token, claims.ID, nil
+	return token, verifiedPayload.Id, nil
 }
 
 // createSession creates a session in Redis

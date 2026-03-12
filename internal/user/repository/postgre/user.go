@@ -8,10 +8,10 @@ import (
 	"identity-srv/internal/model"
 	"identity-srv/internal/sqlboiler"
 	"identity-srv/internal/user/repository"
-	postgresPkg "identity-srv/pkg/postgre"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/smap-hcmut/shared-libs/go/postgres"
 )
 
 // Upsert creates or updates a user by email (for OAuth)
@@ -44,7 +44,7 @@ func (r *implRepository) Upsert(ctx context.Context, opts repository.UpsertOptio
 
 	// User doesn't exist - create new
 	newUser := &sqlboiler.User{
-		ID:          postgresPkg.NewUUID(),
+		ID:          postgres.NewUUID(),
 		Email:       opts.Email,
 		Name:        null.StringFrom(opts.Name),
 		AvatarURL:   null.StringFrom(opts.AvatarURL),

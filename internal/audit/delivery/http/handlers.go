@@ -1,9 +1,8 @@
 package http
 
 import (
-	"identity-srv/pkg/response"
-
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/response"
 )
 
 // GetAuditLogs queries audit logs with pagination and filters

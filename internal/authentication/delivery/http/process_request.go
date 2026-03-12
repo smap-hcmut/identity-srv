@@ -3,9 +3,9 @@ package http
 import (
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
-	"identity-srv/pkg/scope"
 
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/scope"
 )
 
 // --- Scope extraction ---
@@ -15,7 +15,7 @@ func (h handler) getScope(c *gin.Context) (model.Scope, error) {
 	if !ok {
 		return model.Scope{}, authentication.ErrScopeNotFound
 	}
-	return sc, nil
+	return model.ToScope(sc), nil
 }
 
 // --- Process request functions ---

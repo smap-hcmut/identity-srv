@@ -2,9 +2,9 @@ package http
 
 import (
 	"fmt"
-	"identity-srv/pkg/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/response"
 )
 
 // ValidateToken validates a JWT token (internal service endpoint)

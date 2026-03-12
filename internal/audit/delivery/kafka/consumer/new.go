@@ -2,14 +2,15 @@ package consumer
 
 import (
 	"identity-srv/internal/audit/repository"
-	pkgLog "identity-srv/pkg/log"
 	"time"
+
+	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 // Consumer consumes audit events from Kafka and stores them in database
 type Consumer struct {
 	repo         repository.Repository
-	logger       pkgLog.Logger
+	logger       log.Logger
 	batchSize    int
 	batchTimeout time.Duration
 }
@@ -21,7 +22,7 @@ type Config struct {
 }
 
 // New creates a new audit consumer
-func New(repo repository.Repository, cfg Config, logger pkgLog.Logger) *Consumer {
+func New(repo repository.Repository, cfg Config, logger log.Logger) *Consumer {
 	if cfg.BatchSize == 0 {
 		cfg.BatchSize = 100
 	}

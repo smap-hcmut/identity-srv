@@ -2,10 +2,10 @@ package consumer
 
 import (
 	"identity-srv/internal/audit"
-	pkgLog "identity-srv/pkg/log"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 // GetTopics returns the topics this consumer wants to subscribe to
@@ -31,7 +31,7 @@ func (c *Consumer) CreateHandler() sarama.ConsumerGroupHandler {
 // consumerGroupHandler implements sarama.ConsumerGroupHandler
 type consumerGroupHandler struct {
 	consumer  *Consumer
-	logger    pkgLog.Logger
+	logger    log.Logger
 	batch     []audit.AuditEvent
 	lastFlush time.Time
 }

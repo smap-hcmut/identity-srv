@@ -1,7 +1,7 @@
 package httpserver
 
 import (
-	"identity-srv/pkg/response"
+	"github.com/smap-hcmut/shared-libs/go/response"
 
 	"github.com/gin-gonic/gin"
 )

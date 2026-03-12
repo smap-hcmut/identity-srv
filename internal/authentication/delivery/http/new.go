@@ -4,19 +4,20 @@ import (
 	"identity-srv/config"
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
-	"identity-srv/pkg/discord"
-	pkgLog "identity-srv/pkg/log"
+
+	"github.com/smap-hcmut/shared-libs/go/discord"
+	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 type handler struct {
-	l            pkgLog.Logger
+	l            log.Logger
 	uc           authentication.UseCase
-	discord      *discord.Discord
+	discord      discord.IDiscord
 	cookieConfig config.CookieConfig
 	config       *config.Config
 }
 
-func New(l pkgLog.Logger, uc authentication.UseCase, discord *discord.Discord, cfg *config.Config) handler {
+func New(l log.Logger, uc authentication.UseCase, discord discord.IDiscord, cfg *config.Config) handler {
 	return handler{
 		l:            l,
 		uc:           uc,

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"identity-srv/internal/audit/repository"
-	pkgErrors "identity-srv/pkg/errors"
 
 	"github.com/gin-gonic/gin"
+	pkgErrors "github.com/smap-hcmut/shared-libs/go/errors"
 )
 
 var (

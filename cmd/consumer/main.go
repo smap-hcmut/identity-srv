@@ -3,16 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"identity-srv/config"
+	configPostgre "identity-srv/config/postgre"
+	"identity-srv/internal/consumer"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"identity-srv/config"
-	configPostgre "identity-srv/config/postgre"
-	"identity-srv/internal/consumer"
-	pkgLog "identity-srv/pkg/log"
-
 	_ "github.com/lib/pq"
+	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 // @Name SMAP Consumer Service
@@ -27,7 +26,7 @@ func main() {
 	}
 
 	// 2. Initialize logger
-	logger := pkgLog.Init(pkgLog.ZapConfig{
+	logger := log.Init(log.ZapConfig{
 		Level:        cfg.Logger.Level,
 		Mode:         cfg.Logger.Mode,
 		Encoding:     cfg.Logger.Encoding,

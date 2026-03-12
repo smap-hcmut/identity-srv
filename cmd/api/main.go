@@ -8,15 +8,15 @@ import (
 	_ "identity-srv/docs" // Import swagger docs
 	authUsecase "identity-srv/internal/authentication/usecase"
 	"identity-srv/internal/httpserver"
-	"identity-srv/pkg/discord"
-	"identity-srv/pkg/encrypter"
-	pkgJWT "identity-srv/pkg/jwt"
-	"identity-srv/pkg/log"
-	pkgRedis "identity-srv/pkg/redis"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/smap-hcmut/shared-libs/go/auth"
+	"github.com/smap-hcmut/shared-libs/go/discord"
+	"github.com/smap-hcmut/shared-libs/go/encrypter"
+	"github.com/smap-hcmut/shared-libs/go/log"
+	"github.com/smap-hcmut/shared-libs/go/redis"
 )
 
 // @title       SMAP Identity Service API
@@ -69,10 +69,7 @@ func main() {
 	logger.Infof(ctx, "PostgreSQL connected successfully to %s:%d/%s", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.DBName)
 
 	// 6. Initialize Discord (optional)
-	discordClient, err := discord.New(logger, &discord.DiscordWebhook{
-		ID:    cfg.Discord.WebhookID,
-		Token: cfg.Discord.WebhookToken,
-	})
+	discordClient, err := discord.New(logger, cfg.Discord.WebhookID+"/"+cfg.Discord.WebhookToken)
 	if err != nil {
 		logger.Warnf(ctx, "Discord webhook not configured (optional): %v", err)
 		discordClient = nil // Continue without Discord
@@ -81,7 +78,7 @@ func main() {
 	}
 
 	// 7. Initialize Redis
-	redisClient, err := pkgRedis.New(pkgRedis.Config{
+	redisClient, err := redis.New(redis.RedisConfig{
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
 		Password: cfg.Redis.Password,
@@ -94,12 +91,8 @@ func main() {
 	logger.Infof(ctx, "Redis connected successfully to %s:%d (DB %d)", cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.DB)
 
 	// 9. Initialize JWT Manager
-	jwtManager, err := initializeJWTManager(ctx, logger, cfg)
-	if err != nil {
-		logger.Error(ctx, "Failed to initialize JWT manager: ", err)
-		return
-	}
-	logger.Infof(ctx, "JWT Manager initialized with algorithm: %s", cfg.JWT.Algorithm)
+	jwtManager := auth.NewManager(cfg.JWT.SecretKey)
+	logger.Infof(ctx, "JWT Manager initialized")
 
 	// 10. Initialize Redirect Validator
 	// Validates OAuth redirect URLs against whitelist to prevent open redirect attacks
@@ -154,15 +147,4 @@ func registerGracefulShutdown(logger log.Logger) {
 		logger.Info(context.Background(), "Cleanup completed")
 		os.Exit(0)
 	}()
-}
-
-// initializeJWTManager initializes JWT manager with HS256 symmetric key
-func initializeJWTManager(ctx context.Context, logger log.Logger, cfg *config.Config) (*pkgJWT.Manager, error) {
-	// Create JWT manager with secret key from config
-	return pkgJWT.New(pkgJWT.Config{
-		SecretKey: cfg.JWT.SecretKey,
-		Issuer:    cfg.JWT.Issuer,
-		Audience:  cfg.JWT.Audience,
-		TTL:       time.Duration(cfg.JWT.TTL) * time.Second,
-	})
 }

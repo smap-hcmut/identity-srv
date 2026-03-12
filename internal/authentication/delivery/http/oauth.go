@@ -3,9 +3,8 @@ package http
 import (
 	"net/http"
 
-	"identity-srv/pkg/response"
-
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/response"
 )
 
 // OAuthLogin redirects user to OAuth2 authorization page

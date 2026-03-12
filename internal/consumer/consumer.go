@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	pkgKafka "identity-srv/pkg/kafka"
-	pkgLog "identity-srv/pkg/log"
+	"github.com/smap-hcmut/shared-libs/go/kafka"
+	"github.com/smap-hcmut/shared-libs/go/log"
 
 	"github.com/IBM/sarama"
 )
@@ -22,7 +22,7 @@ type ModuleConsumer interface {
 
 // Consumer represents the consumer service that manages multiple module consumers
 type Consumer struct {
-	logger          pkgLog.Logger
+	logger          log.Logger
 	postgresDB      *sql.DB
 	kafkaBrokers    []string
 	kafkaConsumers  map[string]sarama.ConsumerGroup // groupID -> consumer
@@ -33,13 +33,13 @@ type Consumer struct {
 
 // Config holds consumer service configuration
 type Config struct {
-	Logger       pkgLog.Logger
+	Logger       log.Logger
 	PostgresDB   *sql.DB
 	KafkaBrokers []string
 }
 
 // New creates a new consumer service
-func New(logger pkgLog.Logger, cfg Config) (*Consumer, error) {
+func New(logger log.Logger, cfg Config) (*Consumer, error) {
 	srv := &Consumer{
 		logger:          logger,
 		postgresDB:      cfg.PostgresDB,
@@ -135,7 +135,7 @@ func (srv *Consumer) startModuleConsumer(parentCtx context.Context, moduleConsum
 	topics := moduleConsumer.GetTopics()
 
 	// Create Kafka consumer group
-	kafkaConsumer, err := pkgKafka.NewConsumerGroup(pkgKafka.ConsumerConfig{
+	kafkaConsumer, err := kafka.NewConsumerGroup(kafka.ConsumerConfig{
 		Brokers: srv.kafkaBrokers,
 		GroupID: groupID,
 	})

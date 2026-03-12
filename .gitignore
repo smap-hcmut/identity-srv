@@ -3,6 +3,7 @@
 # Dependencies
 vendor/
 .go-version
+bin/
 
 # Environment variables
 .env
@@ -23,6 +24,7 @@ CLAUDE.md
 # Auth config with secrets
 auth-config.yaml
 secrets/
+
 # Kubernetes manifests with real credentials (never commit)
 manifests/secret.yaml
 manifests/configmap.yaml

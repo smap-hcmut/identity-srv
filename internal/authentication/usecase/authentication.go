@@ -6,6 +6,7 @@ import (
 	"identity-srv/internal/audit"
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
+	"time"
 )
 
 // GetCurrentUser gets current user from scope
@@ -54,13 +55,13 @@ func (u *ImplUsecase) ValidateToken(ctx context.Context, token string) (*authent
 		return nil, fmt.Errorf("jwt manager not configured")
 	}
 
-	claims, err := u.jwtManager.VerifyToken(token)
+	payload, err := u.jwtManager.Verify(token)
 	if err != nil {
 		return &authentication.TokenValidationResult{Valid: false}, nil
 	}
 
 	if u.blacklistManager != nil {
-		isBlacklisted, err := u.blacklistManager.IsBlacklisted(ctx, claims.ID)
+		isBlacklisted, err := u.blacklistManager.IsBlacklisted(ctx, payload.Id)
 		if err != nil {
 			u.l.Errorf(ctx, "authentication.usecase.ValidateToken.IsBlacklisted: %v", err)
 			return nil, err
@@ -72,11 +73,11 @@ func (u *ImplUsecase) ValidateToken(ctx context.Context, token string) (*authent
 
 	return &authentication.TokenValidationResult{
 		Valid:     true,
-		UserID:    claims.Subject,
-		Email:     claims.Email,
-		Role:      claims.Role,
-		Groups:    claims.Groups,
-		ExpiresAt: claims.ExpiresAt.Time,
+		UserID:    payload.UserID,
+		Email:     payload.Username,
+		Role:      payload.Role,
+		Groups:    []string{}, // TODO: Add groups support
+		ExpiresAt: time.Unix(payload.ExpiresAt, 0),
 	}, nil
 }
 

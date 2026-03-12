@@ -3,19 +3,20 @@ package usecase
 import (
 	"identity-srv/internal/audit"
 	"identity-srv/internal/user"
-	"identity-srv/pkg/encrypter"
-	pkgJWT "identity-srv/pkg/jwt"
-	pkgLog "identity-srv/pkg/log"
 	"identity-srv/pkg/oauth"
-	pkgRedis "identity-srv/pkg/redis"
-	"identity-srv/pkg/scope"
 	"time"
+
+	"github.com/smap-hcmut/shared-libs/go/auth"
+	"github.com/smap-hcmut/shared-libs/go/encrypter"
+	"github.com/smap-hcmut/shared-libs/go/log"
+	"github.com/smap-hcmut/shared-libs/go/redis"
+	"github.com/smap-hcmut/shared-libs/go/scope"
 
 	"identity-srv/config"
 )
 
 type ImplUsecase struct {
-	l                 pkgLog.Logger
+	l                 log.Logger
 	scope             scope.Manager
 	encrypt           encrypter.Encrypter
 	userUC            user.UseCase
@@ -23,7 +24,7 @@ type ImplUsecase struct {
 	auditPublisher    audit.Publisher
 	sessionManager    *SessionManager
 	blacklistManager  *BlacklistManager
-	jwtManager        *pkgJWT.Manager
+	jwtManager        auth.Manager
 	roleMapper        *RoleMapper
 	oauthProvider     oauth.Provider
 	redirectValidator *RedirectValidator
@@ -35,7 +36,7 @@ type ImplUsecase struct {
 
 // SessionManager handles session storage and retrieval
 type SessionManager struct {
-	redis *pkgRedis.Client
+	redis redis.IRedis
 	ttl   time.Duration
 }
 
@@ -51,7 +52,7 @@ type SessionData struct {
 
 // BlacklistManager handles token blacklist operations
 type BlacklistManager struct {
-	redis *pkgRedis.Client
+	redis redis.IRedis
 }
 
 // --- Role mapping types ---
@@ -69,7 +70,7 @@ type RedirectValidator struct {
 	allowedURLs []string
 }
 
-func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) *ImplUsecase {
+func New(l log.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) *ImplUsecase {
 	return &ImplUsecase{
 		l:       l,
 		scope:   scope,
@@ -82,7 +83,7 @@ func New(l pkgLog.Logger, scope scope.Manager, encrypt encrypter.Encrypter, user
 // --- Sub-manager factory functions ---
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(redisClient *pkgRedis.Client, ttl time.Duration) *SessionManager {
+func NewSessionManager(redisClient redis.IRedis, ttl time.Duration) *SessionManager {
 	return &SessionManager{
 		redis: redisClient,
 		ttl:   ttl,
@@ -90,7 +91,7 @@ func NewSessionManager(redisClient *pkgRedis.Client, ttl time.Duration) *Session
 }
 
 // NewBlacklistManager creates a new blacklist manager
-func NewBlacklistManager(redisClient *pkgRedis.Client) *BlacklistManager {
+func NewBlacklistManager(redisClient redis.IRedis) *BlacklistManager {
 	return &BlacklistManager{
 		redis: redisClient,
 	}
@@ -125,7 +126,7 @@ func (u *ImplUsecase) SetBlacklistManager(manager *BlacklistManager) {
 	u.blacklistManager = manager
 }
 
-func (u *ImplUsecase) SetJWTManager(manager *pkgJWT.Manager) {
+func (u *ImplUsecase) SetJWTManager(manager auth.Manager) {
 	u.jwtManager = manager
 }
 
