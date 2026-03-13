@@ -15,17 +15,15 @@ RUN apk add --no-cache git tzdata
 
 # Cache dependencies (rarely changes → cached layer)
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+COPY vendor/ vendor/
 
 # Copy source
 COPY . .
 
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags="-s -w" -o consumer ./cmd/consumer
+    go build -mod=vendor -trimpath -ldflags="-s -w" -o consumer ./cmd/consumer
 
 # =============================================================================
 # STAGE 2: RUNTIME (Distroless Static ~2MB)

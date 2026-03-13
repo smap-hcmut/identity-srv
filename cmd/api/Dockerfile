@@ -15,20 +15,17 @@ RUN apk add --no-cache git tzdata
 
 # Cache dependencies (rarely changes → cached layer)
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download && \
-    go install github.com/swaggo/swag/cmd/swag@v1.8.12
+COPY vendor/ vendor/
 
 # Copy source & generate swagger docs
 COPY . .
-RUN --mount=type=cache,target=/go/pkg/mod \
-    swag init -g cmd/api/main.go --parseVendor
+RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
+RUN swag init -g cmd/api/main.go --parseVendor
 
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags="-s -w" -o api ./cmd/api
+    go build -mod=vendor -trimpath -ldflags="-s -w" -o api ./cmd/api
 
 # =============================================================================
 # STAGE 2: RUNTIME (Distroless Static ~2MB)
