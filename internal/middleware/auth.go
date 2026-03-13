@@ -23,10 +23,11 @@ func (m Middleware) Auth() gin.HandlerFunc {
 			}
 		}
 
-		// Priority 2: If no token in header, try cookie
-		if tokenString == "" {
+		// Priority 2: If no token in header (or it's just "Bearer "), try cookie
+		if tokenString == "" || tokenString == "Bearer " {
 			tokenString, err = c.Cookie(m.cookieConfig.Name)
 			if err != nil || tokenString == "" {
+				m.l.Warnf(c.Request.Context(), "Auth middleware: missing token in header and cookie")
 				response.Unauthorized(c)
 				c.Abort()
 				return
@@ -36,6 +37,7 @@ func (m Middleware) Auth() gin.HandlerFunc {
 		// Verify JWT token
 		payload, err := m.jwtManager.Verify(tokenString)
 		if err != nil {
+			m.l.Warnf(c.Request.Context(), "Auth middleware: token verification failed: %v", err)
 			response.Unauthorized(c)
 			c.Abort()
 			return

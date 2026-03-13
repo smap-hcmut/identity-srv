@@ -5,17 +5,33 @@ import (
 	"identity-srv/internal/model"
 
 	"github.com/gin-gonic/gin"
-	"github.com/smap-hcmut/shared-libs/go/scope"
+	"github.com/smap-hcmut/shared-libs/go/auth"
 )
 
 // --- Scope extraction ---
 
 func (h handler) getScope(c *gin.Context) (model.Scope, error) {
-	sc, ok := scope.GetScopeFromContext(c.Request.Context())
+	payload, ok := auth.GetPayloadFromContext(c.Request.Context())
 	if !ok {
 		return model.Scope{}, authentication.ErrScopeNotFound
 	}
-	return model.ToScope(sc), nil
+	
+	// Ensure UserID is populated from Subject if empty
+	userID := payload.UserID
+	if userID == "" && payload.Subject != "" {
+		userID = payload.Subject
+	}
+
+	if userID == "" {
+		return model.Scope{}, authentication.ErrScopeNotFound
+	}
+
+	return model.Scope{
+		UserID:   userID,
+		Username: payload.Username,
+		Role:     payload.Role,
+		JTI:      payload.Id,
+	}, nil
 }
 
 // --- Process request functions ---

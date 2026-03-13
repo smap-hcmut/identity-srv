@@ -170,7 +170,7 @@ github.com/sagikazarmark/locafero v0.4.0 h1:HApY1R9zGo4DBgr7dqsTH/JJxLTTsOt7u6ke
 github.com/sagikazarmark/locafero v0.4.0/go.mod h1:Pe1W6UlPYUk/+wc/6KFhbORCfqzgYEpgQ3O5fPuL3H4=
 github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
-github.com/smap-hcmut/shared-libs/go v1.0.0 h1:DsPoAB1obFJI3cLtnchRcW8Evwt0Vpu5Yl3qldLz9qA=
+github.com/smap-hcmut/shared-libs/go v1.0.0 h1:SZe6/QYFXG45OnnMjVJ6lGi43y/3qc0toiZ7mah2jEQ=
 github.com/smap-hcmut/shared-libs/go v1.0.0/go.mod h1:yOhGS568myW3CaXP4y62hPuP8Ij70gdRNHsR9OZovSs=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=

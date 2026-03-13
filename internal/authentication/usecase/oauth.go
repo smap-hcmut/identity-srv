@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"identity-srv/internal/audit"
 	"identity-srv/internal/authentication"
 
 	"golang.org/x/oauth2"
@@ -43,34 +42,11 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 
 	// 3. Validate domain (business rule)
 	if !u.isAllowedDomain(userInfo.Email) {
-		u.PublishAuditEvent(ctx, audit.AuditEvent{
-			UserID:       userInfo.Email,
-			Action:       audit.ActionLoginFailed,
-			ResourceType: "authentication",
-			Metadata: map[string]string{
-				"provider": u.oauthProvider.GetProviderName(),
-				"reason":   "domain_not_allowed",
-				"domain":   u.extractDomain(userInfo.Email),
-			},
-			IPAddress: input.IPAddress,
-			UserAgent: input.UserAgent,
-		})
 		return nil, authentication.ErrDomainNotAllowed
 	}
 
 	// 4. Check blocklist (business rule)
 	if u.isBlockedEmail(userInfo.Email) {
-		u.PublishAuditEvent(ctx, audit.AuditEvent{
-			UserID:       userInfo.Email,
-			Action:       audit.ActionLoginFailed,
-			ResourceType: "authentication",
-			Metadata: map[string]string{
-				"provider": u.oauthProvider.GetProviderName(),
-				"reason":   "account_blocked",
-			},
-			IPAddress: input.IPAddress,
-			UserAgent: input.UserAgent,
-		})
 		return nil, authentication.ErrAccountBlocked
 	}
 
@@ -105,19 +81,6 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 	if err := u.createSession(ctx, usr.ID, jti, input.RememberMe); err != nil {
 		return nil, err
 	}
-
-	// 10. Publish audit event
-	u.PublishAuditEvent(ctx, audit.AuditEvent{
-		UserID:       usr.ID,
-		Action:       audit.ActionLogin,
-		ResourceType: "authentication",
-		Metadata: map[string]string{
-			"provider": u.oauthProvider.GetProviderName(),
-			"role":     role,
-		},
-		IPAddress: input.IPAddress,
-		UserAgent: input.UserAgent,
-	})
 
 	return &authentication.OAuthCallbackOutput{
 		Token: jwtToken,

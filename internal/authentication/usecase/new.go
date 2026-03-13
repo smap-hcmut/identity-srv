@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"identity-srv/internal/audit"
 	"identity-srv/internal/user"
 	"identity-srv/pkg/oauth"
 	"time"
@@ -21,7 +20,6 @@ type ImplUsecase struct {
 	encrypt           encrypter.Encrypter
 	userUC            user.UseCase
 	clock             func() time.Time
-	auditPublisher    audit.Publisher
 	sessionManager    *SessionManager
 	blacklistManager  *BlacklistManager
 	jwtManager        auth.Manager
@@ -113,10 +111,6 @@ func NewRedirectValidator(allowedURLs []string) *RedirectValidator {
 }
 
 // --- Setters (called after initialization) ---
-
-func (u *ImplUsecase) SetAuditPublisher(publisher audit.Publisher) {
-	u.auditPublisher = publisher
-}
 
 func (u *ImplUsecase) SetSessionManager(manager *SessionManager) {
 	u.sessionManager = manager

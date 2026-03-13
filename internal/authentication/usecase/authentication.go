@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"identity-srv/internal/audit"
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
 	"time"
@@ -39,12 +38,6 @@ func (u *ImplUsecase) Logout(ctx context.Context, sc model.Scope) error {
 		u.l.Errorf(ctx, "authentication.usecase.Logout.DeleteSession: %v", err)
 		return err
 	}
-
-	u.PublishAuditEvent(ctx, audit.AuditEvent{
-		UserID:       sc.UserID,
-		Action:       audit.ActionLogout,
-		ResourceType: "authentication",
-	})
 
 	return nil
 }
@@ -102,16 +95,4 @@ func (u *ImplUsecase) RevokeToken(ctx context.Context, jti string) error {
 // RevokeAllUserTokens revokes all tokens for a user
 func (u *ImplUsecase) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	return u.revokeAllUserTokensInternal(ctx, userID)
-}
-
-// PublishAuditEvent publishes an audit event (non-blocking)
-func (u *ImplUsecase) PublishAuditEvent(ctx context.Context, event audit.AuditEvent) {
-	if u.auditPublisher == nil {
-		u.l.Warnf(ctx, "Audit publisher not configured, skipping audit event")
-		return
-	}
-
-	if err := u.auditPublisher.Publish(ctx, event); err != nil {
-		u.l.Errorf(ctx, "Failed to publish audit event: %v", err)
-	}
 }

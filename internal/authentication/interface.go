@@ -2,7 +2,6 @@ package authentication
 
 import (
 	"context"
-	"identity-srv/internal/audit"
 	"identity-srv/internal/model"
 )
 
@@ -21,7 +20,4 @@ type UseCase interface {
 	// OAuth flow
 	InitiateOAuthLogin(ctx context.Context, input OAuthLoginInput) (*OAuthLoginOutput, error)
 	ProcessOAuthCallback(ctx context.Context, input OAuthCallbackInput) (*OAuthCallbackOutput, error)
-
-	// Audit
-	PublishAuditEvent(ctx context.Context, event audit.AuditEvent)
 }

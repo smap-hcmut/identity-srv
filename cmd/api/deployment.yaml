@@ -28,7 +28,7 @@ spec:
         - name: harbor-registry
       containers:
         - name: identity-api
-          image: registry.tantai.dev/smap/identity-api:260313-144844
+          image: registry.tantai.dev/smap/identity-api:260313-155843
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
