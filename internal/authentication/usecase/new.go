@@ -9,14 +9,13 @@ import (
 	"github.com/smap-hcmut/shared-libs/go/encrypter"
 	"github.com/smap-hcmut/shared-libs/go/log"
 	"github.com/smap-hcmut/shared-libs/go/redis"
-	"github.com/smap-hcmut/shared-libs/go/scope"
 
 	"identity-srv/config"
 )
 
 type ImplUsecase struct {
 	l                 log.Logger
-	scope             scope.Manager
+	scope             auth.Manager
 	encrypt           encrypter.Encrypter
 	userUC            user.UseCase
 	clock             func() time.Time
@@ -68,7 +67,7 @@ type RedirectValidator struct {
 	allowedURLs []string
 }
 
-func New(l log.Logger, scope scope.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) *ImplUsecase {
+func New(l log.Logger, scope auth.Manager, encrypt encrypter.Encrypter, userUC user.UseCase) *ImplUsecase {
 	return &ImplUsecase{
 		l:       l,
 		scope:   scope,

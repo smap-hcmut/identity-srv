@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/IBM/sarama"
 	"github.com/smap-hcmut/shared-libs/go/kafka"
 	"github.com/smap-hcmut/shared-libs/go/log"
-
-	"github.com/IBM/sarama"
 )
 
 // ModuleConsumer represents a consumer for a specific module
@@ -25,7 +24,7 @@ type Consumer struct {
 	logger          log.Logger
 	postgresDB      *sql.DB
 	kafkaBrokers    []string
-	kafkaConsumers  map[string]sarama.ConsumerGroup // groupID -> consumer
+	kafkaConsumers  map[string]kafka.IConsumer // groupID -> consumer
 	moduleConsumers []ModuleConsumer
 	cancelFuncs     []context.CancelFunc
 	wg              sync.WaitGroup
@@ -44,7 +43,7 @@ func New(logger log.Logger, cfg Config) (*Consumer, error) {
 		logger:          logger,
 		postgresDB:      cfg.PostgresDB,
 		kafkaBrokers:    cfg.KafkaBrokers,
-		kafkaConsumers:  make(map[string]sarama.ConsumerGroup),
+		kafkaConsumers:  make(map[string]kafka.IConsumer),
 		moduleConsumers: make([]ModuleConsumer, 0),
 		cancelFuncs:     make([]context.CancelFunc, 0),
 	}
@@ -135,7 +134,7 @@ func (srv *Consumer) startModuleConsumer(parentCtx context.Context, moduleConsum
 	topics := moduleConsumer.GetTopics()
 
 	// Create Kafka consumer group
-	kafkaConsumer, err := kafka.NewConsumerGroup(kafka.ConsumerConfig{
+	kafkaConsumer, err := kafka.NewConsumer(kafka.ConsumerConfig{
 		Brokers: srv.kafkaBrokers,
 		GroupID: groupID,
 	})
@@ -150,24 +149,17 @@ func (srv *Consumer) startModuleConsumer(parentCtx context.Context, moduleConsum
 	ctx, cancel := context.WithCancel(parentCtx)
 	srv.cancelFuncs = append(srv.cancelFuncs, cancel)
 
-	// Start consuming in goroutine
+	// Start consuming in goroutine — ConsumeWithContext blocks until ctx is cancelled
 	srv.wg.Add(1)
 	go func() {
 		defer srv.wg.Done()
 
 		handler := moduleConsumer.CreateHandler()
 
-		for {
-			if err := kafkaConsumer.Consume(ctx, topics, handler); err != nil {
-				srv.logger.Errorf(ctx, "Consumer error (group=%s): %v", groupID, err)
-			}
-
-			// Check if context was cancelled
-			if ctx.Err() != nil {
-				srv.logger.Infof(ctx, "Consumer stopped: group=%s", groupID)
-				return
-			}
+		if err := kafkaConsumer.ConsumeWithContext(ctx, topics, handler); err != nil {
+			srv.logger.Errorf(ctx, "Consumer error (group=%s): %v", groupID, err)
 		}
+		srv.logger.Infof(ctx, "Consumer stopped: group=%s", groupID)
 	}()
 
 	srv.logger.Infof(parentCtx, "Consumer started: group=%s, topics=%v", groupID, topics)

@@ -100,16 +100,7 @@ func (h handler) processGetUserRequest(c *gin.Context) (string, error) {
 // --- Cookie helpers (HTTP transport concern) ---
 
 func (h handler) setAuthCookie(c *gin.Context, token string) {
-	c.SetCookie(
-		h.cookieConfig.Name,
-		token,
-		h.cookieConfig.MaxAge,
-		"/",
-		h.cookieConfig.Domain,
-		h.cookieConfig.Secure,
-		true,
-	)
-	h.addSameSiteAttribute(c, h.cookieConfig.SameSite)
+	auth.GinSetAuthCookie(c, token, h.cookieConfig.Domain)
 }
 
 func (h handler) expireAuthCookie(c *gin.Context) {
@@ -119,37 +110,23 @@ func (h handler) expireAuthCookie(c *gin.Context) {
 		-1,
 		"/",
 		h.cookieConfig.Domain,
-		h.cookieConfig.Secure,
+		true,
 		true,
 	)
 }
 
 func (h handler) setStateCookie(c *gin.Context, state string) {
-	c.SetCookie("oauth_state", state, 300, "/", h.cookieConfig.Domain, h.cookieConfig.Secure, true)
+	c.SetCookie("oauth_state", state, 300, "/", h.cookieConfig.Domain, true, true)
 }
 
 func (h handler) clearStateCookie(c *gin.Context) {
-	c.SetCookie("oauth_state", "", -1, "/", h.cookieConfig.Domain, h.cookieConfig.Secure, true)
+	c.SetCookie("oauth_state", "", -1, "/", h.cookieConfig.Domain, true, true)
 }
 
 func (h handler) setRedirectCookie(c *gin.Context, url string) {
-	c.SetCookie("oauth_redirect", url, 300, "/", h.cookieConfig.Domain, h.cookieConfig.Secure, true)
+	c.SetCookie("oauth_redirect", url, 300, "/", h.cookieConfig.Domain, true, true)
 }
 
 func (h handler) clearRedirectCookie(c *gin.Context) {
-	c.SetCookie("oauth_redirect", "", -1, "/", h.cookieConfig.Domain, h.cookieConfig.Secure, true)
-}
-
-// addSameSiteAttribute manually adds SameSite attribute to the last Set-Cookie header
-func (h handler) addSameSiteAttribute(c *gin.Context, sameSite string) {
-	if sameSite == "" {
-		sameSite = "Lax" // Default
-	}
-	cookies := c.Writer.Header()["Set-Cookie"]
-	if len(cookies) > 0 {
-		lastCookie := cookies[len(cookies)-1]
-		lastCookie += "; SameSite=" + sameSite
-		cookies[len(cookies)-1] = lastCookie
-		c.Writer.Header()["Set-Cookie"] = cookies
-	}
+	c.SetCookie("oauth_redirect", "", -1, "/", h.cookieConfig.Domain, true, true)
 }

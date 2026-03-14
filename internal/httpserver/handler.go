@@ -9,18 +9,19 @@ import (
 	authhttp "identity-srv/internal/authentication/delivery/http"
 	authusecase "identity-srv/internal/authentication/usecase"
 	"identity-srv/internal/middleware"
+	sharedmw "github.com/smap-hcmut/shared-libs/go/middleware"
 	userrepository "identity-srv/internal/user/repository/postgre"
 	userusecase "identity-srv/internal/user/usecase"
 	"identity-srv/pkg/oauth"
 
-	"github.com/smap-hcmut/shared-libs/go/scope"
+	"github.com/smap-hcmut/shared-libs/go/auth"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (srv HTTPServer) mapHandlers() error {
 	// Initialize middleware with shared-libs interfaces
-	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, "", srv.config, srv.encrypter)
+	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, "", srv.encrypter)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
@@ -32,7 +33,7 @@ func (srv HTTPServer) mapHandlers() error {
 	userUC := userusecase.New(srv.l, srv.encrypter, userRepo)
 
 	// Initialize authentication usecase - use scope manager from shared-libs
-	scopeManager := scope.New(srv.config.JWT.SecretKey)
+	scopeManager := auth.NewManager(srv.config.JWT.SecretKey)
 	authUC := authusecase.New(srv.l, scopeManager, srv.encrypter, userUC)
 	authUC.SetSessionManager(srv.sessionManager)
 	authUC.SetBlacklistManager(srv.blacklistManager)
@@ -67,13 +68,13 @@ func (srv HTTPServer) mapHandlers() error {
 
 func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
 	// Recovery middleware with Discord reporting
-	srv.gin.Use(middleware.Recovery(srv.l, srv.discord))
+	srv.gin.Use(sharedmw.Recovery(srv.l, srv.discord))
 
-	corsConfig := middleware.DefaultCORSConfig(srv.environment)
-	srv.gin.Use(middleware.CORS(corsConfig))
+	corsConfig := sharedmw.DefaultCORSConfig(srv.environment)
+	srv.gin.Use(sharedmw.CORS(corsConfig))
 
 	// Tracing middleware for centralized logging (trace_id)
-	srv.gin.Use(middleware.Tracing())
+	srv.gin.Use(sharedmw.Tracing())
 
 	// Log CORS mode for visibility
 	ctx := context.Background()
@@ -84,7 +85,7 @@ func (srv HTTPServer) registerMiddlewares(mw middleware.Middleware) {
 	}
 
 	// Add locale middleware to extract and set locale from request header
-	srv.gin.Use(mw.Locale())
+	srv.gin.Use(sharedmw.Locale())
 }
 
 func (srv HTTPServer) registerSystemRoutes() {
