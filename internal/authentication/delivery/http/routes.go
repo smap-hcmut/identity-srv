@@ -1,12 +1,11 @@
 package http
 
 import (
-	"identity-srv/internal/middleware"
-
 	"github.com/gin-gonic/gin"
+	"github.com/smap-hcmut/shared-libs/go/middleware"
 )
 
-func MapAuthRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
+func (h handler) RegisterRoutes(r *gin.RouterGroup, mw *middleware.Middleware) {
 	// Public routes
 	r.GET("/login", h.OAuthLogin)
 	r.GET("/callback", h.OAuthCallback)
