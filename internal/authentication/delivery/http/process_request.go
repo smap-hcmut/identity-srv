@@ -3,6 +3,8 @@ package http
 import (
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/smap-hcmut/shared-libs/go/auth"
@@ -101,6 +103,29 @@ func (h handler) processGetUserRequest(c *gin.Context) (string, error) {
 
 func (h handler) setAuthCookie(c *gin.Context, token string) {
 	auth.GinSetAuthCookie(c, token, h.cookieConfig.Domain)
+}
+
+// setAuthCookieForRedirect sets the auth cookie with SameSite determined by the
+// redirect destination rather than the Origin header (which is absent in OAuth redirects).
+func (h handler) setAuthCookieForRedirect(c *gin.Context, token string, redirectURL string) {
+	isLocalhost := strings.HasPrefix(redirectURL, "http://localhost") ||
+		strings.HasPrefix(redirectURL, "https://localhost")
+
+	if isLocalhost {
+		// Cross-site: frontend on localhost, API on production domain.
+		// SameSite=None;Secure required for browser to send cookie on fetch requests.
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     h.cookieConfig.Name,
+			Value:    token,
+			Path:     "/",
+			MaxAge:   h.cookieConfig.MaxAge,
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteNoneMode,
+		})
+	} else {
+		auth.GinSetAuthCookie(c, token, h.cookieConfig.Domain)
+	}
 }
 
 func (h handler) expireAuthCookie(c *gin.Context) {

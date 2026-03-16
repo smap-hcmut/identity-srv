@@ -77,14 +77,16 @@ func (h handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	// Production mode: Set HttpOnly cookie and redirect
-	h.setAuthCookie(c, output.Token)
-
+	// Production mode: Set HttpOnly cookie and redirect.
+	// Read redirect destination first so cookie SameSite is set correctly:
+	// - localhost origin → SameSite=None (cross-site fetch from local dev)
+	// - production origin → SameSite=Lax
 	redirectURL, cookieErr := c.Cookie("oauth_redirect")
 	if cookieErr != nil || redirectURL == "" {
 		redirectURL = "/dashboard"
 	}
 	h.clearRedirectCookie(c)
 
+	h.setAuthCookieForRedirect(c, output.Token, redirectURL)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
