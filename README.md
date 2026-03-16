@@ -218,7 +218,7 @@ redis:
 - `GET /authentication/me` — Current user info
 - `GET /audit-logs` — List audit logs (ADMIN only; pagination and date filters)
 
-### Internal (service-to-service; X-Service-Key header when enabled)
+### Internal (service-to-service; `X-Internal-Key` header)
 
 - `POST /authentication/internal/validate` — Validate JWT
 - `POST /authentication/internal/revoke-token` — Revoke token (ADMIN only)

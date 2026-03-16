@@ -162,7 +162,7 @@ type EncrypterConfig struct {
 
 // InternalConfig is the configuration for internal service authentication
 type InternalConfig struct {
-	ServiceKeys map[string]string
+	InternalKey string
 }
 
 // Load loads configuration using Viper
@@ -271,15 +271,8 @@ func Load() (*Config, error) {
 	// Encrypter
 	cfg.Encrypter.Key = viper.GetString("encrypter.key")
 
-	// Internal Service Keys
-	serviceKeys := make(map[string]string)
-	if viper.IsSet("internal.service_keys") {
-		serviceKeysRaw := viper.GetStringMapString("internal.service_keys")
-		for service, key := range serviceKeysRaw {
-			serviceKeys[service] = key
-		}
-	}
-	cfg.InternalConfig.ServiceKeys = serviceKeys
+	// Internal Service Key
+	cfg.InternalConfig.InternalKey = viper.GetString("internal.internal_key")
 
 	// Discord
 	cfg.Discord.WebhookID = viper.GetString("discord.webhook_id")
@@ -338,7 +331,7 @@ func setDefaults() {
 
 	// Cookie
 	viper.SetDefault("cookie.name", "smap_auth_token")
-	viper.SetDefault("cookie.max_age", 28800)    // 8 hours
+	viper.SetDefault("cookie.max_age", 28800) // 8 hours
 	viper.SetDefault("cookie.domain", ".tantai.dev")
 	viper.SetDefault("access_control.allowed_redirect_urls", []string{"/dashboard", "/", "http://localhost:3000", "http://localhost:5173"})
 
@@ -444,6 +437,9 @@ func validate(cfg *Config) error {
 	// Validate Cookie Configuration (Task 4.4)
 	if cfg.Cookie.Name == "" {
 		return fmt.Errorf("cookie.name is required")
+	}
+	if cfg.InternalConfig.InternalKey == "" {
+		return fmt.Errorf("internal.internal_key is required")
 	}
 
 	return nil

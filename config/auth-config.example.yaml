@@ -94,11 +94,7 @@ encrypter:
 
 # Internal Service Authentication
 internal:
-  service_keys:
-    project_service: project-service-key
-    ingest_service: ingest-service-key
-    knowledge_service: knowledge-service-key
-    notification_service: notification-service-key
+  internal_key: "identity-internal-key"
 
 # Discord Webhook (Optional)
 discord:

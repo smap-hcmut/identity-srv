@@ -15,11 +15,12 @@ func MapAuthRoutes(r *gin.RouterGroup, h handler, mw middleware.Middleware) {
 	r.POST("/logout", mw.Auth(), h.Logout)
 	r.GET("/me", mw.Auth(), h.GetMe)
 
-	// Internal routes (require X-Service-Key header)
-	internal := r.Group("/internal") //, mw.ServiceAuth())
+	// Internal routes (require X-Internal-Key header)
+	internal := r.Group("/internal")
+	internal.Use(mw.InternalAuth())
 	{
 		internal.POST("/validate", h.ValidateToken)
-		internal.POST("/revoke-token", mw.Admin(), h.RevokeToken)
+		internal.POST("/revoke-token", mw.Auth(), mw.AdminOnly(), h.RevokeToken)
 		internal.GET("/users/:id", h.GetUserByID)
 	}
 }

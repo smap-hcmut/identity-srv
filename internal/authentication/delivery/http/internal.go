@@ -9,11 +9,11 @@ import (
 
 // ValidateToken validates a JWT token (internal service endpoint)
 // @Summary Validate Token (Internal)
-// @Description Fallback token validation endpoint for services. Requires X-Service-Key header.
+// @Description Fallback token validation endpoint for services. Requires X-Internal-Key header.
 // @Tags Internal
 // @Accept json
 // @Produce json
-// @Param X-Service-Key header string true "Service authentication key"
+// @Param X-Internal-Key header string true "Internal authentication key"
 // @Param body body validateTokenReq true "Token to validate"
 // @Success 200 {object} response.Resp{data=validateTokenResp} "Token validation result"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -45,11 +45,11 @@ func (h handler) ValidateToken(c *gin.Context) {
 
 // RevokeToken revokes a specific token or all user tokens (internal service endpoint)
 // @Summary Revoke Token (Internal)
-// @Description Revoke specific token or all user tokens. Requires X-Service-Key + ADMIN role.
+// @Description Revoke specific token or all user tokens. Requires X-Internal-Key + ADMIN role.
 // @Tags Internal
 // @Accept json
 // @Produce json
-// @Param X-Service-Key header string true "Service authentication key"
+// @Param X-Internal-Key header string true "Internal authentication key"
 // @Param body body revokeTokenReq true "Token revocation request"
 // @Success 200 {object} response.Resp "Token(s) revoked"
 // @Failure 400 {object} response.Resp "Bad Request"
@@ -85,11 +85,11 @@ func (h handler) RevokeToken(c *gin.Context) {
 
 // GetUserByID gets user information by ID (internal service endpoint)
 // @Summary Get User by ID (Internal)
-// @Description Get user information by ID. Requires X-Service-Key header.
+// @Description Get user information by ID. Requires X-Internal-Key header.
 // @Tags Internal
 // @Accept json
 // @Produce json
-// @Param X-Service-Key header string true "Service authentication key"
+// @Param X-Internal-Key header string true "Internal authentication key"
 // @Param id path string true "User ID"
 // @Success 200 {object} response.Resp{data=getUserResp} "User information"
 // @Failure 400 {object} response.Resp "Bad Request"

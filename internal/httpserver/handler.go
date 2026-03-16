@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	sharedmw "github.com/smap-hcmut/shared-libs/go/middleware"
 	audithttp "identity-srv/internal/audit/delivery/http"
 	auditPostgre "identity-srv/internal/audit/repository/postgre"
 	authhttp "identity-srv/internal/authentication/delivery/http"
 	authusecase "identity-srv/internal/authentication/usecase"
 	"identity-srv/internal/middleware"
-	sharedmw "github.com/smap-hcmut/shared-libs/go/middleware"
 	userrepository "identity-srv/internal/user/repository/postgre"
 	userusecase "identity-srv/internal/user/usecase"
 	"identity-srv/pkg/oauth"
@@ -21,7 +21,7 @@ import (
 
 func (srv HTTPServer) mapHandlers() error {
 	// Initialize middleware with shared-libs interfaces
-	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, "", srv.encrypter)
+	mw := middleware.New(srv.l, srv.jwtManager, srv.cookieConfig, srv.config.InternalConfig.InternalKey)
 
 	srv.registerMiddlewares(mw)
 	srv.registerSystemRoutes()
