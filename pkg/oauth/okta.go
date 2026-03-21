@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/smap-hcmut/shared-libs/go/tracing"
 	"golang.org/x/oauth2"
 )
 
@@ -47,6 +48,7 @@ func (p *OktaProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*U
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	tracing.NewHTTPPropagator(tracing.NewTraceContext()).InjectHTTP(ctx, req)
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	resp, err := client.Do(req)
 	if err != nil {
