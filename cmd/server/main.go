@@ -24,9 +24,8 @@ import (
 // @title       SMAP Identity Service API
 // @description SMAP Identity Service API documentation.
 // @version     1
-// @host        identity-srv.tantai.dev
-// @schemes     https
-// @BasePath    /identity
+// @schemes     https http
+// @BasePath    /identity/api/v1
 //
 // @securityDefinitions.apikey CookieAuth
 // @in cookie
