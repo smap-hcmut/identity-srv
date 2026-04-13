@@ -10,7 +10,7 @@ require (
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-gonic/gin v1.11.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/smap-hcmut/shared-libs/go v1.0.6
+	github.com/smap-hcmut/shared-libs/go v1.0.7
 	github.com/spf13/viper v1.19.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1

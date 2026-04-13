@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/smap-hcmut/shared-libs/go/constants"
 	"github.com/smap-hcmut/shared-libs/go/log"
 )
 
 // GetTopics returns the topics this consumer wants to subscribe to
 func (c *Consumer) GetTopics() []string {
-	return []string{"audit.events"}
+	return []string{constants.TopicAuditEvents}
 }
 
 // GetGroupID returns the consumer group ID
