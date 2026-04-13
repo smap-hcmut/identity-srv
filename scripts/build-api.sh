@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SMAP Identity API - Build and Push to Harbor Registry
+# SMAP Identity Service - Build and Push to Harbor Registry
 # Usage: ./build-api.sh [build-push|login|help]
 
 set -euo pipefail
@@ -17,8 +17,8 @@ REGISTRY="${HARBOR_REGISTRY:-registry.tantai.dev}"
 HARBOR_USER="${HARBOR_USERNAME:?HARBOR_USERNAME is not set. Export it in ~/.zshrc}"
 HARBOR_PASS="${HARBOR_PASSWORD:?HARBOR_PASSWORD is not set. Export it in ~/.zshrc}"
 PROJECT="smap"
-SERVICE="identity-api"
-DOCKERFILE="cmd/api/Dockerfile"
+SERVICE="identity-srv"
+DOCKERFILE="cmd/server/Dockerfile"
 PLATFORM="${PLATFORM:-linux/amd64}"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

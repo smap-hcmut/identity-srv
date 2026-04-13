@@ -7,6 +7,7 @@ import (
 	configPostgre "identity-srv/config/postgre"
 	_ "identity-srv/docs" // Import swagger docs
 	authUsecase "identity-srv/internal/authentication/usecase"
+	"identity-srv/internal/consumer"
 	"identity-srv/internal/httpserver"
 	"os"
 	"os/signal"
@@ -53,14 +54,15 @@ func main() {
 		ColorEnabled: cfg.Logger.ColorEnabled,
 	})
 
-	// 3. Register graceful shutdown
-	registerGracefulShutdown(logger)
+	// 3. Context with signal-based cancellation (replaces registerGracefulShutdown)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	logger.Info(ctx, "Starting Identity Service...")
 
 	// 4. Initialize encrypter
 	encrypterInstance := encrypter.New(cfg.Encrypter.Key)
 
-	// 5. Initialize PostgreSQL
-	ctx := context.Background()
 	postgresDB, err := configPostgre.Connect(ctx, cfg.Postgres)
 	if err != nil {
 		logger.Error(ctx, "Failed to connect to PostgreSQL: ", err)
@@ -104,8 +106,26 @@ func main() {
 	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
 	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
 
-	// 11. Initialize HTTP server
-	// 11. Initialize HTTP server
+	// ── Consumer (Kafka) ────────────────────────────────────────────────────
+	consumerService, err := consumer.New(logger, consumer.Config{
+		PostgresDB:   postgresDB,
+		KafkaBrokers: cfg.Kafka.Brokers,
+	})
+	if err != nil {
+		logger.Errorf(ctx, "Failed to initialize consumer service: %v", err)
+		return
+	}
+	defer consumerService.Close()
+
+	go func() {
+		if err := consumerService.Start(ctx); err != nil {
+			logger.Errorf(ctx, "Consumer service error: %v", err)
+		}
+	}()
+	logger.Info(ctx, "Consumer service started in background")
+
+	// ── HTTP Server ─────────────────────────────────────────────────────────
+	// Initialize HTTP server
 	// Main application server that handles all HTTP requests and routes
 	httpServer, err := httpserver.New(logger, httpserver.Config{
 		// Server Configuration
@@ -138,18 +158,5 @@ func main() {
 		logger.Error(ctx, "Failed to run server: ", err)
 		return
 	}
-}
-
-// registerGracefulShutdown registers a signal handler for graceful shutdown.
-func registerGracefulShutdown(logger log.Logger) {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-sigChan
-		logger.Info(context.Background(), "Shutting down gracefully...")
-
-		logger.Info(context.Background(), "Cleanup completed")
-		os.Exit(0)
-	}()
+	logger.Info(ctx, "Identity service stopped gracefully")
 }

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: identity-api
+  name: identity-srv
   namespace: smap
   labels:
-    app: identity-api
+    app: identity-srv
     app.kubernetes.io/part-of: smap
     app.kubernetes.io/component: api
 spec:
@@ -12,7 +12,7 @@ spec:
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      app: identity-api
+      app: identity-srv
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -21,14 +21,14 @@ spec:
   template:
     metadata:
       labels:
-        app: identity-api
+        app: identity-srv
         app.kubernetes.io/part-of: smap
     spec:
       imagePullSecrets:
         - name: harbor-registry
       containers:
-        - name: identity-api
-          image: registry.tantai.dev/smap/identity-api:260316-234914
+        - name: identity-srv
+          image: registry.tantai.dev/smap/identity-srv:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -48,7 +48,7 @@ spec:
                 name: identity-secrets
           env:
             - name: CONTAINER_NAME
-              value: "identity-api"
+              value: "identity-srv"
             - name: KUBERNETES_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -97,14 +97,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: identity-api
+  name: identity-srv
   namespace: smap
   labels:
-    app: identity-api
+    app: identity-srv
     app.kubernetes.io/part-of: smap
 spec:
   selector:
-    app: identity-api
+    app: identity-srv
   ports:
     - port: 80
       targetPort: 8080
