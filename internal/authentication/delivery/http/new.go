@@ -21,6 +21,7 @@ type handler struct {
 	discord      discord.IDiscord
 	cookieConfig config.CookieConfig
 	config       *config.Config
+	stateSecret  string // JWT secret reused for HMAC-signing OAuth state
 }
 
 func New(l log.Logger, uc authentication.UseCase, discord discord.IDiscord, cfg *config.Config) Handler {
@@ -30,6 +31,7 @@ func New(l log.Logger, uc authentication.UseCase, discord discord.IDiscord, cfg 
 		discord:      discord,
 		cookieConfig: cfg.Cookie,
 		config:       cfg,
+		stateSecret:  cfg.JWT.SecretKey,
 	}
 }
 

@@ -14,11 +14,6 @@ import (
 
 // --- internal helpers (private, not exposed on the interface) ---
 
-// generateState generates a CSRF state token
-func (u *ImplUsecase) generateState() string {
-	return fmt.Sprintf("state-%d", u.clock().UnixNano())
-}
-
 // isAllowedDomain checks if the email domain is in the allowlist
 func (u *ImplUsecase) isAllowedDomain(email string) bool {
 	if len(u.allowedDomains) == 0 {

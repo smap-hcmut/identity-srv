@@ -13,12 +13,11 @@ func (u *ImplUsecase) InitiateOAuthLogin(ctx context.Context, input authenticati
 		return nil, authentication.ErrInvalidProvider
 	}
 
-	state := u.generateState()
-	authURL := u.oauthProvider.GetAuthCodeURL(state, oauth2.AccessTypeOffline)
+	authURL := u.oauthProvider.GetAuthCodeURL(input.State, oauth2.AccessTypeOffline)
 
 	return &authentication.OAuthLoginOutput{
 		AuthURL: authURL,
-		State:   state,
+		State:   input.State,
 	}, nil
 }
 

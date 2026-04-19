@@ -18,8 +18,13 @@ import (
 func (h handler) OAuthLogin(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// 1. Process Request
-	input := h.processLoginRequest(c)
+	// 1. Process Request — generates HMAC-signed state embedding the redirect URL
+	input, err := h.processLoginRequest(c)
+	if err != nil {
+		h.l.Errorf(ctx, "processLoginRequest: %v", err)
+		response.Error(c, errInternalSystem, h.discord)
+		return
+	}
 
 	// 2. Call UseCase
 	output, err := h.uc.InitiateOAuthLogin(ctx, input)
@@ -29,11 +34,7 @@ func (h handler) OAuthLogin(c *gin.Context) {
 		return
 	}
 
-	// 3. Response
-	h.setStateCookie(c, output.State)
-	if input.RedirectURL != "" {
-		h.setRedirectCookie(c, input.RedirectURL)
-	}
+	// 3. Response — redirect to OAuth provider (no state cookie needed)
 	c.Redirect(http.StatusTemporaryRedirect, output.AuthURL)
 }
 
@@ -53,8 +54,8 @@ func (h handler) OAuthLogin(c *gin.Context) {
 func (h handler) OAuthCallback(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// 1. Process Request (includes CSRF state validation)
-	input, err := h.processCallbackRequest(c)
+	// 1. Process Request — validates HMAC state, extracts redirect URL (no cookies)
+	input, redirectURL, err := h.processCallbackRequest(c)
 	if err != nil {
 		h.l.Errorf(ctx, "processCallbackRequest: %v", err)
 		response.Error(c, err, h.discord)
@@ -78,14 +79,13 @@ func (h handler) OAuthCallback(c *gin.Context) {
 	}
 
 	// Production mode: Set HttpOnly cookie and redirect.
-	// Read redirect destination first so cookie SameSite is set correctly:
+	// The redirect URL was embedded in the HMAC-signed state at login time,
+	// so SameSite is set correctly based on the original request origin:
 	// - localhost origin → SameSite=None (cross-site fetch from local dev)
 	// - production origin → SameSite=Lax
-	redirectURL, cookieErr := c.Cookie("oauth_redirect")
-	if cookieErr != nil || redirectURL == "" {
+	if redirectURL == "" {
 		redirectURL = "/dashboard"
 	}
-	h.clearRedirectCookie(c)
 
 	h.setAuthCookieForRedirect(c, output.Token, redirectURL)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)

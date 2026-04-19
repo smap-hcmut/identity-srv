@@ -11,7 +11,10 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # Install build dependencies & timezone data
-RUN apk add --no-cache git tzdata
+# Also install swag here (before COPY . .) so this layer is cached
+# independently of source changes
+RUN apk add --no-cache git tzdata && \
+    go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Cache dependencies (rarely changes -> cached layer)
 COPY go.mod go.sum ./
@@ -19,7 +22,6 @@ COPY vendor/ vendor/
 
 # Copy source & generate swagger docs
 COPY . .
-RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 RUN swag init -g cmd/server/main.go --parseVendor
 
 # Build static binary

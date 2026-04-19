@@ -1,10 +1,17 @@
 package http
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"identity-srv/internal/authentication"
 	"identity-srv/internal/model"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/smap-hcmut/shared-libs/go/auth"
@@ -17,7 +24,7 @@ func (h handler) getScope(c *gin.Context) (model.Scope, error) {
 	if !ok {
 		return model.Scope{}, authentication.ErrScopeNotFound
 	}
-	
+
 	// Ensure UserID is populated from Subject if empty
 	userID := payload.UserID
 	if userID == "" && payload.Subject != "" {
@@ -36,21 +43,116 @@ func (h handler) getScope(c *gin.Context) (model.Scope, error) {
 	}, nil
 }
 
+// --- HMAC-signed OAuth state ---
+//
+// The OAuth "state" parameter serves as a CSRF token. Instead of storing it in
+// a Set-Cookie header (which breaks when the login goes through the localhost
+// proxy but the callback hits the production domain directly), we embed both the
+// nonce and the post-login redirect URL in a self-contained, HMAC-signed token.
+//
+// Format: base64url(JSON payload) + "." + base64url(HMAC-SHA256)
+// base64url uses the RawURL alphabet (no padding, no "+", no "/"), so "." is a
+// safe, unambiguous separator.
+
+type statePayload struct {
+	Nonce    string `json:"n"`
+	Redirect string `json:"r,omitempty"`
+	Exp      int64  `json:"e"` // Unix timestamp (5-minute window)
+}
+
+// generateSignedState creates a tamper-proof state token that embeds the
+// post-login redirect URL. No cookie is needed.
+func (h handler) generateSignedState(redirectURL string) (string, error) {
+	nonceBytes := make([]byte, 16)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return "", fmt.Errorf("generateSignedState: rand.Read: %w", err)
+	}
+
+	payload := statePayload{
+		Nonce:    base64.RawURLEncoding.EncodeToString(nonceBytes),
+		Redirect: redirectURL,
+		Exp:      time.Now().Add(5 * time.Minute).Unix(),
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("generateSignedState: json.Marshal: %w", err)
+	}
+
+	encodedPayload := base64.RawURLEncoding.EncodeToString(payloadJSON)
+	sig := h.computeStateHMAC(encodedPayload)
+	return encodedPayload + "." + sig, nil
+}
+
+// verifySignedState validates the HMAC signature and expiry, then returns the
+// embedded payload. Returns an error if the signature is invalid or the token
+// has expired.
+func (h handler) verifySignedState(signedState string) (statePayload, error) {
+	dotIdx := strings.LastIndex(signedState, ".")
+	if dotIdx < 0 {
+		return statePayload{}, fmt.Errorf("invalid state format: missing separator")
+	}
+
+	encodedPayload := signedState[:dotIdx]
+	sig := signedState[dotIdx+1:]
+
+	expectedSig := h.computeStateHMAC(encodedPayload)
+	if !hmac.Equal([]byte(sig), []byte(expectedSig)) {
+		return statePayload{}, fmt.Errorf("invalid state signature")
+	}
+
+	payloadJSON, err := base64.RawURLEncoding.DecodeString(encodedPayload)
+	if err != nil {
+		return statePayload{}, fmt.Errorf("invalid state encoding: %w", err)
+	}
+
+	var p statePayload
+	if err := json.Unmarshal(payloadJSON, &p); err != nil {
+		return statePayload{}, fmt.Errorf("invalid state payload: %w", err)
+	}
+
+	if time.Now().Unix() > p.Exp {
+		return statePayload{}, fmt.Errorf("state expired")
+	}
+
+	return p, nil
+}
+
+func (h handler) computeStateHMAC(data string) string {
+	mac := hmac.New(sha256.New, []byte(h.stateSecret))
+	mac.Write([]byte(data))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
 // --- Process request functions ---
 
-func (h handler) processCallbackRequest(c *gin.Context) (authentication.OAuthCallbackInput, error) {
-	// Validate CSRF state
-	state := c.Query("state")
-	storedState, err := c.Cookie("oauth_state")
-	if err != nil || state != storedState {
-		return authentication.OAuthCallbackInput{}, errInvalidState
+// processLoginRequest generates a signed state (embedding the redirect URL) and
+// returns the login input for the use case.
+func (h handler) processLoginRequest(c *gin.Context) (authentication.OAuthLoginInput, error) {
+	redirectURL := c.Query("redirect")
+	signedState, err := h.generateSignedState(redirectURL)
+	if err != nil {
+		return authentication.OAuthLoginInput{}, err
 	}
-	h.clearStateCookie(c)
+	return authentication.OAuthLoginInput{
+		RedirectURL: redirectURL,
+		State:       signedState,
+	}, nil
+}
 
-	// Validate code
+// processCallbackRequest validates the HMAC-signed state from the query param and
+// returns the callback input together with the redirect URL embedded in the state.
+// No cookies are read — this works regardless of which origin the callback arrives from.
+func (h handler) processCallbackRequest(c *gin.Context) (authentication.OAuthCallbackInput, string, error) {
+	state := c.Query("state")
+	payload, err := h.verifySignedState(state)
+	if err != nil {
+		return authentication.OAuthCallbackInput{}, "", errInvalidState
+	}
+
 	code := c.Query("code")
 	if code == "" {
-		return authentication.OAuthCallbackInput{}, errMissingCode
+		return authentication.OAuthCallbackInput{}, "", errMissingCode
 	}
 
 	return authentication.OAuthCallbackInput{
@@ -58,13 +160,7 @@ func (h handler) processCallbackRequest(c *gin.Context) (authentication.OAuthCal
 		RememberMe: c.Query("remember_me") == "true",
 		IPAddress:  c.ClientIP(),
 		UserAgent:  c.Request.UserAgent(),
-	}, nil
-}
-
-func (h handler) processLoginRequest(c *gin.Context) authentication.OAuthLoginInput {
-	return authentication.OAuthLoginInput{
-		RedirectURL: c.Query("redirect"),
-	}
+	}, payload.Redirect, nil
 }
 
 func (h handler) processValidateTokenRequest(c *gin.Context) (string, error) {
@@ -138,20 +234,4 @@ func (h handler) expireAuthCookie(c *gin.Context) {
 		true,
 		true,
 	)
-}
-
-func (h handler) setStateCookie(c *gin.Context, state string) {
-	c.SetCookie("oauth_state", state, 300, "/", h.cookieConfig.Domain, true, true)
-}
-
-func (h handler) clearStateCookie(c *gin.Context) {
-	c.SetCookie("oauth_state", "", -1, "/", h.cookieConfig.Domain, true, true)
-}
-
-func (h handler) setRedirectCookie(c *gin.Context, url string) {
-	c.SetCookie("oauth_redirect", url, 300, "/", h.cookieConfig.Domain, true, true)
-}
-
-func (h handler) clearRedirectCookie(c *gin.Context) {
-	c.SetCookie("oauth_redirect", "", -1, "/", h.cookieConfig.Domain, true, true)
 }
