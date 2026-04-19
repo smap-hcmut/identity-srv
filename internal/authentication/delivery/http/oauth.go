@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/smap-hcmut/shared-libs/go/response"
@@ -88,5 +89,17 @@ func (h handler) OAuthCallback(c *gin.Context) {
 	}
 
 	h.setAuthCookieForRedirect(c, output.Token, redirectURL)
+
+	// Also pass the token in the redirect URL so the frontend can set its
+	// own cookie when it runs on a different domain (e.g., localhost dev).
+	// The frontend callback page reads ?token=..., validates it server-side,
+	// and sets an HttpOnly cookie on its own domain.
+	if parsed, err := url.Parse(redirectURL); err == nil {
+		q := parsed.Query()
+		q.Set("token", output.Token)
+		parsed.RawQuery = q.Encode()
+		redirectURL = parsed.String()
+	}
+
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
