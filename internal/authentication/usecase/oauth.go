@@ -56,21 +56,21 @@ func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentica
 	}
 
 	// 6. Map email to role
-	u.l.Infof(ctx, "Mapping email to role")
+	u.l.Debugf(ctx, "Mapping email to role")
 	groups := []string{} // Empty groups array as we no longer use Google Groups
 	role := u.mapEmailToRole(userInfo.Email)
-	u.l.Infof(ctx, "Role mapped: %s", role)
+	u.l.Debugf(ctx, "Role mapped: %s", role)
 
 	// 7. Update user role
-	u.l.Infof(ctx, "Setting user role in memory")
+	u.l.Debugf(ctx, "Setting user role in memory")
 	usr.SetRole(role)
-	u.l.Infof(ctx, "Updating user role in DB")
+	u.l.Debugf(ctx, "Updating user role in DB")
 	if err := u.updateUserRole(ctx, usr.ID, role); err != nil {
-		u.l.Warnf(ctx, "authentication.usecase.ProcessOAuthCallback.UpdateUserRole: %v", err)
+		u.l.Errorf(ctx, "authentication.usecase.ProcessOAuthCallback.UpdateUserRole: %v", err)
 	}
 
 	// 8. Generate JWT token
-	u.l.Infof(ctx, "Generating JWT token")
+	u.l.Debugf(ctx, "Generating JWT token")
 	jwtToken, jti, err := u.generateToken(ctx, usr, role, groups)
 	if err != nil {
 		return nil, err

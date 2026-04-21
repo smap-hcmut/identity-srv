@@ -10,10 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/smap-hcmut/shared-libs/go/auth"
-	"github.com/smap-hcmut/shared-libs/go/middleware"
 	"github.com/smap-hcmut/shared-libs/go/discord"
 	"github.com/smap-hcmut/shared-libs/go/encrypter"
 	"github.com/smap-hcmut/shared-libs/go/log"
+	"github.com/smap-hcmut/shared-libs/go/middleware"
 	"github.com/smap-hcmut/shared-libs/go/redis"
 )
 
@@ -79,7 +79,7 @@ func New(logger log.Logger, cfg Config) (*HTTPServer, error) {
 
 	// Initialize session manager
 	sessionTTL := time.Duration(cfg.Config.Session.TTL) * time.Second
-	sessionManager := usecase.NewSessionManager(cfg.RedisClient, sessionTTL)
+	sessionManager := usecase.NewSessionManager(cfg.RedisClient, sessionTTL, logger)
 
 	// Initialize blacklist manager (using same Redis client as session)
 	blacklistManager := usecase.NewBlacklistManager(cfg.RedisClient)

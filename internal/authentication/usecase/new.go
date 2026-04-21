@@ -33,6 +33,7 @@ type ImplUsecase struct {
 
 // SessionManager handles session storage and retrieval
 type SessionManager struct {
+	l     log.Logger
 	redis redis.IRedis
 	ttl   time.Duration
 }
@@ -80,8 +81,9 @@ func New(l log.Logger, scope auth.Manager, encrypt encrypter.Encrypter, userUC u
 // --- Sub-manager factory functions ---
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(redisClient redis.IRedis, ttl time.Duration) *SessionManager {
+func NewSessionManager(redisClient redis.IRedis, ttl time.Duration, l log.Logger) *SessionManager {
 	return &SessionManager{
+		l:     l,
 		redis: redisClient,
 		ttl:   ttl,
 	}

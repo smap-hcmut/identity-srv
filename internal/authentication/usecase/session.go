@@ -132,6 +132,7 @@ func (sm *SessionManager) DeleteUserSessions(ctx context.Context, userID string)
 		sessionKey := fmt.Sprintf("session:%s", jti)
 		if err := sm.redis.Delete(ctx, sessionKey); err != nil {
 			// Log error but continue deleting other sessions
+			sm.l.Errorf(ctx, "authentication.usecase.DeleteUserSessions: failed to delete session jti=%s: %v", jti, err)
 			continue
 		}
 	}
