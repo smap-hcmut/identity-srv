@@ -6,6 +6,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+//go:generate mockery --name=Provider
 // Provider defines the interface for OAuth2 identity providers
 type Provider interface {
 	// GetAuthCodeURL returns the OAuth2 authorization URL

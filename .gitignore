@@ -5,6 +5,12 @@ vendor/
 .go-version
 bin/
 
+# Generated mocks
+**/mock_*.go
+
+# Coverage output
+*.out
+
 # Environment variables
 .env
 sqlboiler.toml

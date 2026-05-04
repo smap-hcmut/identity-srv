@@ -13,6 +13,14 @@ models: ## Generate SQLBoiler models
 	@echo "Generating models"
 	@sqlboiler psql
 
+test: 
+	@echo "Running tests..."
+	@go test -mod=vendor -coverprofile=coverage.out -failfast -timeout 5m ./internal/...
+	@grep -v 'mock_' coverage.out > c.out
+	@go tool cover -func=c.out
+	@echo "Coverage report generated in c.out"
+	@rm -f *.out
+
 swagger: ## Generate Swagger documentation
 	@echo "Generating swagger"
 	@swag init -g cmd/server/main.go --parseVendor
