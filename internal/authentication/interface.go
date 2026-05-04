@@ -5,6 +5,7 @@ import (
 	"identity-srv/internal/model"
 )
 
+//go:generate mockery --name=UseCase
 // UseCase interface for authentication module
 type UseCase interface {
 	// User operations

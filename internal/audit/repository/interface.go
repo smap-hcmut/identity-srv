@@ -6,6 +6,7 @@ import (
 	"identity-srv/internal/model"
 )
 
+//go:generate mockery --name=Repository
 // Repository defines the interface for audit log storage
 type Repository interface {
 	// BatchInsert inserts multiple audit events into the database
