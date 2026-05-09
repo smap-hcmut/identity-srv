@@ -21,7 +21,7 @@ func (u *ImplUsecase) isAllowedDomain(email string) bool {
 	}
 	domain := u.extractDomain(email)
 	for _, d := range u.allowedDomains {
-		if domain == d {
+		if domain == normalizeAccessControlValue(d) {
 			return true
 		}
 	}
@@ -30,8 +30,9 @@ func (u *ImplUsecase) isAllowedDomain(email string) bool {
 
 // isBlockedEmail checks if the email is in the blocklist
 func (u *ImplUsecase) isBlockedEmail(email string) bool {
+	email = normalizeAccessControlValue(email)
 	for _, blocked := range u.blockedEmails {
-		if email == blocked {
+		if email == normalizeAccessControlValue(blocked) {
 			return true
 		}
 	}
@@ -40,11 +41,15 @@ func (u *ImplUsecase) isBlockedEmail(email string) bool {
 
 // extractDomain extracts domain from email address
 func (u *ImplUsecase) extractDomain(email string) string {
-	parts := strings.SplitN(email, "@", 2)
+	parts := strings.SplitN(normalizeAccessControlValue(email), "@", 2)
 	if len(parts) == 2 {
 		return parts[1]
 	}
 	return ""
+}
+
+func normalizeAccessControlValue(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
 }
 
 // createOrUpdateUser creates or updates a user via the user UseCase

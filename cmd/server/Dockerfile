@@ -18,16 +18,16 @@ RUN apk add --no-cache git tzdata && \
 
 # Cache dependencies (rarely changes -> cached layer)
 COPY go.mod go.sum ./
-COPY vendor/ vendor/
+RUN go mod download
 
 # Copy source & generate swagger docs
 COPY . .
-RUN swag init -g cmd/server/main.go --parseVendor
+RUN swag init -g cmd/server/main.go --parseDependency --parseInternal
 
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -mod=vendor -trimpath -ldflags="-s -w" -o identity-srv ./cmd/server
+    go build -mod=mod -trimpath -ldflags="-s -w" -o identity-srv ./cmd/server
 
 # =============================================================================
 # STAGE 2: RUNTIME (Distroless Static ~2MB)

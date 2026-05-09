@@ -138,6 +138,23 @@ func (u *ImplUsecase) SetRedirectValidator(validator *RedirectValidator) {
 }
 
 func (u *ImplUsecase) SetAccessControl(allowedDomains, blockedEmails []string) {
-	u.allowedDomains = allowedDomains
-	u.blockedEmails = blockedEmails
+	u.allowedDomains = normalizeAccessControlList(allowedDomains)
+	u.blockedEmails = normalizeAccessControlList(blockedEmails)
+}
+
+func normalizeAccessControlList(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		item := normalizeAccessControlValue(value)
+		if item == "" {
+			continue
+		}
+		if _, ok := seen[item]; ok {
+			continue
+		}
+		seen[item] = struct{}{}
+		normalized = append(normalized, item)
+	}
+	return normalized
 }
