@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -255,8 +257,18 @@ func Load() (*Config, error) {
 	cfg.AccessControl.AllowedRedirectURLs = viper.GetStringSlice("access_control.allowed_redirect_urls")
 	cfg.AccessControl.DefaultRole = viper.GetString("access_control.default_role")
 
-	// User roles mapping (email -> role)
-	cfg.AccessControl.UserRoles = viper.GetStringMapString("access_control.user_roles")
+	// User roles mapping (email -> role). Viper can read this from YAML maps, but
+	// Kubernetes envFrom exposes ConfigMap values as strings, so support a compact
+	// env format too: ACCESS_CONTROL_USER_ROLES="user@domain=ADMIN,analyst@domain=ANALYST".
+	cfg.AccessControl.UserRoles = normalizeUserRoles(viper.GetStringMapString("access_control.user_roles"))
+	if envRoles := parseUserRolesEnv(os.Getenv("ACCESS_CONTROL_USER_ROLES")); len(envRoles) > 0 {
+		if cfg.AccessControl.UserRoles == nil {
+			cfg.AccessControl.UserRoles = map[string]string{}
+		}
+		for email, role := range envRoles {
+			cfg.AccessControl.UserRoles[email] = role
+		}
+	}
 
 	// Session
 	cfg.Session.TTL = viper.GetInt("session.ttl")
@@ -346,6 +358,58 @@ func setDefaults() {
 	viper.SetDefault("blacklist.key_prefix", "blacklist:")
 }
 
+func normalizeUserRoles(input map[string]string) map[string]string {
+	roles := make(map[string]string, len(input))
+	for email, role := range input {
+		normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+		normalizedRole := strings.ToUpper(strings.TrimSpace(role))
+		if normalizedEmail == "" || normalizedRole == "" {
+			continue
+		}
+		roles[normalizedEmail] = normalizedRole
+	}
+	return roles
+}
+
+func parseUserRolesEnv(raw string) map[string]string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+
+	jsonRoles := map[string]string{}
+	if err := json.Unmarshal([]byte(raw), &jsonRoles); err == nil && len(jsonRoles) > 0 {
+		return normalizeUserRoles(jsonRoles)
+	}
+
+	roles := map[string]string{}
+	for _, entry := range strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ';' || r == '\n'
+	}) {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+
+		key, value, ok := strings.Cut(entry, "=")
+		if !ok {
+			key, value, ok = strings.Cut(entry, ":")
+		}
+		if !ok {
+			continue
+		}
+
+		email := strings.ToLower(strings.TrimSpace(key))
+		role := strings.ToUpper(strings.TrimSpace(value))
+		if email == "" || role == "" {
+			continue
+		}
+		roles[email] = role
+	}
+
+	return roles
+}
+
 func validate(cfg *Config) error {
 	// Validate required OAuth2 fields
 	if cfg.OAuth2.ClientID == "" {
@@ -393,6 +457,11 @@ func validate(cfg *Config) error {
 	validRoles := map[string]bool{"ADMIN": true, "ANALYST": true, "VIEWER": true}
 	if !validRoles[cfg.AccessControl.DefaultRole] {
 		return fmt.Errorf("access_control.default_role must be one of: ADMIN, ANALYST, VIEWER")
+	}
+	for email, role := range cfg.AccessControl.UserRoles {
+		if !validRoles[role] {
+			return fmt.Errorf("access_control.user_roles contains invalid role for %s", email)
+		}
 	}
 
 	// Validate Encrypter

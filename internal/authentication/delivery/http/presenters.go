@@ -28,6 +28,7 @@ type getMeResp struct {
 	ID       string  `json:"id"`
 	Email    string  `json:"email"`
 	FullName *string `json:"full_name,omitempty"`
+	Role     string  `json:"role"`
 }
 
 type validateTokenResp struct {
@@ -63,6 +64,7 @@ func (h handler) newGetMeResp(o *model.User) *getMeResp {
 		ID:       o.ID,
 		Email:    o.Email,
 		FullName: o.Name,
+		Role:     o.GetRole(),
 	}
 }
 

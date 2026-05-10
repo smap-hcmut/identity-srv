@@ -1,9 +1,11 @@
 package usecase
 
+import "strings"
+
 // MapEmailToRole maps user email to a role
 // Returns the role if email is found in userRoles, otherwise returns default role
 func (rm *RoleMapper) MapEmailToRole(email string) string {
-	if role, ok := rm.userRoles[email]; ok {
+	if role, ok := rm.userRoles[strings.ToLower(strings.TrimSpace(email))]; ok {
 		return role
 	}
 	return rm.defaultRole
