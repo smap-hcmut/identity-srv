@@ -195,12 +195,6 @@ func (h handler) processGetUserRequest(c *gin.Context) (string, error) {
 	return userID, nil
 }
 
-// --- Cookie helpers (HTTP transport concern) ---
-
-func (h handler) setAuthCookie(c *gin.Context, token string) {
-	auth.GinSetAuthCookie(c, token, h.cookieConfig.Domain)
-}
-
 // setAuthCookieForRedirect sets the auth cookie with SameSite determined by the
 // redirect destination rather than the Origin header (which is absent in OAuth redirects).
 func (h handler) setAuthCookieForRedirect(c *gin.Context, token string, redirectURL string) {

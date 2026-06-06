@@ -7,17 +7,6 @@ import (
 	"identity-srv/internal/model"
 )
 
-// --- Request DTOs ---
-
-type getAuditLogsReq struct {
-	UserID string `form:"user_id"`
-	Action string `form:"action"`
-	From   string `form:"from"`
-	To     string `form:"to"`
-	Page   int    `form:"page"`
-	Limit  int    `form:"limit"`
-}
-
 // --- Response DTOs ---
 
 type auditLogResp struct {

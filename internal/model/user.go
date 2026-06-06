@@ -29,24 +29,6 @@ type User struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-// NewUser creates a new User with default values
-func NewUser(email, name string) *User {
-	user := &User{
-		Email:    email,
-		Name:     &name,
-		IsActive: true,
-	}
-	// Set default role as VIEWER
-	_ = user.SetRole(RoleViewer)
-	return user
-}
-
-// UpdateLastLogin updates the last login timestamp
-func (u *User) UpdateLastLogin() {
-	now := time.Now()
-	u.LastLoginAt = &now
-}
-
 // NewUserFromDB converts a SQLBoiler User to domain User
 func NewUserFromDB(dbUser *sqlboiler.User) *User {
 	if dbUser == nil {

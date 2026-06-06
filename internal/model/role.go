@@ -42,30 +42,6 @@ func VerifyRole(roleHash, plainRole string) bool {
 	return roleHash == encrypted
 }
 
-// IsAdmin checks if a user has admin role
-func (u *User) IsAdmin() bool {
-	if u.RoleHash == nil {
-		return false
-	}
-	return VerifyRole(*u.RoleHash, RoleAdmin)
-}
-
-// IsAnalyst checks if a user has analyst role
-func (u *User) IsAnalyst() bool {
-	if u.RoleHash == nil {
-		return false
-	}
-	return VerifyRole(*u.RoleHash, RoleAnalyst)
-}
-
-// IsViewer checks if a user has viewer role
-func (u *User) IsViewer() bool {
-	if u.RoleHash == nil {
-		return false
-	}
-	return VerifyRole(*u.RoleHash, RoleViewer)
-}
-
 // GetRole returns the decrypted role string
 // Returns empty string if role cannot be determined
 func (u *User) GetRole() string {
