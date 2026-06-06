@@ -20,9 +20,6 @@ type Config struct {
 	// Database Configuration
 	Postgres PostgresConfig
 
-	// Message Queue Configuration (Kafka replaces RabbitMQ)
-	Kafka KafkaConfig
-
 	// Cache Configuration
 	Redis RedisConfig
 
@@ -92,12 +89,6 @@ type BlacklistConfig struct {
 	Enabled   bool
 	Backend   string
 	KeyPrefix string
-}
-
-// KafkaConfig is the configuration for Kafka
-type KafkaConfig struct {
-	Brokers []string
-	Topic   string
 }
 
 // RedisConfig is the configuration for Redis
@@ -222,10 +213,6 @@ func Load() (*Config, error) {
 	cfg.Redis.Password = viper.GetString("redis.password")
 	cfg.Redis.DB = viper.GetInt("redis.db")
 
-	// Kafka
-	cfg.Kafka.Brokers = viper.GetStringSlice("kafka.brokers")
-	cfg.Kafka.Topic = viper.GetString("kafka.topic")
-
 	// OAuth2
 	cfg.OAuth2.Provider = viper.GetString("oauth2.provider")
 	cfg.OAuth2.ClientID = viper.GetString("oauth2.client_id")
@@ -326,10 +313,6 @@ func setDefaults() {
 	viper.SetDefault("redis.port", 6379)
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
-
-	// Kafka
-	viper.SetDefault("kafka.brokers", []string{"localhost:9092"})
-	viper.SetDefault("kafka.topic", "audit.events")
 
 	// OAuth2
 	viper.SetDefault("oauth2.provider", "google")

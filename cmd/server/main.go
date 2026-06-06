@@ -7,7 +7,6 @@ import (
 	configPostgre "identity-srv/config/postgre"
 	_ "identity-srv/docs" // Import swagger docs
 	authUsecase "identity-srv/internal/authentication/usecase"
-	"identity-srv/internal/consumer"
 	"identity-srv/internal/httpserver"
 	"os"
 	"os/signal"
@@ -104,24 +103,6 @@ func main() {
 	// Validates OAuth redirect URLs against whitelist to prevent open redirect attacks
 	redirectValidator := authUsecase.NewRedirectValidator(cfg.AccessControl.AllowedRedirectURLs)
 	logger.Infof(ctx, "Redirect validator initialized with %d allowed URLs", len(cfg.AccessControl.AllowedRedirectURLs))
-
-	// ── Consumer (Kafka) ────────────────────────────────────────────────────
-	consumerService, err := consumer.New(logger, consumer.Config{
-		PostgresDB:   postgresDB,
-		KafkaBrokers: cfg.Kafka.Brokers,
-	})
-	if err != nil {
-		logger.Errorf(ctx, "Failed to initialize consumer service: %v", err)
-		return
-	}
-	defer consumerService.Close()
-
-	go func() {
-		if err := consumerService.Start(ctx); err != nil {
-			logger.Errorf(ctx, "Consumer service error: %v", err)
-		}
-	}()
-	logger.Info(ctx, "Consumer service started in background")
 
 	// ── HTTP Server ─────────────────────────────────────────────────────────
 	// Initialize HTTP server

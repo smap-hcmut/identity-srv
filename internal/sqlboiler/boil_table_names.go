@@ -4,11 +4,9 @@
 package sqlboiler
 
 var TableNames = struct {
-	AuditLogs string
-	JWTKeys   string
-	Users     string
+	JWTKeys string
+	Users   string
 }{
-	AuditLogs: "audit_logs",
-	JWTKeys:   "jwt_keys",
-	Users:     "users",
+	JWTKeys: "jwt_keys",
+	Users:   "users",
 }

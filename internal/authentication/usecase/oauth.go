@@ -23,7 +23,7 @@ func (u *ImplUsecase) InitiateOAuthLogin(ctx context.Context, input authenticati
 
 // ProcessOAuthCallback handles the entire OAuth callback business logic:
 // exchange code → get user info → validate domain → create/update user →
-// fetch groups → map role → generate JWT → create session → audit
+// fetch groups → map role → generate JWT → create session
 func (u *ImplUsecase) ProcessOAuthCallback(ctx context.Context, input authentication.OAuthCallbackInput) (*authentication.OAuthCallbackOutput, error) {
 	// 1. Exchange code for token via OAuth provider
 	token, err := u.oauthProvider.ExchangeCode(ctx, input.Code)

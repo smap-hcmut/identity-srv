@@ -38,8 +38,8 @@ type UpdateUserRoleInput struct {
 type OAuthCallbackInput struct {
 	Code       string // Authorization code from OAuth provider
 	RememberMe bool   // Whether to create a long-lived session
-	IPAddress  string // Client IP address (for audit)
-	UserAgent  string // Client user agent (for audit)
+	IPAddress  string // Client IP address (for session metadata / security logging)
+	UserAgent  string // Client user agent (for session metadata / security logging)
 }
 
 // OAuthCallbackOutput contains the result of the OAuth callback processing

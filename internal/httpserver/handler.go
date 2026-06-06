@@ -3,8 +3,6 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	audithttp "identity-srv/internal/audit/delivery/http"
-	auditPostgre "identity-srv/internal/audit/repository/postgre"
 	authhttp "identity-srv/internal/authentication/delivery/http"
 	authusecase "identity-srv/internal/authentication/usecase"
 	"identity-srv/internal/model"
@@ -59,14 +57,9 @@ func (srv HTTPServer) mapHandlers() error {
 
 	// userHandler := userhttp.New(srv.l, userUC, srv.discord)
 
-	// Initialize audit handler
-	auditRepo := auditPostgre.New(srv.l, srv.postgresDB)
-	auditHandler := audithttp.New(srv.l, auditRepo, srv.discord)
-
 	// Map routes with middleware
 	apiV1 := srv.gin.Group(model.APIV1Prefix)
 	authHandler.RegisterRoutes(apiV1.Group("/authentication"), mw)
-	auditHandler.RegisterRoutes(apiV1.Group("/audit-logs"), mw)
 
 	return nil
 }

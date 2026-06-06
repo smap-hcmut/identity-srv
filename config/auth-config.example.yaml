@@ -33,12 +33,6 @@ redis:
   password: ""
   db: 0
 
-# Kafka Configuration
-kafka:
-  brokers:
-    - localhost:9092
-  topic: audit.events
-
 # OAuth2 Configuration
 oauth2:
   provider: google

@@ -54,30 +54,6 @@ CREATE INDEX IF NOT EXISTS idx_jwt_keys_status ON identity.jwt_keys(status);
 CREATE INDEX IF NOT EXISTS idx_jwt_keys_created_at ON identity.jwt_keys(created_at);
 
 -- ============================================================================
--- AUDIT LOGS TABLE (if needed)
--- ============================================================================
-CREATE TABLE IF NOT EXISTS identity.audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES identity.users(id),
-    action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(100),
-    resource_id VARCHAR(255),
-    ip_address INET,
-    user_agent TEXT,
-    metadata JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Index for user audit logs
-CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON identity.audit_logs(user_id);
-
--- Index for timestamp queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON identity.audit_logs(created_at);
-
--- Index for action queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON identity.audit_logs(action);
-
--- ============================================================================
 -- COMMENTS
 -- ============================================================================
 COMMENT ON SCHEMA identity IS 'Identity and authentication service schema';
@@ -93,5 +69,3 @@ COMMENT ON COLUMN identity.jwt_keys.kid IS 'Key ID (used in JWT header)';
 COMMENT ON COLUMN identity.jwt_keys.status IS 'Key status: active (signing new tokens), rotating (grace period), retired (no longer used)';
 COMMENT ON COLUMN identity.jwt_keys.private_key IS 'RSA private key (encrypted with AES-256-GCM)';
 COMMENT ON COLUMN identity.jwt_keys.public_key IS 'RSA public key (exposed via JWKS endpoint)';
-
-COMMENT ON TABLE identity.audit_logs IS 'Audit trail for all authentication and authorization events';
