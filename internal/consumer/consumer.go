@@ -81,11 +81,6 @@ func (srv *Consumer) registerConsumers() error {
 		return fmt.Errorf("failed to register audit consumer: %w", err)
 	}
 
-	// TODO: Register other module consumers here
-	// if err := srv.registerNotificationConsumer(ctx); err != nil {
-	//     return fmt.Errorf("failed to register notification consumer: %w", err)
-	// }
-
 	return nil
 }
 

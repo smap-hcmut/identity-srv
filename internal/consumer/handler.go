@@ -33,11 +33,3 @@ func (srv *Consumer) registerAuditConsumer(ctx context.Context) error {
 
 	return nil
 }
-
-// TODO: Add more consumer registration methods here
-// Example:
-// func (srv *Consumer) registerNotificationConsumer(ctx context.Context) error {
-//     notificationRepo := notificationPostgre.New(srv.postgresDB)
-//     notificationConsumer := notificationKafka.New(notificationRepo, srv.logger)
-//     return srv.register(notificationConsumer)
-// }

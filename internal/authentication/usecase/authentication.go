@@ -69,7 +69,7 @@ func (u *ImplUsecase) ValidateToken(ctx context.Context, token string) (*authent
 		UserID:    payload.UserID,
 		Email:     payload.Username,
 		Role:      payload.Role,
-		Groups:    []string{}, // TODO: Add groups support
+		Groups:    []string{},
 		ExpiresAt: time.Unix(payload.ExpiresAt, 0),
 	}, nil
 }
